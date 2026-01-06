@@ -41,7 +41,6 @@ version_control/autoload_on_startup=true
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-driver/threads/thread_model=2
 textures/lossless_compression/force_png=true
 viewport/hdr_2d=true
 anti_aliasing/screen_space_roughness_limiter/enabled=false

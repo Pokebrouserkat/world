@@ -16,48 +16,47 @@ const TILE_COORDS = {
 # Track which tiles have been generated
 var _generated_tiles: Dictionary = {}
 
+# Cache last rect to avoid redundant work
+var _last_rect: Rect2i
+
+
+func _ready() -> void:
+    _update_tiles()
+
 
 func _process(_delta: float) -> void:
-    update_visible_tiles()
+    _update_tiles()
 
 
-func update_visible_tiles() -> void:
-    var visible_rect = get_visible_tile_rect()
+func _update_tiles() -> void:
+    var rect = get_visible_tile_rect()
+    if rect == _last_rect:
+        return
+    _last_rect = rect
 
-    for x in range(visible_rect.position.x, visible_rect.end.x):
-        for y in range(visible_rect.position.y, visible_rect.end.y):
+    for x in range(rect.position.x, rect.end.x):
+        for y in range(rect.position.y, rect.end.y):
             var tile_pos = Vector2i(x, y)
             if not _generated_tiles.has(tile_pos):
-                generate_tile(tile_pos)
-
-
-func generate_tile(tile_pos: Vector2i) -> void:
-    var tile_type = get_tile_type(tile_pos.x, tile_pos.y)
-    var atlas_coords = TILE_COORDS[tile_type]
-    set_cell(tile_pos, 0, atlas_coords)
-    _generated_tiles[tile_pos] = true
+                var tile_type = get_tile_type(x, y)
+                set_cell(tile_pos, 0, TILE_COORDS[tile_type])
+                _generated_tiles[tile_pos] = true
 
 
 func get_visible_tile_rect() -> Rect2i:
-    var canvas_transform = get_canvas_transform()
-    var viewport_size = get_viewport_rect().size
+    var viewport_rect = get_viewport_rect()
+    var canvas_xform = get_canvas_transform()
 
-    # Get the visible area in world coordinates
-    var top_left = -canvas_transform.origin / canvas_transform.get_scale()
-    var bottom_right = top_left + viewport_size / canvas_transform.get_scale()
+    var top_left = -canvas_xform.origin / canvas_xform.get_scale()
+    var size = viewport_rect.size / canvas_xform.get_scale()
 
-    # Convert to tile coordinates with buffer
     var tile_size = tile_set.tile_size
-    var start = Vector2i(
-        floori(top_left.x / tile_size.x) - tile_buffer,
-        floori(top_left.y / tile_size.y) - tile_buffer
+    return Rect2i(
+        Vector2i(floori(top_left.x / tile_size.x) - tile_buffer,
+                 floori(top_left.y / tile_size.y) - tile_buffer),
+        Vector2i(ceili(size.x / tile_size.x) + tile_buffer * 2,
+                 ceili(size.y / tile_size.y) + tile_buffer * 2)
     )
-    var end = Vector2i(
-        ceili(bottom_right.x / tile_size.x) + tile_buffer,
-        ceili(bottom_right.y / tile_size.y) + tile_buffer
-    )
-
-    return Rect2i(start, end - start)
 
 
 func get_tile_type(x: int, y: int) -> TileType:
