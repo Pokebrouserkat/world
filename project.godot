@@ -1,0 +1,48 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="World"
+run/main_scene="uid://c6uff8f1xdojf"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+boot_splash/bg_color=Color(0.42795888, 0.5753326, 1, 1)
+config/icon="res://icon.svg"
+
+[compression]
+
+formats/zstd/long_distance_matching=true
+formats/zlib/compression_level=9
+formats/gzip/compression_level=9
+
+[display]
+
+window/per_pixel_transparency/allowed=true
+
+[editor]
+
+export/convert_text_resources_to_binary=false
+version_control/autoload_on_startup=true
+
+[physics]
+
+2d/run_on_separate_thread=true
+3d/physics_engine="Dummy"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+driver/threads/thread_model=2
+textures/lossless_compression/force_png=true
+viewport/hdr_2d=true
+anti_aliasing/screen_space_roughness_limiter/enabled=false
+viewport/transparent_background=true

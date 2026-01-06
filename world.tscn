@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3 uid="uid://c6uff8f1xdojf"]
+
+[ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://grass.png" id="1_f3sb7"]
+[ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://world.gd" id="2_world"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
+texture = ExtResource("1_f3sb7")
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_gv5m4"]
+sources/0 = SubResource("TileSetAtlasSource_fj7yv")
+
+[node name="Node2D" type="Node2D"]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+tile_set = SubResource("TileSet_gv5m4")
+occlusion_enabled = false
+script = ExtResource("2_world")
