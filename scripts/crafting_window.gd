@@ -100,10 +100,10 @@ func _create_ui() -> void:
 	# Main panel
 	var panel = NinePatchRect.new()
 	panel.texture = window_bg
-	panel.patch_margin_left = 4
-	panel.patch_margin_right = 4
-	panel.patch_margin_top = 4
-	panel.patch_margin_bottom = 4
+	panel.patch_margin_left = 16
+	panel.patch_margin_right = 16
+	panel.patch_margin_top = 16
+	panel.patch_margin_bottom = 16
 	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.custom_minimum_size = Vector2(140, 150)
