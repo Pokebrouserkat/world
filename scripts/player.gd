@@ -129,8 +129,8 @@ func _try_use_tool() -> void:
         _hit_tile(tile_pos, "rock")
     elif source_id == 2:  # Tree
         _hit_tile(tile_pos, "tree")
-    elif source_id == 3:  # Box
-        _hit_tile(tile_pos, "box")
+    elif source_id == 3:  # Box - instant pickup, no delay
+        _break_tile(tile_pos, "box")
 
 
 func _hit_tile(tile_pos: Vector2i, tile_type: String) -> void:
@@ -153,24 +153,28 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     var tile_world_pos = world.map_to_local(tile_pos)
 
     if tile_type == "rock":
-        _spawn_dropped_item("Rock", rock_item_texture, 1, tile_world_pos)
+        _spawn_dropped_item("Rock", rock_item_texture, 1, tile_world_pos, 0.3)
     elif tile_type == "tree":
         # Spread out 10 wood drops
         for i in range(10):
             var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-            _spawn_dropped_item("Wood", wood_texture, 1, tile_world_pos + spread_offset)
+            _spawn_dropped_item("Wood", wood_texture, 1, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "box":
-        _spawn_dropped_item("Box", box_texture, 1, tile_world_pos)
+        # Box: no pickup delay
+        _spawn_dropped_item("Box", box_texture, 1, tile_world_pos, 0.0)
 
 
-func _spawn_dropped_item(item_name: String, texture: Texture2D, quantity: int, pos: Vector2) -> void:
+func _spawn_dropped_item(item_name: String, texture: Texture2D, quantity: int, pos: Vector2, pickup_delay: float = 0.3) -> void:
     var dropped = dropped_item_scene.instantiate() as DroppedItem
     var item = Item.create(item_name, texture, quantity)
     dropped.set_item(item)
     dropped.add_to_group("dropped_items")
     dropped.global_position = pos
     get_parent().add_child(dropped)
-    dropped.enable_pickup_after_delay(0.3)
+    if pickup_delay > 0:
+        dropped.enable_pickup_after_delay(pickup_delay)
+    else:
+        dropped.can_pickup = true
 
 
 func _try_place_item() -> void:

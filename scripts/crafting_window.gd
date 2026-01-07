@@ -10,13 +10,16 @@ var recipes: Dictionary = {}
 
 # UI elements
 var recipe_container: VBoxContainer = null
-var recipe_buttons: Array[Button] = []
+var recipe_buttons: Array[TextureButton] = []
 
 # Textures
 var box_texture: Texture2D = preload("res://graphics/box.png")
 var wood_texture: Texture2D = preload("res://graphics/wood.png")
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
 var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
+
+# Ingredient textures lookup
+var ingredient_textures: Dictionary = {}
 
 
 func _ready() -> void:
@@ -32,6 +35,9 @@ func _ready() -> void:
 
 
 func _setup_recipes() -> void:
+	# Set up ingredient texture lookup
+	ingredient_textures["Wood"] = wood_texture
+
 	recipes["Box"] = {
 		"ingredients": {"Wood": 5},
 		"output_quantity": 1,
@@ -49,8 +55,8 @@ func _create_ui() -> void:
 	panel.patch_margin_bottom = 4
 	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(160, 120)
-	panel.size = Vector2(160, 120)
+	panel.custom_minimum_size = Vector2(120, 60)
+	panel.size = Vector2(120, 60)
 	panel.position = -panel.size / 2
 	add_child(panel)
 
@@ -58,14 +64,14 @@ func _create_ui() -> void:
 	var title = Label.new()
 	title.text = "Crafting"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.position = Vector2(0, 8)
-	title.size = Vector2(160, 16)
+	title.position = Vector2(0, 6)
+	title.size = Vector2(120, 14)
 	panel.add_child(title)
 
 	# Recipe container
 	recipe_container = VBoxContainer.new()
-	recipe_container.position = Vector2(8, 28)
-	recipe_container.size = Vector2(144, 84)
+	recipe_container.position = Vector2(8, 22)
+	recipe_container.size = Vector2(104, 32)
 	panel.add_child(recipe_container)
 
 	_populate_recipes()
@@ -86,34 +92,49 @@ func _populate_recipes() -> void:
 func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContainer:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 
-	# Output icon
-	var output_icon = TextureRect.new()
-	output_icon.texture = recipe.texture
-	output_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	output_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	output_icon.custom_minimum_size = Vector2(16, 16)
-	row.add_child(output_icon)
+	# Clickable output icon
+	var output_btn = TextureButton.new()
+	output_btn.texture_normal = recipe.texture
+	output_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	output_btn.stretch_mode = TextureButton.STRETCH_KEEP
+	output_btn.pressed.connect(_on_craft_pressed.bind(recipe_name))
+	row.add_child(output_btn)
+	recipe_buttons.append(output_btn)
 
-	# Recipe info label
-	var info = Label.new()
-	var ingredients_text = ""
+	# Equals sign
+	var equals = Label.new()
+	equals.text = "="
+	equals.add_theme_font_size_override("font_size", 10)
+	row.add_child(equals)
+
+	# Ingredients
+	var first_ing = true
 	for ing_name in recipe.ingredients:
-		if ingredients_text != "":
-			ingredients_text += ", "
-		ingredients_text += str(recipe.ingredients[ing_name]) + " " + ing_name
-	info.text = recipe_name + " (" + ingredients_text + ")"
-	info.add_theme_font_size_override("font_size", 8)
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(info)
+		if not first_ing:
+			var plus = Label.new()
+			plus.text = "+"
+			plus.add_theme_font_size_override("font_size", 10)
+			row.add_child(plus)
+		first_ing = false
 
-	# Craft button
-	var craft_btn = Button.new()
-	craft_btn.text = "Craft"
-	craft_btn.add_theme_font_size_override("font_size", 8)
-	craft_btn.pressed.connect(_on_craft_pressed.bind(recipe_name))
-	row.add_child(craft_btn)
-	recipe_buttons.append(craft_btn)
+		# Ingredient icon (smaller to show it's not clickable)
+		var ing_icon = TextureRect.new()
+		if ingredient_textures.has(ing_name):
+			ing_icon.texture = ingredient_textures[ing_name]
+		ing_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ing_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ing_icon.custom_minimum_size = Vector2(12, 12)
+		ing_icon.size = Vector2(12, 12)
+		row.add_child(ing_icon)
+
+		# Quantity label
+		var qty = Label.new()
+		qty.text = str(recipe.ingredients[ing_name])
+		qty.add_theme_font_size_override("font_size", 10)
+		qty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(qty)
 
 	return row
 
@@ -178,7 +199,9 @@ func _update_craft_buttons() -> void:
 	var idx = 0
 	for recipe_name in recipes:
 		if idx < recipe_buttons.size():
-			recipe_buttons[idx].disabled = not _can_craft(recipes[recipe_name])
+			var can_craft = _can_craft(recipes[recipe_name])
+			# Dim the button if can't craft
+			recipe_buttons[idx].modulate.a = 1.0 if can_craft else 0.4
 		idx += 1
 
 
