@@ -24,6 +24,10 @@ formats/gzip/compression_level=9
 
 [display]
 
+window/size/viewport_width=640
+window/size/viewport_height=360
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 window/per_pixel_transparency/allowed=true
 
 [editor]
