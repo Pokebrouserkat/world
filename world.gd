@@ -2,13 +2,27 @@ extends TileMapLayer
 
 # Tile type constants
 enum TileType {
-    GRASS = 0
+    GRASS = 0,
+    ROCK = 1
 }
 
-# Atlas coordinates for each tile type
-const TILE_COORDS = {
-    TileType.GRASS: Vector2i(0, 0)
+# Atlas source ID for each tile type
+const TILE_SOURCE = {
+    TileType.GRASS: 0,
+    TileType.ROCK: 1
 }
+
+# Atlas coordinates for each tile type (within their source)
+const TILE_COORDS = {
+    TileType.GRASS: Vector2i(0, 0),
+    TileType.ROCK: Vector2i(0, 0)
+}
+
+# Chance for a rock to spawn (1 in N tiles)
+const ROCK_SPAWN_CHANCE: int = 40
+
+# Seed for deterministic world generation
+const WORLD_SEED: int = 12345
 
 # Buffer of extra tiles to generate beyond the visible area
 @export var tile_buffer: int = 2
@@ -39,7 +53,7 @@ func _update_tiles() -> void:
             var tile_pos = Vector2i(x, y)
             if not _generated_tiles.has(tile_pos):
                 var tile_type = get_tile_type(x, y)
-                set_cell(tile_pos, 0, TILE_COORDS[tile_type])
+                set_cell(tile_pos, TILE_SOURCE[tile_type], TILE_COORDS[tile_type])
                 _generated_tiles[tile_pos] = true
 
 
@@ -60,5 +74,14 @@ func get_visible_tile_rect() -> Rect2i:
 
 
 func get_tile_type(x: int, y: int) -> TileType:
-    # TODO: seeded RNG
+    # Use position-based hash for deterministic generation
+    var hash_value = _position_hash(x, y)
+    if hash_value % ROCK_SPAWN_CHANCE == 0:
+        return TileType.ROCK
     return TileType.GRASS
+
+
+func _position_hash(x: int, y: int) -> int:
+    # Use fmod-based noise for reliable pseudo-random distribution
+    var n = sin(x * 12.9898 + y * 78.233 + WORLD_SEED) * 43758.5453
+    return absi(int(n * 1000) % 10000)

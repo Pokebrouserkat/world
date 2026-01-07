@@ -1,15 +1,23 @@
-[gd_scene load_steps=6 format=3 uid="uid://c6uff8f1xdojf"]
+[gd_scene load_steps=8 format=3 uid="uid://c6uff8f1xdojf"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://world.gd" id="2_world"]
 [ext_resource type="PackedScene" uid="uid://b8m74sik1k6mp" path="res://player.tscn" id="3_tlwt5"]
+[ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://rock.png" id="4_rock"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
 0:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rock"]
+texture = ExtResource("4_rock")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
+physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
+sources/1 = SubResource("TileSetAtlasSource_rock")
 
 [node name="Node2D" type="Node2D"]
 
