@@ -1,6 +1,7 @@
 extends CharacterBody2D
 
-@export var speed: float = 200.0
+@export var run_speed: float = 160.0
+@export var walk_speed: float = 80.0
 
 
 func _physics_process(_delta: float) -> void:
@@ -15,5 +16,6 @@ func _physics_process(_delta: float) -> void:
     if Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S):
         input_dir.y += 1
 
-    velocity = input_dir.normalized() * speed
+    var current_speed = walk_speed if Input.is_key_pressed(KEY_SHIFT) else run_speed
+    velocity = input_dir.normalized() * current_speed
     move_and_slide()
