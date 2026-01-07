@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="World"
-run/main_scene="uid://c6uff8f1xdojf"
+run/main_scene="res://scenes/world.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 boot_splash/bg_color=Color(0.42795888, 0.5753326, 1, 1)
 config/icon="res://icon.svg"
