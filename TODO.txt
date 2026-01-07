@@ -1,1 +1,4 @@
 - CMD+W, close menu if open, else close whole game
+- tree
+- crafting
+- inventory

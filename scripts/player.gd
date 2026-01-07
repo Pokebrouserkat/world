@@ -16,6 +16,7 @@ var wood_texture: Texture2D = preload("res://graphics/wood.png")
 var box_texture: Texture2D = preload("res://graphics/box.png")
 var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
 var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
+var pickup_sound: AudioStream = preload("res://audio/pickup.wav")
 
 var world: TileMapLayer = null
 
@@ -273,6 +274,7 @@ func _try_place_item() -> void:
 
 func _try_pickup() -> void:
     var dropped_items = get_tree().get_nodes_in_group("dropped_items")
+    var picked_up_any := false
 
     for item_node in dropped_items:
         var dropped: DroppedItem = item_node as DroppedItem
@@ -283,6 +285,19 @@ func _try_pickup() -> void:
         if dist < pickup_range and dropped.item and hotbar:
             if hotbar.add_item(dropped.item):
                 dropped.start_pickup(self)
+                picked_up_any = true
+
+    if picked_up_any:
+        _play_pickup_sound()
+
+
+func _play_pickup_sound() -> void:
+    var audio = AudioStreamPlayer.new()
+    audio.stream = pickup_sound
+    audio.bus = "Master"
+    get_tree().root.add_child(audio)
+    audio.play()
+    audio.finished.connect(audio.queue_free)
 
 
 func _on_item_dropped(item: Item, _slot_index: int) -> void:
