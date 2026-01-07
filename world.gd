@@ -60,6 +60,5 @@ func get_visible_tile_rect() -> Rect2i:
 
 
 func get_tile_type(x: int, y: int) -> TileType:
-    # TODO: Implement seeded RNG and biome generation
-    # For now, always return grass
+    # TODO: seeded RNG
     return TileType.GRASS
