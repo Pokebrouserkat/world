@@ -3,26 +3,33 @@ extends TileMapLayer
 # Tile type constants
 enum TileType {
     GRASS = 0,
-    ROCK = 1
+    ROCK = 1,
+    TREE = 2
 }
 
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
     TileType.GRASS: 0,
-    TileType.ROCK: 1
+    TileType.ROCK: 1,
+    TileType.TREE: 2
 }
 
 # Atlas coordinates for each tile type (within their source)
 const TILE_COORDS = {
     TileType.GRASS: Vector2i(0, 0),
-    TileType.ROCK: Vector2i(0, 0)
+    TileType.ROCK: Vector2i(0, 0),
+    TileType.TREE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
 const ROCK_SPAWN_CHANCE: int = 40
 
+# Chance for a tree to spawn on grass (1 in N grass tiles)
+const TREE_SPAWN_CHANCE: int = 20
+
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
+
 
 # Buffer of extra tiles to generate beyond the visible area
 @export var tile_buffer: int = 2
@@ -101,6 +108,10 @@ func get_tile_type(x: int, y: int) -> TileType:
     var hash_value = _position_hash(x, y)
     if hash_value % ROCK_SPAWN_CHANCE == 0:
         return TileType.ROCK
+    # Check for tree on grass tiles (use offset hash)
+    var tree_hash = _position_hash(x + 1000, y + 1000)
+    if tree_hash % TREE_SPAWN_CHANCE == 0:
+        return TileType.TREE
     return TileType.GRASS
 
 

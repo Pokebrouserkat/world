@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://c6uff8f1xdojf"]
+[gd_scene load_steps=11 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://sprites/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
-[ext_resource type="PackedScene" uid="uid://b8m74sik1k6mp" path="res://scenes/player.tscn" id="3_tlwt5"]
 [ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://sprites/rock.png" id="4_rock"]
-[ext_resource type="PackedScene" uid="uid://hotbar123" path="res://scenes/hotbar.tscn" id="5_hotbar"]
+[ext_resource type="PackedScene" path="res://scenes/hotbar.tscn" id="5_hotbar"]
+[ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://sprites/tree.png" id="6_tree"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -15,10 +16,19 @@ texture = ExtResource("4_rock")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tree"]
+texture = ExtResource("6_tree")
+texture_region_size = Vector2i(37, 40)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 12)
+0:0/0/y_sort_origin = 20
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
 sources/1 = SubResource("TileSetAtlasSource_rock")
+sources/2 = SubResource("TileSetAtlasSource_tree")
 
 [node name="Node2D" type="Node2D"]
 
@@ -28,7 +38,7 @@ tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
 
-[node name="Player" parent="." instance=ExtResource("3_tlwt5")]
+[node name="Player" parent="." instance=ExtResource("7_player")]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
