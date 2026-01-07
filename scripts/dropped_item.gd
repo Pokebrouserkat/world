@@ -65,3 +65,13 @@ func start_pickup(target: Node2D) -> void:
     can_pickup = false
     pickup_target = target
     pickup_progress = 0.0
+    _play_pickup_sound()
+
+
+func _play_pickup_sound() -> void:
+    var audio = AudioStreamPlayer.new()
+    audio.stream = preload("res://audio/pickup.wav")
+    audio.bus = "Master"
+    get_tree().root.add_child(audio)
+    audio.play()
+    audio.finished.connect(audio.queue_free)
