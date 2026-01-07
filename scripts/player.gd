@@ -7,9 +7,15 @@ var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
 var pick_texture: Texture2D = preload("res://graphics/plasticpick.png")
+var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
+var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
+var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
+var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
 var rock_item_texture: Texture2D = preload("res://graphics/rock_item.png")
 var wood_texture: Texture2D = preload("res://graphics/wood.png")
 var box_texture: Texture2D = preload("res://graphics/box.png")
+var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
+var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
 
 var world: TileMapLayer = null
 
@@ -20,6 +26,13 @@ var pickup_range: float = 32.0
 # Track tile health (rocks, trees, etc.)
 var _tile_health: Dictionary = {}
 const PLASTIC_TOOL_HITS: int = 10
+const WOOD_TOOL_HITS: int = 5
+const STONE_TOOL_HITS: int = 3
+
+# Base tile durability (how many hits with a 1-hit tool)
+const BASE_TILE_DURABILITY: int = 10
+const WOOD_WALL_DURABILITY: int = 20  # 2x base
+const STONE_WALL_DURABILITY: int = 30  # 3x base
 
 var _pending_left_click: bool = false
 
@@ -94,10 +107,23 @@ func _handle_left_click() -> void:
         return
 
     # Check what item is selected and perform appropriate action
-    if selected_item.name == "Box":
+    if selected_item.name == "Box" or selected_item.name == "Wood Wall" or selected_item.name == "Stone Wall":
         _try_place_item()
-    elif selected_item.name == "Pick" or selected_item.name == "Axe":
+    elif _is_tool(selected_item.name):
         _try_use_tool()
+
+
+func _is_tool(item_name: String) -> bool:
+    return item_name in ["Pick", "Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe"]
+
+
+func _get_tool_hits(item_name: String) -> int:
+    if item_name.begins_with("Stone"):
+        return STONE_TOOL_HITS
+    elif item_name.begins_with("Wood"):
+        return WOOD_TOOL_HITS
+    else:
+        return PLASTIC_TOOL_HITS
 
 
 func _try_use_tool() -> void:
@@ -109,7 +135,7 @@ func _try_use_tool() -> void:
         return
 
     var tool_name = selected_item.name
-    if tool_name != "Pick" and tool_name != "Axe":
+    if not _is_tool(tool_name):
         return
 
     # Get mouse position in world coordinates
@@ -126,19 +152,37 @@ func _try_use_tool() -> void:
 
     # Check what tile we're hitting
     if source_id == 1:  # Rock
-        _hit_tile(tile_pos, "rock")
+        _hit_tile(tile_pos, "rock", tool_name)
     elif source_id == 2:  # Tree
-        _hit_tile(tile_pos, "tree")
+        _hit_tile(tile_pos, "tree", tool_name)
     elif source_id == 3:  # Box - instant pickup, no delay
         _break_tile(tile_pos, "box")
+    elif source_id == 4:  # Wood Wall
+        _hit_tile(tile_pos, "wood_wall", tool_name)
+    elif source_id == 5:  # Stone Wall
+        _hit_tile(tile_pos, "stone_wall", tool_name)
 
 
-func _hit_tile(tile_pos: Vector2i, tile_type: String) -> void:
-    # Initialize health if not tracked
+func _get_tile_durability(tile_type: String) -> int:
+    match tile_type:
+        "wood_wall":
+            return WOOD_WALL_DURABILITY
+        "stone_wall":
+            return STONE_WALL_DURABILITY
+        _:
+            return BASE_TILE_DURABILITY
+
+
+func _hit_tile(tile_pos: Vector2i, tile_type: String, tool_name: String) -> void:
+    # Initialize health if not tracked (based on tile type durability)
     if not _tile_health.has(tile_pos):
-        _tile_health[tile_pos] = PLASTIC_TOOL_HITS
+        _tile_health[tile_pos] = _get_tile_durability(tile_type)
 
-    _tile_health[tile_pos] -= 1
+    # Calculate damage based on tool type
+    var tool_hits = _get_tool_hits(tool_name)
+    var damage = BASE_TILE_DURABILITY / tool_hits
+
+    _tile_health[tile_pos] -= damage
 
     if _tile_health[tile_pos] <= 0:
         _break_tile(tile_pos, tile_type)
@@ -162,6 +206,10 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     elif tile_type == "box":
         # Box: no pickup delay
         _spawn_dropped_item("Box", box_texture, 1, tile_world_pos, 0.0)
+    elif tile_type == "wood_wall":
+        _spawn_dropped_item("Wood Wall", wood_wall_texture, 1, tile_world_pos, 0.0)
+    elif tile_type == "stone_wall":
+        _spawn_dropped_item("Stone Wall", stone_wall_texture, 1, tile_world_pos, 0.0)
 
 
 func _spawn_dropped_item(item_name: String, texture: Texture2D, quantity: int, pos: Vector2, pickup_delay: float = 0.3) -> void:
@@ -185,9 +233,17 @@ func _try_place_item() -> void:
     if selected_item == null:
         return
 
-    # Only allow placing boxes
-    if selected_item.name != "Box":
-        return
+    # Determine which tile to place based on item
+    var tile_source_id: int = -1
+    match selected_item.name:
+        "Box":
+            tile_source_id = 3
+        "Wood Wall":
+            tile_source_id = 4
+        "Stone Wall":
+            tile_source_id = 5
+        _:
+            return
 
     # Get mouse position in world coordinates
     var mouse_pos = get_global_mouse_position()
@@ -205,10 +261,10 @@ func _try_place_item() -> void:
     if source_id != 0:
         return
 
-    # Place the box tile
-    world.set_cell(tile_pos, 3, Vector2i(0, 0))
+    # Place the tile
+    world.set_cell(tile_pos, tile_source_id, Vector2i(0, 0))
 
-    # Consume one box from inventory
+    # Consume one item from inventory
     selected_item.quantity -= 1
     if selected_item.quantity <= 0:
         hotbar.set_item(hotbar.selected_slot, null)

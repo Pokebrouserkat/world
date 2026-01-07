@@ -5,7 +5,9 @@ enum TileType {
     GRASS = 0,
     ROCK = 1,
     TREE = 2,
-    BOX = 3
+    BOX = 3,
+    WOOD_WALL = 4,
+    STONE_WALL = 5
 }
 
 # Atlas source ID for each tile type
@@ -13,7 +15,9 @@ const TILE_SOURCE = {
     TileType.GRASS: 0,
     TileType.ROCK: 1,
     TileType.TREE: 2,
-    TileType.BOX: 3
+    TileType.BOX: 3,
+    TileType.WOOD_WALL: 4,
+    TileType.STONE_WALL: 5
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -21,7 +25,9 @@ const TILE_COORDS = {
     TileType.GRASS: Vector2i(0, 0),
     TileType.ROCK: Vector2i(0, 0),
     TileType.TREE: Vector2i(0, 0),
-    TileType.BOX: Vector2i(0, 0)
+    TileType.BOX: Vector2i(0, 0),
+    TileType.WOOD_WALL: Vector2i(0, 0),
+    TileType.STONE_WALL: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)

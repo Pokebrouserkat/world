@@ -15,8 +15,15 @@ var recipe_buttons: Array[TextureButton] = []
 # Textures
 var box_texture: Texture2D = preload("res://graphics/box.png")
 var wood_texture: Texture2D = preload("res://graphics/wood.png")
+var rock_texture: Texture2D = preload("res://graphics/rock_item.png")
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
 var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
+var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
+var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
+var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
+var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
+var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
+var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
 
 # Ingredient textures lookup
 var ingredient_textures: Dictionary = {}
@@ -37,11 +44,55 @@ func _ready() -> void:
 func _setup_recipes() -> void:
 	# Set up ingredient texture lookup
 	ingredient_textures["Wood"] = wood_texture
+	ingredient_textures["Rock"] = rock_texture
 
 	recipes["Box"] = {
 		"ingredients": {"Wood": 5},
 		"output_quantity": 1,
 		"texture": box_texture
+	}
+
+	# Wood tools - 5 wood each
+	recipes["Wood Pick"] = {
+		"ingredients": {"Wood": 5},
+		"output_quantity": 1,
+		"texture": wood_pick_texture,
+		"stackable": false
+	}
+
+	recipes["Wood Axe"] = {
+		"ingredients": {"Wood": 5},
+		"output_quantity": 1,
+		"texture": wood_axe_texture,
+		"stackable": false
+	}
+
+	# Stone tools - 2 wood + 3 stone each
+	recipes["Stone Pick"] = {
+		"ingredients": {"Wood": 2, "Rock": 3},
+		"output_quantity": 1,
+		"texture": stone_pick_texture,
+		"stackable": false
+	}
+
+	recipes["Stone Axe"] = {
+		"ingredients": {"Wood": 2, "Rock": 3},
+		"output_quantity": 1,
+		"texture": stone_axe_texture,
+		"stackable": false
+	}
+
+	# Walls - 20 of respective material
+	recipes["Wood Wall"] = {
+		"ingredients": {"Wood": 20},
+		"output_quantity": 1,
+		"texture": wood_wall_texture
+	}
+
+	recipes["Stone Wall"] = {
+		"ingredients": {"Rock": 20},
+		"output_quantity": 1,
+		"texture": stone_wall_texture
 	}
 
 
@@ -55,8 +106,8 @@ func _create_ui() -> void:
 	panel.patch_margin_bottom = 4
 	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(120, 60)
-	panel.size = Vector2(120, 60)
+	panel.custom_minimum_size = Vector2(140, 150)
+	panel.size = Vector2(140, 150)
 	panel.position = -panel.size / 2
 	add_child(panel)
 
@@ -65,13 +116,13 @@ func _create_ui() -> void:
 	title.text = "Crafting"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(0, 6)
-	title.size = Vector2(120, 14)
+	title.size = Vector2(140, 14)
 	panel.add_child(title)
 
 	# Recipe container
 	recipe_container = VBoxContainer.new()
 	recipe_container.position = Vector2(8, 22)
-	recipe_container.size = Vector2(104, 32)
+	recipe_container.size = Vector2(124, 120)
 	panel.add_child(recipe_container)
 
 	_populate_recipes()
@@ -154,6 +205,8 @@ func _on_craft_pressed(recipe_name: String) -> void:
 
 	# Create output item
 	var output = Item.create(recipe_name, recipe.texture, recipe.output_quantity)
+	if recipe.has("stackable") and recipe.stackable == false:
+		output.stackable = false
 	hotbar.add_item(output)
 
 	_update_craft_buttons()

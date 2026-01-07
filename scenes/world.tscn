@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=20 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://scenes/crafting_window.tscn" id="8_crafting"]
 [ext_resource type="Script" uid="uid://b1r440gqpqbhn" path="res://scripts/game_manager.gd" id="9_game_manager"]
 [ext_resource type="Texture2D" uid="uid://b6eqdlgyybk3i" path="res://graphics/box.png" id="10_box"]
+[ext_resource type="Texture2D" path="res://graphics/woodwall.png" id="11_woodwall"]
+[ext_resource type="Texture2D" path="res://graphics/stonewall.png" id="12_stonewall"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -33,12 +35,24 @@ texture = ExtResource("10_box")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodwall"]
+texture = ExtResource("11_woodwall")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonewall"]
+texture = ExtResource("12_stonewall")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
 sources/1 = SubResource("TileSetAtlasSource_rock")
 sources/2 = SubResource("TileSetAtlasSource_tree")
 sources/3 = SubResource("TileSetAtlasSource_box")
+sources/4 = SubResource("TileSetAtlasSource_woodwall")
+sources/5 = SubResource("TileSetAtlasSource_stonewall")
 
 [node name="Node2D" type="Node2D"]
 
