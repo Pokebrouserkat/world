@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://huo76fjmjhqp"
-path="res://.godot/imported/grass.png-79cf597cc1adecdff9d12adae9606f9b.ctex"
+uid="uid://bek6amr5hx17y"
+path="res://.godot/imported/rightbox.png-3f7f18d96d2374758863eeea15eea94a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://grass.png"
-dest_files=["res://.godot/imported/grass.png-79cf597cc1adecdff9d12adae9606f9b.ctex"]
+source_file="res://sprites/rightbox.png"
+dest_files=["res://.godot/imported/rightbox.png-3f7f18d96d2374758863eeea15eea94a.ctex"]
 
 [params]
 

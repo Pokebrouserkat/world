@@ -17,12 +17,12 @@ var right_on: Texture2D
 
 
 func _ready() -> void:
-	left_off = preload("res://leftbox.png")
-	left_on = preload("res://leftboxon.png")
-	mid_off = preload("res://midbox.png")
-	mid_on = preload("res://midboxon.png")
-	right_off = preload("res://rightbox.png")
-	right_on = preload("res://rightboxon.png")
+	left_off = preload("res://sprites/leftbox.png")
+	left_on = preload("res://sprites/leftboxon.png")
+	mid_off = preload("res://sprites/midbox.png")
+	mid_on = preload("res://sprites/midboxon.png")
+	right_off = preload("res://sprites/rightbox.png")
+	right_on = preload("res://sprites/rightboxon.png")
 
 	_create_slots()
 	_update_slot_visuals()

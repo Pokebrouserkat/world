@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dl6oorlf0wfws"
-path="res://.godot/imported/midboxon.png-c36c070a277f95ffd7019c1517dcc928.ctex"
+uid="uid://d0k0kqr8dl4j0"
+path="res://.godot/imported/rightboxon.png-39f76a1da188239a6b4f58773d0edef3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://midboxon.png"
-dest_files=["res://.godot/imported/midboxon.png-c36c070a277f95ffd7019c1517dcc928.ctex"]
+source_file="res://sprites/rightboxon.png"
+dest_files=["res://.godot/imported/rightboxon.png-39f76a1da188239a6b4f58773d0edef3.ctex"]
 
 [params]
 
