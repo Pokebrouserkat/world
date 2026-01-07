@@ -6,6 +6,10 @@ extends CharacterBody2D
 var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 var axe_texture: Texture2D = preload("res://sprites/plasticax.png")
+var pick_texture: Texture2D = preload("res://sprites/plasticpick.png")
+var rock_item_texture: Texture2D = preload("res://sprites/rock_item.png")
+
+var world: TileMapLayer = null
 
 # Derived from sprite size
 var sprite_size: float = 16.0
@@ -24,6 +28,9 @@ func _ready() -> void:
 	if collision and collision.shape is RectangleShape2D:
 		collision.shape.size = Vector2(sprite_size * 0.875, sprite_size * 0.875)
 
+	# Find world tilemap for rock breaking (sibling node)
+	world = get_parent().get_node("TileMapLayer") as TileMapLayer
+
 	# Find hotbar and connect signals
 	await get_tree().process_frame
 	hotbar = get_tree().get_first_node_in_group("hotbar")
@@ -32,9 +39,11 @@ func _ready() -> void:
 
 	if hotbar:
 		hotbar.item_dropped.connect(_on_item_dropped)
-		# Give player an axe at start
+		# Give player starting tools
+		var pick = Item.create("Pick", pick_texture)
 		var axe = Item.create("Axe", axe_texture)
-		hotbar.set_item(0, axe)
+		hotbar.set_item(0, pick)
+		hotbar.set_item(1, axe)
 
 
 func _physics_process(_delta: float) -> void:
@@ -54,6 +63,54 @@ func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 	_try_pickup()
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_try_use_tool()
+
+
+func _try_use_tool() -> void:
+	if not hotbar or not world:
+		return
+
+	var selected_item = hotbar.get_selected_item()
+	if selected_item == null or selected_item.name != "Pick":
+		return
+
+	# Get mouse position in world coordinates
+	var mouse_pos = get_global_mouse_position()
+
+	# Check if within range (2 tiles)
+	var use_range = sprite_size * 2.0
+	if global_position.distance_to(mouse_pos) > use_range:
+		return
+
+	# Convert to tile coordinates
+	var tile_pos = world.local_to_map(mouse_pos)
+
+	# Check if it's a rock tile
+	var source_id = world.get_cell_source_id(tile_pos)
+	if source_id == 1:  # Rock source ID
+		_break_rock(tile_pos)
+
+
+func _break_rock(tile_pos: Vector2i) -> void:
+	# Replace rock with grass
+	world.set_cell(tile_pos, 0, Vector2i(0, 0))  # Grass source ID 0
+
+	# Spawn rock item at tile center
+	var tile_world_pos = world.map_to_local(tile_pos)
+
+	var dropped = dropped_item_scene.instantiate() as DroppedItem
+	var rock_item = Item.create("Rock", rock_item_texture)
+	dropped.set_item(rock_item)
+	dropped.add_to_group("dropped_items")
+	dropped.global_position = tile_world_pos
+
+	get_parent().add_child(dropped)
+	dropped.enable_pickup_after_delay(0.3)
 
 
 func _try_pickup() -> void:
