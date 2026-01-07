@@ -39,9 +39,11 @@ func _ready() -> void:
 
 	if hotbar:
 		hotbar.item_dropped.connect(_on_item_dropped)
-		# Give player starting tools
+		# Give player starting tools (not stackable)
 		var pick = Item.create("Pick", pick_texture)
+		pick.stackable = false
 		var axe = Item.create("Axe", axe_texture)
+		axe.stackable = false
 		hotbar.set_item(0, pick)
 		hotbar.set_item(1, axe)
 

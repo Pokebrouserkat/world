@@ -9,6 +9,7 @@ var selected_slot: int = 0
 var slots: Array[TextureButton] = []
 var items: Array[Item] = []
 var item_icons: Array[TextureRect] = []
+var stack_labels: Array[Label] = []
 
 # Textures for slot states
 var left_off: Texture2D
@@ -74,6 +75,16 @@ func _create_slots() -> void:
 		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 		slot.add_child(icon)
 		item_icons.append(icon)
+
+		# Add stack count label
+		var label = Label.new()
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		label.add_theme_font_size_override("font_size", 8)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(label)
+		stack_labels.append(label)
 
 
 func _input(event: InputEvent) -> void:
@@ -199,8 +210,14 @@ func _update_item_icons() -> void:
 	for i in range(slot_count):
 		if items[i] != null:
 			item_icons[i].texture = items[i].texture
+			# Show stack count if more than 1
+			if items[i].quantity > 1:
+				stack_labels[i].text = str(items[i].quantity)
+			else:
+				stack_labels[i].text = ""
 		else:
 			item_icons[i].texture = null
+			stack_labels[i].text = ""
 
 
 func set_item(slot_index: int, item: Item) -> void:
@@ -220,7 +237,17 @@ func get_selected_item() -> Item:
 
 
 func add_item(item: Item) -> bool:
-	# Find first empty slot
+	# First try to stack with existing items
+	if item.stackable:
+		for i in range(slot_count):
+			if items[i] != null and items[i].can_stack_with(item):
+				var leftover = items[i].add_quantity(item.quantity)
+				if leftover == 0:
+					_update_item_icons()
+					return true
+				item.quantity = leftover
+
+	# Find first empty slot for remaining quantity
 	for i in range(slot_count):
 		if items[i] == null:
 			items[i] = item
