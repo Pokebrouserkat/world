@@ -126,7 +126,7 @@ func _try_pickup() -> void:
 		var dist = global_position.distance_to(dropped.global_position)
 		if dist < pickup_range and dropped.item and hotbar:
 			if hotbar.add_item(dropped.item):
-				dropped.queue_free()
+				dropped.start_pickup(self)
 
 
 func _on_item_dropped(item: Item, _slot_index: int) -> void:
