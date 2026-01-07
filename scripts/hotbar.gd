@@ -120,14 +120,14 @@ func _start_drag(pos: Vector2) -> void:
 		drag_from_slot = slot_index
 		select_slot(slot_index)
 
-		# Create drag preview
+		# Create drag preview in same CanvasLayer
 		drag_preview = TextureRect.new()
 		drag_preview.texture = items[slot_index].texture
 		drag_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		drag_preview.modulate.a = 0.7
-		get_tree().root.add_child(drag_preview)
-		drag_preview.global_position = pos - drag_preview.size / 2
+		get_parent().add_child(drag_preview)
+		drag_preview.position = pos - drag_preview.size / 2
 
 		# Hide original icon
 		item_icons[slot_index].modulate.a = 0.3
@@ -135,7 +135,7 @@ func _start_drag(pos: Vector2) -> void:
 
 func _update_drag(pos: Vector2) -> void:
 	if drag_preview:
-		drag_preview.global_position = pos - drag_preview.size / 2
+		drag_preview.position = pos - drag_preview.size / 2
 
 
 func _end_drag(pos: Vector2) -> void:
@@ -180,10 +180,19 @@ func _get_slot_at_position(global_pos: Vector2) -> int:
 
 func _drop_selected_item() -> void:
 	if items[selected_slot] != null:
-		var dropped_item = items[selected_slot]
-		items[selected_slot] = null
-		_update_item_icons()
-		item_dropped.emit(dropped_item, selected_slot)
+		var stack = items[selected_slot]
+		if stack.quantity > 1:
+			# Drop one from the stack
+			stack.quantity -= 1
+			var dropped_item = Item.create(stack.name, stack.texture, 1)
+			dropped_item.stackable = stack.stackable
+			_update_item_icons()
+			item_dropped.emit(dropped_item, selected_slot)
+		else:
+			# Drop the whole item
+			items[selected_slot] = null
+			_update_item_icons()
+			item_dropped.emit(stack, selected_slot)
 
 
 func select_slot(index: int) -> void:
