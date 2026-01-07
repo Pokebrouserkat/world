@@ -1,7 +1,8 @@
-[gd_scene load_steps=11 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=12 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://sprites/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
+[ext_resource type="Script" uid="uid://btlo8o54tldoa" path="res://scripts/grass_background.gd" id="3_grass_bg"]
 [ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://sprites/rock.png" id="4_rock"]
 [ext_resource type="PackedScene" path="res://scenes/hotbar.tscn" id="5_hotbar"]
 [ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://sprites/tree.png" id="6_tree"]
@@ -31,6 +32,14 @@ sources/1 = SubResource("TileSetAtlasSource_rock")
 sources/2 = SubResource("TileSetAtlasSource_tree")
 
 [node name="Node2D" type="Node2D"]
+
+[node name="GrassBackground" type="Sprite2D" parent="."]
+z_index = -1
+texture_repeat = 2
+texture = ExtResource("1_f3sb7")
+region_enabled = true
+region_rect = Rect2(0, 0, 2048, 2048)
+script = ExtResource("3_grass_bg")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
 y_sort_enabled = true
