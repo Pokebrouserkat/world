@@ -35,7 +35,30 @@ var _last_rect: Rect2i
 
 
 func _ready() -> void:
+    _setup_tile_physics()
     _update_tiles()
+
+
+func _setup_tile_physics() -> void:
+    # Update rock tile collision polygon to match tile size
+    if tile_set:
+        var tile_size = tile_set.tile_size
+        var half_w = tile_size.x / 2.0
+        var half_h = tile_size.y / 2.0
+
+        # Get the rock atlas source (source ID 1)
+        var rock_source = tile_set.get_source(TILE_SOURCE[TileType.ROCK]) as TileSetAtlasSource
+        if rock_source:
+            var tile_data = rock_source.get_tile_data(TILE_COORDS[TileType.ROCK], 0)
+            if tile_data:
+                # Set collision polygon to match tile size
+                var polygon = PackedVector2Array([
+                    Vector2(-half_w, -half_h),
+                    Vector2(half_w, -half_h),
+                    Vector2(half_w, half_h),
+                    Vector2(-half_w, half_h)
+                ])
+                tile_data.set_collision_polygon_points(0, 0, polygon)
 
 
 func _process(_delta: float) -> void:

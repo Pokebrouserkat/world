@@ -39,6 +39,22 @@ func _ready() -> void:
 
 	_create_slots()
 	_update_slot_visuals()
+	_update_layout_from_textures()
+
+
+func _update_layout_from_textures() -> void:
+	# Derive hotbar size from slot textures
+	if mid_off:
+		var slot_width = mid_off.get_width()
+		var slot_height = mid_off.get_height()
+		var total_width = slot_width * slot_count
+		var half_width = total_width / 2.0
+
+		# Update container offsets to center the hotbar
+		offset_left = -half_width
+		offset_right = half_width
+		offset_top = -(slot_height + 8)
+		offset_bottom = -8
 
 
 func _create_slots() -> void:
