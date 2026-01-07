@@ -1,11 +1,14 @@
 extends HBoxContainer
 
 signal slot_selected(index: int)
+signal item_dropped(item: Item, slot_index: int)
 
 @export var slot_count: int = 9
 
 var selected_slot: int = 0
 var slots: Array[TextureButton] = []
+var items: Array[Item] = []
+var item_icons: Array[TextureRect] = []
 
 # Textures for slot states
 var left_off: Texture2D
@@ -15,14 +18,24 @@ var mid_on: Texture2D
 var right_off: Texture2D
 var right_on: Texture2D
 
+# Drag state
+var dragging: bool = false
+var drag_from_slot: int = -1
+var drag_preview: TextureRect = null
+
 
 func _ready() -> void:
+	add_to_group("hotbar")
 	left_off = preload("res://sprites/leftbox.png")
 	left_on = preload("res://sprites/leftboxon.png")
 	mid_off = preload("res://sprites/midbox.png")
 	mid_on = preload("res://sprites/midboxon.png")
 	right_off = preload("res://sprites/rightbox.png")
 	right_on = preload("res://sprites/rightboxon.png")
+
+	# Initialize items array
+	for i in range(slot_count):
+		items.append(null)
 
 	_create_slots()
 	_update_slot_visuals()
@@ -33,9 +46,18 @@ func _create_slots() -> void:
 		var slot = TextureButton.new()
 		slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		slot.stretch_mode = TextureButton.STRETCH_KEEP
-		slot.pressed.connect(_on_slot_pressed.bind(i))
+		slot.mouse_filter = Control.MOUSE_FILTER_STOP
 		add_child(slot)
 		slots.append(slot)
+
+		# Add item icon as child of slot
+		var icon = TextureRect.new()
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+		slot.add_child(icon)
+		item_icons.append(icon)
 
 
 func _input(event: InputEvent) -> void:
@@ -49,6 +71,92 @@ func _input(event: InputEvent) -> void:
 			select_slot((selected_slot - 1 + slot_count) % slot_count)
 		elif key == KEY_EQUAL or key == KEY_PLUS:
 			select_slot((selected_slot + 1) % slot_count)
+		elif key == KEY_Q:
+			_drop_selected_item()
+
+	# Handle drag and drop
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_start_drag(event.global_position)
+			else:
+				_end_drag(event.global_position)
+
+	if event is InputEventMouseMotion and dragging:
+		_update_drag(event.global_position)
+
+
+func _start_drag(pos: Vector2) -> void:
+	var slot_index = _get_slot_at_position(pos)
+	if slot_index >= 0 and items[slot_index] != null:
+		dragging = true
+		drag_from_slot = slot_index
+		select_slot(slot_index)
+
+		# Create drag preview
+		drag_preview = TextureRect.new()
+		drag_preview.texture = items[slot_index].texture
+		drag_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		drag_preview.modulate.a = 0.7
+		get_tree().root.add_child(drag_preview)
+		drag_preview.global_position = pos - drag_preview.size / 2
+
+		# Hide original icon
+		item_icons[slot_index].modulate.a = 0.3
+
+
+func _update_drag(pos: Vector2) -> void:
+	if drag_preview:
+		drag_preview.global_position = pos - drag_preview.size / 2
+
+
+func _end_drag(pos: Vector2) -> void:
+	if not dragging:
+		return
+
+	var target_slot = _get_slot_at_position(pos)
+
+	if target_slot >= 0 and target_slot != drag_from_slot:
+		# Swap items between slots
+		var temp = items[target_slot]
+		items[target_slot] = items[drag_from_slot]
+		items[drag_from_slot] = temp
+		_update_item_icons()
+	elif target_slot < 0:
+		# Dropped outside hotbar - drop the item
+		var dropped_item = items[drag_from_slot]
+		items[drag_from_slot] = null
+		_update_item_icons()
+		item_dropped.emit(dropped_item, drag_from_slot)
+
+	# Restore original icon opacity
+	item_icons[drag_from_slot].modulate.a = 1.0
+
+	# Clean up drag preview
+	if drag_preview:
+		drag_preview.queue_free()
+		drag_preview = null
+
+	dragging = false
+	drag_from_slot = -1
+
+
+func _get_slot_at_position(global_pos: Vector2) -> int:
+	for i in range(slots.size()):
+		var slot = slots[i]
+		var rect = slot.get_global_rect()
+		if rect.has_point(global_pos):
+			return i
+	return -1
+
+
+func _drop_selected_item() -> void:
+	if items[selected_slot] != null:
+		var dropped_item = items[selected_slot]
+		items[selected_slot] = null
+		_update_item_icons()
+		item_dropped.emit(dropped_item, selected_slot)
 
 
 func select_slot(index: int) -> void:
@@ -56,10 +164,6 @@ func select_slot(index: int) -> void:
 		selected_slot = index
 		_update_slot_visuals()
 		slot_selected.emit(index)
-
-
-func _on_slot_pressed(index: int) -> void:
-	select_slot(index)
 
 
 func _update_slot_visuals() -> void:
@@ -73,3 +177,37 @@ func _update_slot_visuals() -> void:
 			slot.texture_normal = right_on if is_selected else right_off
 		else:
 			slot.texture_normal = mid_on if is_selected else mid_off
+
+
+func _update_item_icons() -> void:
+	for i in range(slot_count):
+		if items[i] != null:
+			item_icons[i].texture = items[i].texture
+		else:
+			item_icons[i].texture = null
+
+
+func set_item(slot_index: int, item: Item) -> void:
+	if slot_index >= 0 and slot_index < slot_count:
+		items[slot_index] = item
+		_update_item_icons()
+
+
+func get_item(slot_index: int) -> Item:
+	if slot_index >= 0 and slot_index < slot_count:
+		return items[slot_index]
+	return null
+
+
+func get_selected_item() -> Item:
+	return get_item(selected_slot)
+
+
+func add_item(item: Item) -> bool:
+	# Find first empty slot
+	for i in range(slot_count):
+		if items[i] == null:
+			items[i] = item
+			_update_item_icons()
+			return true
+	return false
