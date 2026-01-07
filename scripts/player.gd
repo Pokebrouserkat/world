@@ -5,10 +5,11 @@ extends CharacterBody2D
 
 var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
-var axe_texture: Texture2D = preload("res://sprites/plasticax.png")
-var pick_texture: Texture2D = preload("res://sprites/plasticpick.png")
-var rock_item_texture: Texture2D = preload("res://sprites/rock_item.png")
-var wood_texture: Texture2D = preload("res://sprites/wood.png")
+var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
+var pick_texture: Texture2D = preload("res://graphics/plasticpick.png")
+var rock_item_texture: Texture2D = preload("res://graphics/rock_item.png")
+var wood_texture: Texture2D = preload("res://graphics/wood.png")
+var box_texture: Texture2D = preload("res://graphics/box.png")
 
 var world: TileMapLayer = null
 
@@ -20,7 +21,7 @@ var pickup_range: float = 32.0
 var _tile_health: Dictionary = {}
 const PLASTIC_TOOL_HITS: int = 10
 
-var _pending_tool_use: bool = false
+var _pending_left_click: bool = false
 
 
 func _ready() -> void:
@@ -71,9 +72,9 @@ func _physics_process(_delta: float) -> void:
     velocity = input_dir.normalized() * current_speed
     move_and_slide()
 
-    if _pending_tool_use:
-        _pending_tool_use = false
-        _try_use_tool()
+    if _pending_left_click:
+        _pending_left_click = false
+        _handle_left_click()
 
     _try_pickup()
 
@@ -81,7 +82,22 @@ func _physics_process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-            _pending_tool_use = true
+            _pending_left_click = true
+
+
+func _handle_left_click() -> void:
+    if not hotbar or not world:
+        return
+
+    var selected_item = hotbar.get_selected_item()
+    if selected_item == null:
+        return
+
+    # Check what item is selected and perform appropriate action
+    if selected_item.name == "Box":
+        _try_place_item()
+    elif selected_item.name == "Pick" or selected_item.name == "Axe":
+        _try_use_tool()
 
 
 func _try_use_tool() -> void:
@@ -113,6 +129,8 @@ func _try_use_tool() -> void:
         _hit_tile(tile_pos, "rock")
     elif source_id == 2:  # Tree
         _hit_tile(tile_pos, "tree")
+    elif source_id == 3:  # Box
+        _hit_tile(tile_pos, "box")
 
 
 func _hit_tile(tile_pos: Vector2i, tile_type: String) -> void:
@@ -131,22 +149,66 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     # Replace with grass
     world.set_cell(tile_pos, 0, Vector2i(0, 0))
 
-    # Spawn appropriate item at tile center
+    # Spawn appropriate item(s) at tile center
     var tile_world_pos = world.map_to_local(tile_pos)
-    var dropped = dropped_item_scene.instantiate() as DroppedItem
 
-    var item: Item
     if tile_type == "rock":
-        item = Item.create("Rock", rock_item_texture)
+        _spawn_dropped_item("Rock", rock_item_texture, 1, tile_world_pos)
     elif tile_type == "tree":
-        item = Item.create("Wood", wood_texture)
+        # Spread out 10 wood drops
+        for i in range(10):
+            var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
+            _spawn_dropped_item("Wood", wood_texture, 1, tile_world_pos + spread_offset)
+    elif tile_type == "box":
+        _spawn_dropped_item("Box", box_texture, 1, tile_world_pos)
 
+
+func _spawn_dropped_item(item_name: String, texture: Texture2D, quantity: int, pos: Vector2) -> void:
+    var dropped = dropped_item_scene.instantiate() as DroppedItem
+    var item = Item.create(item_name, texture, quantity)
     dropped.set_item(item)
     dropped.add_to_group("dropped_items")
-    dropped.global_position = tile_world_pos
-
+    dropped.global_position = pos
     get_parent().add_child(dropped)
     dropped.enable_pickup_after_delay(0.3)
+
+
+func _try_place_item() -> void:
+    if not hotbar or not world:
+        return
+
+    var selected_item = hotbar.get_selected_item()
+    if selected_item == null:
+        return
+
+    # Only allow placing boxes
+    if selected_item.name != "Box":
+        return
+
+    # Get mouse position in world coordinates
+    var mouse_pos = get_global_mouse_position()
+
+    # Check if within range (2 tiles)
+    var use_range = sprite_size * 2.0
+    if global_position.distance_to(mouse_pos) > use_range:
+        return
+
+    # Convert to tile coordinates
+    var tile_pos = world.local_to_map(world.to_local(mouse_pos))
+    var source_id = world.get_cell_source_id(tile_pos)
+
+    # Can only place on grass (source_id 0)
+    if source_id != 0:
+        return
+
+    # Place the box tile
+    world.set_cell(tile_pos, 3, Vector2i(0, 0))
+
+    # Consume one box from inventory
+    selected_item.quantity -= 1
+    if selected_item.quantity <= 0:
+        hotbar.set_item(hotbar.selected_slot, null)
+    hotbar._update_item_icons()
 
 
 func _try_pickup() -> void:

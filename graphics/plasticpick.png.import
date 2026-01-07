@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cm0rthjt7gdgf"
-path="res://.godot/imported/midbox.png-d5edd1671c35303d3c4ac22ee6bcecdc.ctex"
+uid="uid://b6nfnkq0onufa"
+path="res://.godot/imported/plasticpick.png-8971387b9df1da75a66de4118a582dc1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/midbox.png"
-dest_files=["res://.godot/imported/midbox.png-d5edd1671c35303d3c4ac22ee6bcecdc.ctex"]
+source_file="res://graphics/plasticpick.png"
+dest_files=["res://.godot/imported/plasticpick.png-8971387b9df1da75a66de4118a582dc1.ctex"]
 
 [params]
 

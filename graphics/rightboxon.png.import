@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7ces8w53o73e"
-path="res://.godot/imported/rock.png-df3db6a52b5550609cfe72347aaf985f.ctex"
+uid="uid://d0k0kqr8dl4j0"
+path="res://.godot/imported/rightboxon.png-f3b07bdc6494f3304c7dc3aefa03c44e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/rock.png"
-dest_files=["res://.godot/imported/rock.png-df3db6a52b5550609cfe72347aaf985f.ctex"]
+source_file="res://graphics/rightboxon.png"
+dest_files=["res://.godot/imported/rightboxon.png-f3b07bdc6494f3304c7dc3aefa03c44e.ctex"]
 
 [params]
 

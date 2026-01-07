@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bek6amr5hx17y"
-path="res://.godot/imported/rightbox.png-3f7f18d96d2374758863eeea15eea94a.ctex"
+uid="uid://cfonemfxypay0"
+path="res://.godot/imported/itemslot.png-c5c3909aca818e35c47ffac484b06133.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/rightbox.png"
-dest_files=["res://.godot/imported/rightbox.png-3f7f18d96d2374758863eeea15eea94a.ctex"]
+source_file="res://graphics/itemslot.png"
+dest_files=["res://.godot/imported/itemslot.png-c5c3909aca818e35c47ffac484b06133.ctex"]
 
 [params]
 

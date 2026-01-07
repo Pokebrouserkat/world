@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b38toix1bpcor"
-path="res://.godot/imported/wood.png-7495ef671131123dee9a5791372213e1.ctex"
+uid="uid://dl6oorlf0wfws"
+path="res://.godot/imported/midboxon.png-bb01f4ea37f74b55793cf29f83272917.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/wood.png"
-dest_files=["res://.godot/imported/wood.png-7495ef671131123dee9a5791372213e1.ctex"]
+source_file="res://graphics/midboxon.png"
+dest_files=["res://.godot/imported/midboxon.png-bb01f4ea37f74b55793cf29f83272917.ctex"]
 
 [params]
 

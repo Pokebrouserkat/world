@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dl6oorlf0wfws"
-path="res://.godot/imported/midboxon.png-d29589f5be31f20555b1555147f3d77f.ctex"
+uid="uid://cvb78jr76of5u"
+path="res://.godot/imported/rock_item.png-32e549aa40c2019ad9c8f5c4f86ef933.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/midboxon.png"
-dest_files=["res://.godot/imported/midboxon.png-d29589f5be31f20555b1555147f3d77f.ctex"]
+source_file="res://graphics/rock_item.png"
+dest_files=["res://.godot/imported/rock_item.png-32e549aa40c2019ad9c8f5c4f86ef933.ctex"]
 
 [params]
 

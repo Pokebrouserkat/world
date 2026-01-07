@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6nfnkq0onufa"
-path="res://.godot/imported/plasticpick.png-65d04916dbc80b2f1de19d366ae3dbfd.ctex"
+uid="uid://7ces8w53o73e"
+path="res://.godot/imported/rock.png-549029607f28d12fb9bc48ede2f84117.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://sprites/plasticpick.png"
-dest_files=["res://.godot/imported/plasticpick.png-65d04916dbc80b2f1de19d366ae3dbfd.ctex"]
+source_file="res://graphics/rock.png"
+dest_files=["res://.godot/imported/rock.png-549029607f28d12fb9bc48ede2f84117.ctex"]
 
 [params]
 

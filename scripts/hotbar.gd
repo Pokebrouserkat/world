@@ -27,12 +27,12 @@ var drag_preview: TextureRect = null
 
 func _ready() -> void:
 	add_to_group("hotbar")
-	left_off = preload("res://sprites/leftbox.png")
-	left_on = preload("res://sprites/leftboxon.png")
-	mid_off = preload("res://sprites/midbox.png")
-	mid_on = preload("res://sprites/midboxon.png")
-	right_off = preload("res://sprites/rightbox.png")
-	right_on = preload("res://sprites/rightboxon.png")
+	left_off = preload("res://graphics/leftbox.png")
+	left_on = preload("res://graphics/leftboxon.png")
+	mid_off = preload("res://graphics/midbox.png")
+	mid_on = preload("res://graphics/midboxon.png")
+	right_off = preload("res://graphics/rightbox.png")
+	right_on = preload("res://graphics/rightboxon.png")
 
 	# Initialize items array
 	for i in range(slot_count):

@@ -4,28 +4,31 @@ extends TileMapLayer
 enum TileType {
     GRASS = 0,
     ROCK = 1,
-    TREE = 2
+    TREE = 2,
+    BOX = 3
 }
 
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
     TileType.GRASS: 0,
     TileType.ROCK: 1,
-    TileType.TREE: 2
+    TileType.TREE: 2,
+    TileType.BOX: 3
 }
 
 # Atlas coordinates for each tile type (within their source)
 const TILE_COORDS = {
     TileType.GRASS: Vector2i(0, 0),
     TileType.ROCK: Vector2i(0, 0),
-    TileType.TREE: Vector2i(0, 0)
+    TileType.TREE: Vector2i(0, 0),
+    TileType.BOX: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
 const ROCK_SPAWN_CHANCE: int = 40
 
 # Chance for a tree to spawn on grass (1 in N grass tiles)
-const TREE_SPAWN_CHANCE: int = 20
+const TREE_SPAWN_CHANCE: int = 40
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345

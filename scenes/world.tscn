@@ -1,12 +1,15 @@
-[gd_scene load_steps=12 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=16 format=3 uid="uid://1upm5bo81qsc"]
 
-[ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://sprites/grass.png" id="1_f3sb7"]
+[ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
 [ext_resource type="Script" uid="uid://btlo8o54tldoa" path="res://scripts/grass_background.gd" id="3_grass_bg"]
-[ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://sprites/rock.png" id="4_rock"]
+[ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://graphics/rock.png" id="4_rock"]
 [ext_resource type="PackedScene" path="res://scenes/hotbar.tscn" id="5_hotbar"]
-[ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://sprites/tree.png" id="6_tree"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
+[ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://graphics/tree.png" id="6_tree"]
+[ext_resource type="PackedScene" uid="uid://b8m74sik1k6mp" path="res://scenes/player.tscn" id="7_player"]
+[ext_resource type="PackedScene" path="res://scenes/crafting_window.tscn" id="8_crafting"]
+[ext_resource type="Script" uid="uid://b1r440gqpqbhn" path="res://scripts/game_manager.gd" id="9_game_manager"]
+[ext_resource type="Texture2D" uid="uid://b6eqdlgyybk3i" path="res://graphics/box.png" id="10_box"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -25,11 +28,17 @@ texture_region_size = Vector2i(37, 40)
 0:0/0/y_sort_origin = 20
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_box"]
+texture = ExtResource("10_box")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
 sources/1 = SubResource("TileSetAtlasSource_rock")
 sources/2 = SubResource("TileSetAtlasSource_tree")
+sources/3 = SubResource("TileSetAtlasSource_box")
 
 [node name="Node2D" type="Node2D"]
 
@@ -52,3 +61,8 @@ script = ExtResource("2_world")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="Hotbar" parent="CanvasLayer" instance=ExtResource("5_hotbar")]
+
+[node name="CraftingWindow" parent="CanvasLayer" instance=ExtResource("8_crafting")]
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("9_game_manager")
