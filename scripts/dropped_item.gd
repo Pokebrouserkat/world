@@ -60,8 +60,8 @@ func _process(delta: float) -> void:
 
 
 func start_pickup(target: Node2D) -> void:
-    if being_picked_up:
-        return
+    # Note: being_picked_up may already be true on host (set in request_pickup_item)
+    # but we still need to set up the animation
     being_picked_up = true
     can_pickup = false
     pickup_target = target
