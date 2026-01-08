@@ -366,7 +366,11 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_name: Stri
     _tile_modifications[tile_pos] = tile_source_id
 
     # Tell the requester to consume their item
-    _rpc_confirm_placement.rpc_id(requester_peer_id, item_name)
+    if requester_peer_id == 1:
+        # Host is placing - call directly since call_remote won't reach us
+        _confirm_placement_local(item_name)
+    else:
+        _rpc_confirm_placement.rpc_id(requester_peer_id, item_name)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -394,8 +398,12 @@ func request_pickup_item(network_id: int, requester_peer_id: int) -> void:
     _rpc_remove_dropped_item.rpc(network_id, requester_peer_id)
 
     # Tell the picker they got the item
-    _rpc_confirm_pickup.rpc_id(requester_peer_id, item.name, _get_texture_key(item.texture),
-        item.quantity, item.stackable)
+    if requester_peer_id == 1:
+        # Host is picking up - call directly since call_remote won't reach us
+        _confirm_pickup_local(item)
+    else:
+        _rpc_confirm_pickup.rpc_id(requester_peer_id, item.name, _get_texture_key(item.texture),
+            item.quantity, item.stackable)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -494,9 +502,6 @@ func _rpc_remove_dropped_item(network_id: int, picker_peer_id: int) -> void:
     for item_node in dropped_items:
         var dropped: DroppedItem = item_node as DroppedItem
         if dropped and dropped.network_id == network_id:
-            # Skip if already being picked up
-            if dropped.being_picked_up:
-                break
             # Find the picker player for animation
             var players = get_tree().get_nodes_in_group("player")
             for player in players:
@@ -508,6 +513,10 @@ func _rpc_remove_dropped_item(network_id: int, picker_peer_id: int) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _rpc_confirm_placement(item_name: String) -> void:
+    _confirm_placement_local(item_name)
+
+
+func _confirm_placement_local(item_name: String) -> void:
     # Local player consumes item from inventory
     var players = get_tree().get_nodes_in_group("player")
     for player in players:
@@ -522,7 +531,10 @@ func _rpc_confirm_pickup(item_name: String, texture_key: String, quantity: int, 
     var texture = _get_texture_from_key(texture_key)
     var item = Item.create(item_name, texture, quantity)
     item.stackable = stackable
+    _confirm_pickup_local(item)
 
+
+func _confirm_pickup_local(item: Item) -> void:
     var players = get_tree().get_nodes_in_group("player")
     for player in players:
         if player.is_local_player():
