@@ -3,7 +3,9 @@ extends Control
 signal closed
 
 var hotbar: Node = null
+var player: Node = null
 var is_open: bool = false
+var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 
 # Recipe structure: {"output_name": {"ingredients": {"item_name": quantity}, "output_quantity": int, "texture": Texture2D}}
 var recipes: Dictionary = {}
@@ -37,9 +39,10 @@ func _ready() -> void:
 	_setup_recipes()
 	_create_ui()
 
-	# Find hotbar
+	# Find hotbar and player
 	await get_tree().process_frame
 	hotbar = get_tree().get_first_node_in_group("hotbar")
+	player = get_tree().get_first_node_in_group("player")
 
 
 func _setup_recipes() -> void:
@@ -240,7 +243,10 @@ func _on_craft_pressed(recipe_name: String) -> void:
 	var output = Item.create(recipe_name, recipe.texture, recipe.output_quantity)
 	if recipe.has("stackable") and recipe.stackable == false:
 		output.stackable = false
-	hotbar.add_item(output)
+
+	# Try to add to inventory, drop if full
+	if not hotbar.add_item(output):
+		_drop_item(output)
 
 	_update_craft_buttons()
 
@@ -279,6 +285,22 @@ func _consume_item(item_name: String, amount: int) -> void:
 			if item.quantity <= 0:
 				hotbar.set_item(i, null)
 	hotbar._update_item_icons()
+
+
+func _drop_item(item: Item) -> void:
+	if not player:
+		return
+
+	var dropped = dropped_item_scene.instantiate()
+	dropped.set_item(item)
+	dropped.add_to_group("dropped_items")
+
+	# Drop near player with random offset
+	var drop_offset = Vector2(16, 0).rotated(randf() * TAU)
+	dropped.global_position = player.global_position + drop_offset
+
+	player.get_parent().add_child(dropped)
+	dropped.enable_pickup_after_delay(0.5)
 
 
 func _update_craft_buttons() -> void:

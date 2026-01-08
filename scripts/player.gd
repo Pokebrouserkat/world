@@ -41,6 +41,8 @@ var box_inventory: Node = null
 
 
 func _ready() -> void:
+    add_to_group("player")
+
     # Derive sizes from actual sprite dimensions
     var sprite = $Sprite2D
     if sprite and sprite.texture:
