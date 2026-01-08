@@ -494,6 +494,9 @@ func _rpc_remove_dropped_item(network_id: int, picker_peer_id: int) -> void:
     for item_node in dropped_items:
         var dropped: DroppedItem = item_node as DroppedItem
         if dropped and dropped.network_id == network_id:
+            # Skip if already being picked up
+            if dropped.being_picked_up:
+                break
             # Find the picker player for animation
             var players = get_tree().get_nodes_in_group("player")
             for player in players:
