@@ -56,6 +56,7 @@ sources/4 = SubResource("TileSetAtlasSource_woodwall")
 sources/5 = SubResource("TileSetAtlasSource_stonewall")
 
 [node name="Node2D" type="Node2D"]
+y_sort_enabled = true
 
 [node name="GrassBackground" type="Sprite2D" parent="."]
 z_index = -1
