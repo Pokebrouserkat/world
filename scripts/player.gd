@@ -221,9 +221,9 @@ func _hit_tile(tile_pos: Vector2i, tile_type: String, tool_name: String) -> void
     if not _tile_health.has(tile_pos):
         _tile_health[tile_pos] = _get_tile_durability(tile_type)
 
-    # Calculate damage based on tool type
+    # Calculate damage based on tool type (ceiling division to ensure hits_to_break is exact)
     var tool_hits = _get_tool_hits(tool_name)
-    var damage = BASE_TILE_DURABILITY / tool_hits
+    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_hits)
 
     _tile_health[tile_pos] -= damage
 
