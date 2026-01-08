@@ -328,13 +328,14 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
             var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
             _spawn_item_at("Wood", "wood", 1, true, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "box":
-        # Drop box contents first
+        # Drop box contents first - drop each item in stack individually
         var contents = clear_box_contents(tile_pos)
         for item in contents:
             if item != null:
-                var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
-                _spawn_item_at(item.name, _get_texture_key(item.texture), item.quantity,
-                    item.stackable, tile_world_pos + spread_offset, 0.3)
+                for i in range(item.quantity):
+                    var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
+                    _spawn_item_at(item.name, _get_texture_key(item.texture), 1,
+                        item.stackable, tile_world_pos + spread_offset, 0.3)
         _spawn_item_at("Box", "box", 1, true, tile_world_pos, 0.0)
     elif tile_type == "wood_wall":
         _spawn_item_at("Wood Wall", "wood_wall", 1, true, tile_world_pos, 0.0)
