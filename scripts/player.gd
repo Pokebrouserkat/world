@@ -305,6 +305,11 @@ func _try_place_item() -> void:
     if source_id != 0:
         return
 
+    # Don't allow placing on the tile the player is standing on
+    var player_tile = world.local_to_map(world.to_local(global_position))
+    if tile_pos == player_tile:
+        return
+
     # Place the tile
     world.set_cell(tile_pos, tile_source_id, Vector2i(0, 0))
 
