@@ -248,11 +248,12 @@ func _end_drag(pos: Vector2) -> void:
 			# Move to hotbar
 			_transfer_box_to_hotbar(drag_from_slot, target_hotbar_slot)
 		elif target_box_slot >= 0 and target_box_slot != drag_from_slot:
-			# Swap within box
+			# Swap within box - use RPC for both slots
 			var contents = world.get_box_contents(current_box_pos)
 			var temp = contents[target_box_slot] if target_box_slot < contents.size() else null
-			world.set_box_slot(current_box_pos, target_box_slot, contents[drag_from_slot] if drag_from_slot < contents.size() else null)
-			world.set_box_slot(current_box_pos, drag_from_slot, temp)
+			var from_item = contents[drag_from_slot] if drag_from_slot < contents.size() else null
+			_request_set_box_slot(current_box_pos, target_box_slot, from_item)
+			_request_set_box_slot(current_box_pos, drag_from_slot, temp)
 		item_icons[drag_from_slot].modulate.a = 1.0
 
 	_update_item_icons()
@@ -272,8 +273,8 @@ func _transfer_hotbar_to_box(hotbar_slot: int, box_slot: int) -> void:
 	var contents = world.get_box_contents(current_box_pos)
 	var box_item = contents[box_slot] if box_slot < contents.size() else null
 
-	# Swap items
-	world.set_box_slot(current_box_pos, box_slot, hotbar_item)
+	# Swap items - use RPC for box slot
+	_request_set_box_slot(current_box_pos, box_slot, hotbar_item)
 	hotbar.set_item(hotbar_slot, box_item)
 
 
@@ -282,9 +283,9 @@ func _transfer_box_to_hotbar(box_slot: int, hotbar_slot: int) -> void:
 	var box_item = contents[box_slot] if box_slot < contents.size() else null
 	var hotbar_item = hotbar.get_item(hotbar_slot)
 
-	# Swap items
+	# Swap items - use RPC for box slot
 	hotbar.set_item(hotbar_slot, box_item)
-	world.set_box_slot(current_box_pos, box_slot, hotbar_item)
+	_request_set_box_slot(current_box_pos, box_slot, hotbar_item)
 
 
 func _get_slot_at_position(global_pos: Vector2) -> int:
@@ -335,3 +336,21 @@ func close() -> void:
 		drag_from_slot = -1
 
 	closed.emit()
+
+
+func _request_set_box_slot(box_pos: Vector2i, slot: int, item) -> void:
+	if not world:
+		return
+
+	var item_name := ""
+	var texture_key := ""
+	var quantity := 0
+	var stackable := true
+
+	if item != null:
+		item_name = item.name
+		texture_key = world._get_texture_key(item.texture)
+		quantity = item.quantity
+		stackable = item.stackable
+
+	world.request_set_box_slot.rpc_id(1, box_pos, slot, item_name, texture_key, quantity, stackable)
