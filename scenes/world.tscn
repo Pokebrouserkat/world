@@ -72,7 +72,7 @@ tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
 
-[node name="Player" parent="." instance=ExtResource("7_player")]
+[node name="Player" parent="TileMapLayer" instance=ExtResource("7_player")]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

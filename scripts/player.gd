@@ -54,8 +54,8 @@ func _ready() -> void:
     if collision and collision.shape is RectangleShape2D:
         collision.shape.size = Vector2(sprite_size * 0.875, sprite_size * 0.875)
 
-    # Find world tilemap for rock breaking (sibling node)
-    world = get_parent().get_node("TileMapLayer") as TileMapLayer
+    # Find world tilemap for rock breaking (now parent node)
+    world = get_parent() as TileMapLayer
 
     # Find hotbar and connect signals
     await get_tree().process_frame
