@@ -4,6 +4,7 @@ extends Area2D
 var item: Item
 var can_pickup: bool = false
 var being_picked_up: bool = false
+var network_id: int = -1  # Network ID for multiplayer sync
 var pickup_target: Node2D = null
 var pickup_progress: float = 0.0
 

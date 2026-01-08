@@ -8,6 +8,10 @@
 
 config_version=5
 
+[autoload]
+
+NetworkManager="*res://scripts/network_manager.gd"
+
 [application]
 
 config/name="World"

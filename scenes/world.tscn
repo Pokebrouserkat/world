@@ -6,13 +6,14 @@
 [ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://graphics/rock.png" id="4_rock"]
 [ext_resource type="PackedScene" path="res://scenes/hotbar.tscn" id="5_hotbar"]
 [ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://graphics/tree.png" id="6_tree"]
-[ext_resource type="PackedScene" uid="uid://b8m74sik1k6mp" path="res://scenes/player.tscn" id="7_player"]
 [ext_resource type="PackedScene" path="res://scenes/crafting_window.tscn" id="8_crafting"]
 [ext_resource type="Script" uid="uid://b1r440gqpqbhn" path="res://scripts/game_manager.gd" id="9_game_manager"]
 [ext_resource type="Texture2D" uid="uid://b6eqdlgyybk3i" path="res://graphics/box.png" id="10_box"]
 [ext_resource type="Texture2D" uid="uid://dflg7rcrh04js" path="res://graphics/woodwall.png" id="11_woodwall"]
 [ext_resource type="Texture2D" uid="uid://njtb42pn2yh4" path="res://graphics/stonewall.png" id="12_stonewall"]
 [ext_resource type="PackedScene" path="res://scenes/box_inventory.tscn" id="13_box_inv"]
+[ext_resource type="Script" path="res://scripts/player_spawner.gd" id="14_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/network_ui.tscn" id="15_network_ui"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -72,7 +73,8 @@ tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
 
-[node name="Player" parent="." instance=ExtResource("7_player")]
+[node name="PlayerSpawner" type="Node" parent="."]
+script = ExtResource("14_spawner")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -81,6 +83,8 @@ script = ExtResource("2_world")
 [node name="CraftingWindow" parent="CanvasLayer" instance=ExtResource("8_crafting")]
 
 [node name="BoxInventory" parent="CanvasLayer" instance=ExtResource("13_box_inv")]
+
+[node name="NetworkUI" parent="CanvasLayer" instance=ExtResource("15_network_ui")]
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("9_game_manager")

@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 @export var run_speed: float = 160.0
 @export var walk_speed: float = 80.0
+@export var peer_id: int = 1  # Network peer ID, set by PlayerSpawner
 
 var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
@@ -24,24 +25,25 @@ var world: TileMapLayer = null
 var sprite_size: float = 16.0
 var pickup_range: float = 32.0
 
-# Track tile health (rocks, trees, etc.)
-var _tile_health: Dictionary = {}
+# Tool hit counts for different tiers
 const PLASTIC_TOOL_HITS: int = 10
 const WOOD_TOOL_HITS: int = 5
 const STONE_TOOL_HITS: int = 3
-
-# Base tile durability (how many hits with a 1-hit tool)
-const BASE_TILE_DURABILITY: int = 10
-const WOOD_WALL_DURABILITY: int = 20  # 2x base
-const STONE_WALL_DURABILITY: int = 30  # 3x base
 
 var _pending_left_click: bool = false
 var _pending_right_click: bool = false
 var box_inventory: Node = null
 
 
+func is_local_player() -> bool:
+    return peer_id == NetworkManager.get_local_peer_id()
+
+
 func _ready() -> void:
     add_to_group("player")
+
+    # Set multiplayer authority based on peer_id
+    set_multiplayer_authority(peer_id)
 
     # Derive sizes from actual sprite dimensions
     var sprite = $Sprite2D
@@ -54,30 +56,40 @@ func _ready() -> void:
     if collision and collision.shape is RectangleShape2D:
         collision.shape.size = Vector2(sprite_size * 0.875, sprite_size * 0.875)
 
+    # Only enable camera for local player
+    var camera = $Camera2D
+    if camera:
+        camera.enabled = is_local_player()
+
     # Find world tilemap for rock breaking (sibling node)
-    world = get_parent().get_node("TileMapLayer") as TileMapLayer
+    world = get_parent().get_node_or_null("TileMapLayer") as TileMapLayer
 
-    # Find hotbar and connect signals
-    await get_tree().process_frame
-    hotbar = get_tree().get_first_node_in_group("hotbar")
-    if hotbar == null:
-        hotbar = get_node_or_null("/root/Node2D/CanvasLayer/Hotbar")
+    # Only local player sets up hotbar and UI connections
+    if is_local_player():
+        await get_tree().process_frame
+        hotbar = get_tree().get_first_node_in_group("hotbar")
+        if hotbar == null:
+            hotbar = get_node_or_null("/root/Node2D/CanvasLayer/Hotbar")
 
-    if hotbar:
-        hotbar.item_dropped.connect(_on_item_dropped)
-        # Give player starting tools (not stackable)
-        var pick = Item.create("Pick", pick_texture)
-        pick.stackable = false
-        var axe = Item.create("Axe", axe_texture)
-        axe.stackable = false
-        hotbar.set_item(0, pick)
-        hotbar.set_item(1, axe)
+        if hotbar:
+            hotbar.item_dropped.connect(_on_item_dropped)
+            # Give player starting tools (not stackable)
+            var pick = Item.create("Pick", pick_texture)
+            pick.stackable = false
+            var axe = Item.create("Axe", axe_texture)
+            axe.stackable = false
+            hotbar.set_item(0, pick)
+            hotbar.set_item(1, axe)
 
-    # Find box inventory
-    box_inventory = get_tree().get_first_node_in_group("box_inventory")
+        # Find box inventory
+        box_inventory = get_tree().get_first_node_in_group("box_inventory")
 
 
 func _physics_process(_delta: float) -> void:
+    # Only process input for local player
+    if not is_local_player():
+        return
+
     var input_dir = Vector2.ZERO
 
     if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A):
@@ -105,6 +117,10 @@ func _physics_process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+    # Only process input for local player
+    if not is_local_player():
+        return
+
     if event is InputEventMouseButton:
         if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
             _pending_left_click = true
@@ -189,88 +205,9 @@ func _try_use_tool() -> void:
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
     var source_id = world.get_cell_source_id(tile_pos)
 
-    # Determine if tool is a pick or axe
-    var is_pick = tool_name in ["Pick", "Wood Pick", "Stone Pick"]
-    var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe"]
-
-    # Check what tile we're hitting and if correct tool is used
-    if source_id == 1 and is_pick:  # Rock - requires pick
-        _hit_tile(tile_pos, "rock", tool_name)
-    elif source_id == 2 and is_axe:  # Tree - requires axe
-        _hit_tile(tile_pos, "tree", tool_name)
-    elif source_id == 3:  # Box - instant pickup, no delay
-        _break_tile(tile_pos, "box")
-    elif source_id == 4:  # Wood Wall
-        _hit_tile(tile_pos, "wood_wall", tool_name)
-    elif source_id == 5:  # Stone Wall
-        _hit_tile(tile_pos, "stone_wall", tool_name)
-
-
-func _get_tile_durability(tile_type: String) -> int:
-    match tile_type:
-        "wood_wall":
-            return WOOD_WALL_DURABILITY
-        "stone_wall":
-            return STONE_WALL_DURABILITY
-        _:
-            return BASE_TILE_DURABILITY
-
-
-func _hit_tile(tile_pos: Vector2i, tile_type: String, tool_name: String) -> void:
-    # Initialize health if not tracked (based on tile type durability)
-    if not _tile_health.has(tile_pos):
-        _tile_health[tile_pos] = _get_tile_durability(tile_type)
-
-    # Calculate damage based on tool type (ceiling division to ensure hits_to_break is exact)
-    var tool_hits = _get_tool_hits(tool_name)
-    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_hits)
-
-    _tile_health[tile_pos] -= damage
-
-    if _tile_health[tile_pos] <= 0:
-        _break_tile(tile_pos, tile_type)
-        _tile_health.erase(tile_pos)
-
-
-func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
-    # Replace with grass
-    world.set_cell(tile_pos, 0, Vector2i(0, 0))
-
-    # Spawn appropriate item(s) at tile center
-    var tile_world_pos = world.map_to_local(tile_pos)
-
-    if tile_type == "rock":
-        _spawn_dropped_item("Rock", rock_item_texture, 1, tile_world_pos, 0.3)
-    elif tile_type == "tree":
-        # Spread out 10 wood drops
-        for i in range(10):
-            var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-            _spawn_dropped_item("Wood", wood_texture, 1, tile_world_pos + spread_offset, 0.3)
-    elif tile_type == "box":
-        # Box: no pickup delay, drop contents first
-        var contents = world.clear_box_contents(tile_pos)
-        for item in contents:
-            if item != null:
-                var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
-                _spawn_dropped_item(item.name, item.texture, item.quantity, tile_world_pos + spread_offset, 0.3)
-        _spawn_dropped_item("Box", box_texture, 1, tile_world_pos, 0.0)
-    elif tile_type == "wood_wall":
-        _spawn_dropped_item("Wood Wall", wood_wall_texture, 1, tile_world_pos, 0.0)
-    elif tile_type == "stone_wall":
-        _spawn_dropped_item("Stone Wall", stone_wall_texture, 1, tile_world_pos, 0.0)
-
-
-func _spawn_dropped_item(item_name: String, texture: Texture2D, quantity: int, pos: Vector2, pickup_delay: float = 0.3) -> void:
-    var dropped = dropped_item_scene.instantiate() as DroppedItem
-    var item = Item.create(item_name, texture, quantity)
-    dropped.set_item(item)
-    dropped.add_to_group("dropped_items")
-    dropped.global_position = pos
-    get_parent().add_child(dropped)
-    if pickup_delay > 0:
-        dropped.enable_pickup_after_delay(pickup_delay)
-    else:
-        dropped.can_pickup = true
+    # Request tile hit through world (host-authoritative)
+    if source_id > 0:  # Not grass
+        world.request_hit_tile.rpc_id(1, tile_pos, tool_name, peer_id)
 
 
 func _try_place_item() -> void:
@@ -303,41 +240,33 @@ func _try_place_item() -> void:
 
     # Convert to tile coordinates
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
-    var source_id = world.get_cell_source_id(tile_pos)
 
-    # Can only place on grass (source_id 0)
-    if source_id != 0:
-        return
-
-    # Don't allow placing on the tile the player is standing on
-    var player_tile = world.local_to_map(world.to_local(global_position))
-    if tile_pos == player_tile:
-        return
-
-    # Place the tile
-    world.set_cell(tile_pos, tile_source_id, Vector2i(0, 0))
-
-    # Consume one item from inventory
-    selected_item.quantity -= 1
-    if selected_item.quantity <= 0:
-        hotbar.set_item(hotbar.selected_slot, null)
-    hotbar._update_item_icons()
+    # Request placement through world (host-authoritative)
+    world.request_place_tile.rpc_id(1, tile_pos, tile_source_id, selected_item.name, peer_id)
 
 
 func _try_pickup() -> void:
+    if not is_local_player():
+        return
+
     var dropped_items = get_tree().get_nodes_in_group("dropped_items")
     var picked_up_any := false
 
     for item_node in dropped_items:
         var dropped: DroppedItem = item_node as DroppedItem
-        if dropped == null or not dropped.can_pickup:
+        if dropped == null or not dropped.can_pickup or dropped.being_picked_up:
             continue
 
         var dist = global_position.distance_to(dropped.global_position)
         if dist < pickup_range and dropped.item and hotbar:
-            if hotbar.add_item(dropped.item):
-                dropped.start_pickup(self)
-                picked_up_any = true
+            # Request pickup through world (host-authoritative)
+            if dropped.network_id >= 0:
+                world.request_pickup_item.rpc_id(1, dropped.network_id, peer_id)
+            else:
+                # Fallback for items spawned before networking (single player mode)
+                if hotbar.add_item(dropped.item):
+                    dropped.start_pickup(self)
+                    picked_up_any = true
 
     if picked_up_any:
         _play_pickup_sound()
@@ -353,17 +282,54 @@ func _play_pickup_sound() -> void:
 
 
 func _on_item_dropped(item: Item, _slot_index: int) -> void:
-    if item == null:
+    if item == null or not world:
         return
 
-    # Spawn dropped item in world near player
-    var dropped = dropped_item_scene.instantiate() as DroppedItem
-    dropped.set_item(item)
-    dropped.add_to_group("dropped_items")
-
-    # Drop slightly in front of player (1x sprite size away)
+    # Request drop through world (host-authoritative)
     var drop_offset = Vector2(sprite_size, 0).rotated(randf() * TAU)
-    dropped.global_position = global_position + drop_offset
+    var drop_pos = global_position + drop_offset
+    world.request_drop_item.rpc_id(1, item.name, _get_texture_path(item.texture), item.quantity, item.stackable, drop_pos, peer_id)
 
-    get_parent().add_child(dropped)
-    dropped.enable_pickup_after_delay(1.0)
+
+func _get_texture_path(texture: Texture2D) -> String:
+    if texture == rock_item_texture:
+        return "rock_item"
+    elif texture == wood_texture:
+        return "wood"
+    elif texture == box_texture:
+        return "box"
+    elif texture == wood_wall_texture:
+        return "wood_wall"
+    elif texture == stone_wall_texture:
+        return "stone_wall"
+    elif texture == pick_texture:
+        return "pick"
+    elif texture == axe_texture:
+        return "axe"
+    elif texture == wood_pick_texture:
+        return "wood_pick"
+    elif texture == wood_axe_texture:
+        return "wood_axe"
+    elif texture == stone_pick_texture:
+        return "stone_pick"
+    elif texture == stone_axe_texture:
+        return "stone_axe"
+    return "rock_item"  # Default fallback
+
+
+# Called by world.gd when placement is confirmed
+func on_placement_confirmed(item_name: String) -> void:
+    if not hotbar:
+        return
+    var selected_item = hotbar.get_selected_item()
+    if selected_item and selected_item.name == item_name:
+        selected_item.quantity -= 1
+        if selected_item.quantity <= 0:
+            hotbar.set_item(hotbar.selected_slot, null)
+        hotbar._update_item_icons()
+
+
+# Called by world.gd when pickup is confirmed
+func on_pickup_confirmed(item: Item) -> void:
+    if hotbar and hotbar.add_item(item):
+        _play_pickup_sound()
