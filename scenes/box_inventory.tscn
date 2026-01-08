@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" uid="uid://cbn6dkrpygxwc" path="res://scripts/box_inventory.gd" id="1_box_inv"]
+[ext_resource type="Script" path="res://scripts/box_inventory.gd" id="1_box_inv"]
 
 [node name="BoxInventory" type="Control"]
 layout_mode = 3
