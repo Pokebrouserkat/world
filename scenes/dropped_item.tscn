@@ -7,6 +7,7 @@
 radius = 8.0
 
 [node name="DroppedItem" type="Area2D"]
+y_sort_origin = -16
 script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
