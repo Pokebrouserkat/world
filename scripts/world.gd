@@ -10,6 +10,10 @@ enum TileType {
     STONE_WALL = 5
 }
 
+# Box inventory storage: Dictionary[Vector2i, Array[Item]]
+var _box_contents: Dictionary = {}
+const BOX_SLOT_COUNT: int = 9
+
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
     TileType.GRASS: 0,
@@ -51,6 +55,7 @@ var _last_rect: Rect2i
 
 
 func _ready() -> void:
+    add_to_group("world")
     _setup_tile_physics()
     _update_tiles()
 
@@ -128,3 +133,29 @@ func _position_hash(x: int, y: int) -> int:
     # Use fmod-based noise for reliable pseudo-random distribution
     var n = sin(x * 12.9898 + y * 78.233 + WORLD_SEED) * 43758.5453
     return absi(int(n * 1000) % 10000)
+
+
+# Box inventory functions
+func get_box_contents(box_pos: Vector2i) -> Array:
+    if not _box_contents.has(box_pos):
+        # Initialize empty box with null slots
+        var contents: Array = []
+        for i in range(BOX_SLOT_COUNT):
+            contents.append(null)
+        _box_contents[box_pos] = contents
+    return _box_contents[box_pos]
+
+
+func set_box_slot(box_pos: Vector2i, slot: int, item) -> void:
+    var contents = get_box_contents(box_pos)
+    if slot >= 0 and slot < BOX_SLOT_COUNT:
+        contents[slot] = item
+
+
+func clear_box_contents(box_pos: Vector2i) -> Array:
+    # Returns contents and removes from storage (for when box is broken)
+    var contents: Array = []
+    if _box_contents.has(box_pos):
+        contents = _box_contents[box_pos]
+        _box_contents.erase(box_pos)
+    return contents

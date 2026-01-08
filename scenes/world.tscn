@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=21 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://b6eqdlgyybk3i" path="res://graphics/box.png" id="10_box"]
 [ext_resource type="Texture2D" uid="uid://dflg7rcrh04js" path="res://graphics/woodwall.png" id="11_woodwall"]
 [ext_resource type="Texture2D" uid="uid://njtb42pn2yh4" path="res://graphics/stonewall.png" id="12_stonewall"]
+[ext_resource type="PackedScene" path="res://scenes/box_inventory.tscn" id="13_box_inv"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -77,6 +78,8 @@ script = ExtResource("2_world")
 [node name="Hotbar" parent="CanvasLayer" instance=ExtResource("5_hotbar")]
 
 [node name="CraftingWindow" parent="CanvasLayer" instance=ExtResource("8_crafting")]
+
+[node name="BoxInventory" parent="CanvasLayer" instance=ExtResource("13_box_inv")]
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("9_game_manager")

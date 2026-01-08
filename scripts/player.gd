@@ -36,6 +36,8 @@ const WOOD_WALL_DURABILITY: int = 20  # 2x base
 const STONE_WALL_DURABILITY: int = 30  # 3x base
 
 var _pending_left_click: bool = false
+var _pending_right_click: bool = false
+var box_inventory: Node = null
 
 
 func _ready() -> void:
@@ -69,6 +71,9 @@ func _ready() -> void:
         hotbar.set_item(0, pick)
         hotbar.set_item(1, axe)
 
+    # Find box inventory
+    box_inventory = get_tree().get_first_node_in_group("box_inventory")
+
 
 func _physics_process(_delta: float) -> void:
     var input_dir = Vector2.ZERO
@@ -90,6 +95,10 @@ func _physics_process(_delta: float) -> void:
         _pending_left_click = false
         _handle_left_click()
 
+    if _pending_right_click:
+        _pending_right_click = false
+        _handle_right_click()
+
     _try_pickup()
 
 
@@ -97,6 +106,8 @@ func _input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
             _pending_left_click = true
+        elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+            _pending_right_click = true
 
 
 func _handle_left_click() -> void:
@@ -112,6 +123,31 @@ func _handle_left_click() -> void:
         _try_place_item()
     elif _is_tool(selected_item.name):
         _try_use_tool()
+
+
+func _handle_right_click() -> void:
+    if not world or not box_inventory:
+        return
+
+    # Don't open if box inventory is already open
+    if box_inventory.is_open:
+        return
+
+    # Get mouse position in world coordinates
+    var mouse_pos = get_global_mouse_position()
+
+    # Check if within interaction range (2 tiles)
+    var use_range = sprite_size * 2.0
+    if global_position.distance_to(mouse_pos) > use_range:
+        return
+
+    # Convert to tile coordinates
+    var tile_pos = world.local_to_map(world.to_local(mouse_pos))
+    var source_id = world.get_cell_source_id(tile_pos)
+
+    # Check if it's a box tile (source_id 3)
+    if source_id == 3:
+        box_inventory.open_for_box(tile_pos)
 
 
 func _is_tool(item_name: String) -> bool:
@@ -205,7 +241,12 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
             var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
             _spawn_dropped_item("Wood", wood_texture, 1, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "box":
-        # Box: no pickup delay
+        # Box: no pickup delay, drop contents first
+        var contents = world.clear_box_contents(tile_pos)
+        for item in contents:
+            if item != null:
+                var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+                _spawn_dropped_item(item.name, item.texture, item.quantity, tile_world_pos + spread_offset, 0.3)
         _spawn_dropped_item("Box", box_texture, 1, tile_world_pos, 0.0)
     elif tile_type == "wood_wall":
         _spawn_dropped_item("Wood Wall", wood_wall_texture, 1, tile_world_pos, 0.0)

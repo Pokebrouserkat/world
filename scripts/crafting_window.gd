@@ -9,6 +9,7 @@ var is_open: bool = false
 var recipes: Dictionary = {}
 
 # UI elements
+var panel: NinePatchRect = null
 var recipe_container: VBoxContainer = null
 var recipe_buttons: Array[TextureButton] = []
 
@@ -97,17 +98,34 @@ func _setup_recipes() -> void:
 
 
 func _create_ui() -> void:
+	# Calculate required height based on recipe count
+	var row_height = 16  # Icon height
+	var row_spacing = 4
+	var header_height = 22  # Title area
+	var padding = 16  # Border padding
+	var recipe_count = recipes.size()
+	var recipes_height = recipe_count * row_height + (recipe_count - 1) * row_spacing
+	var content_height = header_height + recipes_height + padding
+
+	# Check if we need scrolling (80% of 360 viewport height = 288)
+	var max_height = 288
+	var needs_scroll = content_height > max_height
+	var panel_height = min(content_height, max_height)
+	var panel_width = 140
+
 	# Main panel
-	var panel = NinePatchRect.new()
+	panel = NinePatchRect.new()
 	panel.texture = window_bg
 	panel.patch_margin_left = 16
 	panel.patch_margin_right = 16
 	panel.patch_margin_top = 16
 	panel.patch_margin_bottom = 16
+	panel.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE
+	panel.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE
 	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(140, 150)
-	panel.size = Vector2(140, 150)
+	panel.custom_minimum_size = Vector2(panel_width, panel_height)
+	panel.size = Vector2(panel_width, panel_height)
 	panel.position = -panel.size / 2
 	add_child(panel)
 
@@ -116,14 +134,29 @@ func _create_ui() -> void:
 	title.text = "Crafting"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(0, 6)
-	title.size = Vector2(140, 14)
+	title.size = Vector2(panel_width, 14)
 	panel.add_child(title)
 
-	# Recipe container
-	recipe_container = VBoxContainer.new()
-	recipe_container.position = Vector2(8, 22)
-	recipe_container.size = Vector2(124, 120)
-	panel.add_child(recipe_container)
+	# Recipe container (with optional scroll)
+	var container_height = panel_height - header_height - padding
+
+	if needs_scroll:
+		var scroll = ScrollContainer.new()
+		scroll.position = Vector2(8, header_height)
+		scroll.size = Vector2(panel_width - 16, container_height)
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		panel.add_child(scroll)
+
+		recipe_container = VBoxContainer.new()
+		recipe_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		recipe_container.add_theme_constant_override("separation", row_spacing)
+		scroll.add_child(recipe_container)
+	else:
+		recipe_container = VBoxContainer.new()
+		recipe_container.position = Vector2(8, header_height)
+		recipe_container.size = Vector2(panel_width - 16, container_height)
+		recipe_container.add_theme_constant_override("separation", row_spacing)
+		panel.add_child(recipe_container)
 
 	_populate_recipes()
 
@@ -287,3 +320,18 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_C and not event.ctrl_pressed and not event.meta_pressed:
 			toggle()
 			get_viewport().set_input_as_handled()
+		# Close on Escape or CMD+W when open
+		elif is_open:
+			if event.keycode == KEY_ESCAPE:
+				close()
+				get_viewport().set_input_as_handled()
+			elif event.keycode == KEY_W and event.meta_pressed:
+				close()
+				get_viewport().set_input_as_handled()
+
+	# Click outside to close
+	if is_open and event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
+			if panel and not panel.get_global_rect().has_point(event.global_position):
+				close()
+				get_viewport().set_input_as_handled()
