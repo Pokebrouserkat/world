@@ -321,7 +321,10 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     var tile_world_pos = map_to_local(tile_pos)
 
     if tile_type == "rock":
-        _spawn_item_at("Rock", "rock_item", 1, true, tile_world_pos, 0.3)
+        var rock_count = randi_range(1, 4)
+        for i in range(rock_count):
+            var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+            _spawn_item_at("Rock", "rock_item", 1, true, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "tree":
         # Spread out 10 wood drops
         for i in range(10):
