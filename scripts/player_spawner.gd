@@ -88,8 +88,11 @@ func _on_player_disconnected(peer_id: int) -> void:
 
 
 func _on_connection_succeeded() -> void:
-	# Client connected - spawn local player
-	# The host will also tell us about other players
+	# Client connected - clean up any single-player state first
+	for peer_id in players.keys():
+		remove_player(peer_id)
+	# Now spawn local player with correct peer_id
+	# The host will also tell us about other players via RPC
 	spawn_player(NetworkManager.get_local_peer_id())
 
 
