@@ -1,0 +1,171 @@
+extends Control
+
+## PauseMenu - Game pause menu with multiplayer and save file management
+## Opened/closed with ESC key
+
+signal resumed
+
+var is_open: bool = false
+
+# UI elements
+@onready var panel: Panel = $Panel
+@onready var resume_button: Button = $Panel/VBoxContainer/ResumeButton
+@onready var multiplayer_section: VBoxContainer = $Panel/VBoxContainer/MultiplayerSection
+@onready var host_button: Button = $Panel/VBoxContainer/MultiplayerSection/HostButton
+@onready var join_container: HBoxContainer = $Panel/VBoxContainer/MultiplayerSection/JoinContainer
+@onready var ip_input: LineEdit = $Panel/VBoxContainer/MultiplayerSection/JoinContainer/IPInput
+@onready var join_button: Button = $Panel/VBoxContainer/MultiplayerSection/JoinContainer/JoinButton
+@onready var disconnect_button: Button = $Panel/VBoxContainer/MultiplayerSection/DisconnectButton
+@onready var status_label: Label = $Panel/VBoxContainer/MultiplayerSection/StatusLabel
+@onready var save_section: VBoxContainer = $Panel/VBoxContainer/SaveSection
+@onready var save_button: Button = $Panel/VBoxContainer/SaveSection/SaveButton
+@onready var load_button: Button = $Panel/VBoxContainer/SaveSection/LoadButton
+@onready var quit_button: Button = $Panel/VBoxContainer/QuitButton
+
+
+func _ready() -> void:
+	visible = false
+	mouse_filter = Control.MOUSE_FILTER_STOP
+
+	# Connect button signals
+	resume_button.pressed.connect(_on_resume_pressed)
+	host_button.pressed.connect(_on_host_pressed)
+	join_button.pressed.connect(_on_join_pressed)
+	disconnect_button.pressed.connect(_on_disconnect_pressed)
+	ip_input.text_submitted.connect(_on_ip_submitted)
+	save_button.pressed.connect(_on_save_pressed)
+	load_button.pressed.connect(_on_load_pressed)
+	quit_button.pressed.connect(_on_quit_pressed)
+
+	# Connect network signals
+	NetworkManager.player_connected.connect(_on_player_connected)
+	NetworkManager.player_disconnected.connect(_on_player_disconnected)
+	NetworkManager.connection_succeeded.connect(_on_connection_succeeded)
+	NetworkManager.connection_failed.connect(_on_connection_failed)
+	NetworkManager.server_disconnected.connect(_on_server_disconnected)
+
+	# Set default IP
+	ip_input.text = "127.0.0.1"
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if is_open:
+			close()
+		else:
+			open()
+		get_viewport().set_input_as_handled()
+
+
+func open() -> void:
+	if is_open:
+		return
+	is_open = true
+	visible = true
+	get_tree().paused = true
+	_update_ui()
+
+
+func close() -> void:
+	if not is_open:
+		return
+	is_open = false
+	visible = false
+	get_tree().paused = false
+	resumed.emit()
+
+
+func _on_resume_pressed() -> void:
+	close()
+
+
+func _on_host_pressed() -> void:
+	var error = NetworkManager.host_game()
+	if error == OK:
+		status_label.text = "Hosting on port %d" % NetworkManager.DEFAULT_PORT
+	else:
+		status_label.text = "Failed to host: %s" % error_string(error)
+	_update_ui()
+
+
+func _on_join_pressed() -> void:
+	var ip = ip_input.text.strip_edges()
+	if ip.is_empty():
+		status_label.text = "Enter IP address"
+		return
+
+	var error = NetworkManager.join_game(ip)
+	if error == OK:
+		status_label.text = "Connecting to %s..." % ip
+	else:
+		status_label.text = "Failed to connect: %s" % error_string(error)
+	_update_ui()
+
+
+func _on_ip_submitted(_text: String) -> void:
+	_on_join_pressed()
+
+
+func _on_disconnect_pressed() -> void:
+	NetworkManager.disconnect_game()
+	status_label.text = "Disconnected"
+	_update_ui()
+
+
+func _on_save_pressed() -> void:
+	# TODO: Implement save functionality
+	status_label.text = "Game saved!"
+
+
+func _on_load_pressed() -> void:
+	# TODO: Implement load functionality
+	status_label.text = "Game loaded!"
+
+
+func _on_quit_pressed() -> void:
+	get_tree().quit()
+
+
+func _on_player_connected(peer_id: int) -> void:
+	if is_open:
+		var count = NetworkManager.get_connected_peers().size()
+		status_label.text = "%d player(s) connected" % count
+
+
+func _on_player_disconnected(peer_id: int) -> void:
+	if is_open:
+		var count = NetworkManager.get_connected_peers().size()
+		status_label.text = "%d player(s) connected" % count
+
+
+func _on_connection_succeeded() -> void:
+	status_label.text = "Connected!"
+	_update_ui()
+
+
+func _on_connection_failed() -> void:
+	status_label.text = "Connection failed"
+	_update_ui()
+
+
+func _on_server_disconnected() -> void:
+	status_label.text = "Server disconnected"
+	_update_ui()
+
+
+func _update_ui() -> void:
+	var connected = NetworkManager.is_connected_to_game()
+	host_button.visible = not connected
+	join_container.visible = not connected
+	disconnect_button.visible = connected
+
+	# Only host can save/load in multiplayer
+	var can_save = not connected or NetworkManager.is_host()
+	save_button.disabled = not can_save
+	load_button.disabled = not can_save
+
+	if connected:
+		if NetworkManager.is_host():
+			status_label.text = "Hosting (%d players)" % NetworkManager.get_connected_peers().size()
+		else:
+			status_label.text = "Connected as client"

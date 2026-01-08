@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=22 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
@@ -12,8 +12,8 @@
 [ext_resource type="Texture2D" uid="uid://dflg7rcrh04js" path="res://graphics/woodwall.png" id="11_woodwall"]
 [ext_resource type="Texture2D" uid="uid://njtb42pn2yh4" path="res://graphics/stonewall.png" id="12_stonewall"]
 [ext_resource type="PackedScene" path="res://scenes/box_inventory.tscn" id="13_box_inv"]
-[ext_resource type="Script" path="res://scripts/player_spawner.gd" id="14_spawner"]
-[ext_resource type="PackedScene" path="res://scenes/network_ui.tscn" id="15_network_ui"]
+[ext_resource type="Script" uid="uid://ds48s4p3l7g7g" path="res://scripts/player_spawner.gd" id="14_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/pause_menu.tscn" id="15_pause_menu"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -84,7 +84,7 @@ script = ExtResource("14_spawner")
 
 [node name="BoxInventory" parent="CanvasLayer" instance=ExtResource("13_box_inv")]
 
-[node name="NetworkUI" parent="CanvasLayer" instance=ExtResource("15_network_ui")]
+[node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("15_pause_menu")]
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("9_game_manager")
