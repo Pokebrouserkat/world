@@ -189,10 +189,14 @@ func _try_use_tool() -> void:
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
     var source_id = world.get_cell_source_id(tile_pos)
 
-    # Check what tile we're hitting
-    if source_id == 1:  # Rock
+    # Determine if tool is a pick or axe
+    var is_pick = tool_name in ["Pick", "Wood Pick", "Stone Pick"]
+    var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe"]
+
+    # Check what tile we're hitting and if correct tool is used
+    if source_id == 1 and is_pick:  # Rock - requires pick
         _hit_tile(tile_pos, "rock", tool_name)
-    elif source_id == 2:  # Tree
+    elif source_id == 2 and is_axe:  # Tree - requires axe
         _hit_tile(tile_pos, "tree", tool_name)
     elif source_id == 3:  # Box - instant pickup, no delay
         _break_tile(tile_pos, "box")
