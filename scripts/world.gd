@@ -316,6 +316,7 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     # Replace with grass and broadcast to all
     _rpc_sync_tile_change.rpc(tile_pos, 0)
     _tile_modifications[tile_pos] = 0
+    _trigger_autosave()
 
     # Spawn appropriate items
     var tile_world_pos = map_to_local(tile_pos)
@@ -368,6 +369,7 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_name: Stri
     # Place the tile and broadcast
     _rpc_sync_tile_change.rpc(tile_pos, tile_source_id)
     _tile_modifications[tile_pos] = tile_source_id
+    _trigger_autosave()
 
     # Tell the requester to consume their item
     if requester_peer_id == 1:
@@ -589,3 +591,26 @@ func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_name: String, texture
     var box_inventory = get_tree().get_first_node_in_group("box_inventory")
     if box_inventory and box_inventory.is_open and box_inventory.current_box_pos == box_pos:
         box_inventory._update_item_icons()
+
+
+# === AUTOSAVE ===
+
+var _autosave_pending: bool = false
+
+func _trigger_autosave() -> void:
+    # Only autosave in single player mode (host)
+    if not multiplayer.is_server():
+        return
+    if NetworkManager.is_connected_to_game() and not NetworkManager.is_host():
+        return
+
+    # Debounce autosave to avoid saving on every action
+    if _autosave_pending:
+        return
+    _autosave_pending = true
+    _do_autosave.call_deferred()
+
+
+func _do_autosave() -> void:
+    _autosave_pending = false
+    SaveManager.save_game()

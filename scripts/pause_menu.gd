@@ -47,6 +47,12 @@ func _ready() -> void:
 	# Set default IP
 	ip_input.text = "127.0.0.1"
 
+	# Connect pause button if it exists (sibling node)
+	await get_tree().process_frame
+	var pause_button = get_parent().get_node_or_null("PauseButton")
+	if pause_button:
+		pause_button.pressed.connect(open)
+
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -113,13 +119,18 @@ func _on_disconnect_pressed() -> void:
 
 
 func _on_save_pressed() -> void:
-	# TODO: Implement save functionality
-	status_label.text = "Game saved!"
+	if SaveManager.save_game():
+		status_label.text = "Game saved!"
+	else:
+		status_label.text = "Save failed!"
 
 
 func _on_load_pressed() -> void:
-	# TODO: Implement load functionality
-	status_label.text = "Game loaded!"
+	if SaveManager.load_game():
+		status_label.text = "Game loaded!"
+		close()
+	else:
+		status_label.text = "Load failed!"
 
 
 func _on_quit_pressed() -> void:
@@ -164,8 +175,32 @@ func _update_ui() -> void:
 	save_button.disabled = not can_save
 	load_button.disabled = not can_save
 
+	# Update status label based on connection state
 	if connected:
 		if NetworkManager.is_host():
 			status_label.text = "Hosting (%d players)" % NetworkManager.get_connected_peers().size()
 		else:
 			status_label.text = "Connected as client"
+	else:
+		# Show save status when not connected
+		_update_save_status()
+
+
+func _update_save_status() -> void:
+	var last_save = SaveManager.get_last_save_time()
+	if last_save == 0:
+		if SaveManager.has_save_file():
+			status_label.text = "Save file exists"
+		else:
+			status_label.text = "No save file"
+	else:
+		var now = Time.get_unix_time_from_system()
+		var elapsed = now - last_save
+		if elapsed < 60:
+			status_label.text = "Saved just now"
+		elif elapsed < 3600:
+			var minutes = int(elapsed / 60)
+			status_label.text = "Saved %d min ago" % minutes
+		else:
+			var hours = int(elapsed / 3600)
+			status_label.text = "Saved %d hr ago" % hours
