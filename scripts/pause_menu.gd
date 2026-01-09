@@ -62,6 +62,13 @@ func _input(event: InputEvent) -> void:
 			open()
 		get_viewport().set_input_as_handled()
 
+	# Click outside panel to close
+	if is_open and event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
+			if panel and not panel.get_global_rect().has_point(event.global_position):
+				close()
+				get_viewport().set_input_as_handled()
+
 
 func open() -> void:
 	if is_open:

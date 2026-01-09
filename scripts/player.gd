@@ -32,6 +32,7 @@ const STONE_TOOL_HITS: int = 3
 var _pending_left_click: bool = false
 var _pending_right_click: bool = false
 var box_inventory: Node = null
+var _last_pickup_sound_frame: int = -1
 
 
 func is_local_player() -> bool:
@@ -269,6 +270,12 @@ func _try_pickup() -> void:
 
 
 func _play_pickup_sound() -> void:
+    # Prevent multiple pickup sounds on the same frame
+    var current_frame = Engine.get_process_frames()
+    if current_frame == _last_pickup_sound_frame:
+        return
+    _last_pickup_sound_frame = current_frame
+
     var audio = AudioStreamPlayer.new()
     audio.stream = pickup_sound
     audio.bus = "Master"
