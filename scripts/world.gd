@@ -71,7 +71,6 @@ var wood_texture: Texture2D = preload("res://graphics/wood.png")
 var box_texture: Texture2D = preload("res://graphics/box.png")
 var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
 var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
-var pick_texture: Texture2D = preload("res://graphics/plasticpick.png")
 var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
 var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
 var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
@@ -260,7 +259,7 @@ func _get_tile_type_string(source_id: int) -> String:
 
 
 func _is_correct_tool(tool_name: String, source_id: int) -> bool:
-    var is_pick = tool_name in ["Pick", "Wood Pick", "Stone Pick"]
+    var is_pick = tool_name in ["Wood Pick", "Stone Pick"]
     var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe"]
 
     match source_id:
@@ -436,7 +435,6 @@ func _get_texture_from_key(key: String) -> Texture2D:
         "box": return box_texture
         "wood_wall": return wood_wall_texture
         "stone_wall": return stone_wall_texture
-        "pick": return pick_texture
         "axe": return axe_texture
         "wood_pick": return wood_pick_texture
         "wood_axe": return wood_axe_texture
@@ -451,7 +449,6 @@ func _get_texture_key(texture: Texture2D) -> String:
     elif texture == box_texture: return "box"
     elif texture == wood_wall_texture: return "wood_wall"
     elif texture == stone_wall_texture: return "stone_wall"
-    elif texture == pick_texture: return "pick"
     elif texture == axe_texture: return "axe"
     elif texture == wood_pick_texture: return "wood_pick"
     elif texture == wood_axe_texture: return "wood_axe"

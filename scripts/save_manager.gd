@@ -275,7 +275,6 @@ func _ensure_textures_loaded() -> void:
 		_texture_cache["box"] = preload("res://graphics/box.png")
 		_texture_cache["wood_wall"] = preload("res://graphics/woodwall.png")
 		_texture_cache["stone_wall"] = preload("res://graphics/stonewall.png")
-		_texture_cache["pick"] = preload("res://graphics/plasticpick.png")
 		_texture_cache["axe"] = preload("res://graphics/plasticax.png")
 		_texture_cache["wood_pick"] = preload("res://graphics/woodpick.png")
 		_texture_cache["wood_axe"] = preload("res://graphics/woodax.png")

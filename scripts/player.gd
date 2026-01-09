@@ -7,7 +7,6 @@ extends CharacterBody2D
 var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
-var pick_texture: Texture2D = preload("res://graphics/plasticpick.png")
 var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
 var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
 var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
@@ -73,13 +72,10 @@ func _ready() -> void:
 
         if hotbar:
             hotbar.item_dropped.connect(_on_item_dropped)
-            # Give player starting tools (not stackable)
-            var pick = Item.create("Pick", pick_texture)
-            pick.stackable = false
+            # Give player starting tool (not stackable) - just an axe, pick must be crafted
             var axe = Item.create("Axe", axe_texture)
             axe.stackable = false
-            hotbar.set_item(0, pick)
-            hotbar.set_item(1, axe)
+            hotbar.set_item(0, axe)
 
         # Find box inventory
         box_inventory = get_tree().get_first_node_in_group("box_inventory")
@@ -169,7 +165,7 @@ func _handle_right_click() -> void:
 
 
 func _is_tool(item_name: String) -> bool:
-    return item_name in ["Pick", "Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe"]
+    return item_name in ["Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe"]
 
 
 func _get_tool_hits(item_name: String) -> int:
@@ -302,8 +298,6 @@ func _get_texture_path(texture: Texture2D) -> String:
         return "wood_wall"
     elif texture == stone_wall_texture:
         return "stone_wall"
-    elif texture == pick_texture:
-        return "pick"
     elif texture == axe_texture:
         return "axe"
     elif texture == wood_pick_texture:
