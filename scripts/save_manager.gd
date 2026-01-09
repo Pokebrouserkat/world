@@ -135,7 +135,7 @@ func _serialize_hotbar(hotbar: Node) -> Array:
 			slots.append({
 				"slot": i,
 				"name": item.name,
-				"texture_key": _get_texture_key(item.texture),
+				"texture_key": TextureCache.get_key(item.texture),
 				"quantity": item.quantity,
 				"stackable": item.stackable
 			})
@@ -157,7 +157,7 @@ func _serialize_dropped_items(world: TileMapLayer) -> Array:
 		if node.item:
 			items.append({
 				"name": node.item.name,
-				"texture_key": _get_texture_key(node.item.texture),
+				"texture_key": TextureCache.get_key(node.item.texture),
 				"quantity": node.item.quantity,
 				"stackable": node.item.stackable,
 				"position": {"x": node.global_position.x, "y": node.global_position.y}
@@ -174,7 +174,7 @@ func _serialize_box_contents(world: TileMapLayer) -> Dictionary:
 			if item:
 				contents.append({
 					"name": item.name,
-					"texture_key": _get_texture_key(item.texture),
+					"texture_key": TextureCache.get_key(item.texture),
 					"quantity": item.quantity,
 					"stackable": item.stackable
 				})
@@ -203,7 +203,7 @@ func _deserialize_hotbar(data: Array, hotbar: Node) -> void:
 
 	# Load saved items
 	for item_data in data:
-		var texture = _get_texture_from_key(item_data.texture_key)
+		var texture = TextureCache.get_texture(item_data.texture_key)
 		var item = Item.create(item_data.name, texture, item_data.quantity)
 		item.stackable = item_data.stackable
 		hotbar.set_item(item_data.slot, item)
@@ -255,42 +255,10 @@ func _deserialize_box_contents(data: Dictionary, world: TileMapLayer) -> void:
 			var contents: Array = []
 			for item_data in data[key]:
 				if item_data:
-					var texture = _get_texture_from_key(item_data.texture_key)
+					var texture = TextureCache.get_texture(item_data.texture_key)
 					var item = Item.create(item_data.name, texture, item_data.quantity)
 					item.stackable = item_data.stackable
 					contents.append(item)
 				else:
 					contents.append(null)
 			world._box_contents[pos] = contents
-
-
-# === Texture key helpers (same as world.gd) ===
-
-var _texture_cache: Dictionary = {}
-
-func _ensure_textures_loaded() -> void:
-	if _texture_cache.is_empty():
-		_texture_cache["rock_item"] = preload("res://graphics/rock_item.png")
-		_texture_cache["wood"] = preload("res://graphics/wood.png")
-		_texture_cache["box"] = preload("res://graphics/box.png")
-		_texture_cache["wood_wall"] = preload("res://graphics/woodwall.png")
-		_texture_cache["stone_wall"] = preload("res://graphics/stonewall.png")
-		_texture_cache["axe"] = preload("res://graphics/plasticax.png")
-		_texture_cache["wood_pick"] = preload("res://graphics/woodpick.png")
-		_texture_cache["wood_axe"] = preload("res://graphics/woodax.png")
-		_texture_cache["stone_pick"] = preload("res://graphics/stonepick.png")
-		_texture_cache["stone_axe"] = preload("res://graphics/stoneax.png")
-		_texture_cache["fallback"] = preload("res://graphics/fallback.png")
-
-
-func _get_texture_from_key(key: String) -> Texture2D:
-	_ensure_textures_loaded()
-	return _texture_cache.get(key, _texture_cache["fallback"])
-
-
-func _get_texture_key(texture: Texture2D) -> String:
-	_ensure_textures_loaded()
-	for key in _texture_cache:
-		if _texture_cache[key] == texture:
-			return key
-	return "fallback"

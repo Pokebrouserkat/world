@@ -6,17 +6,6 @@ extends CharacterBody2D
 
 var hotbar: Node = null
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
-var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
-var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
-var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
-var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
-var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
-var rock_item_texture: Texture2D = preload("res://graphics/rock_item.png")
-var wood_texture: Texture2D = preload("res://graphics/wood.png")
-var box_texture: Texture2D = preload("res://graphics/box.png")
-var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
-var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
-var fallback_texture: Texture2D = preload("res://graphics/fallback.png")
 var pickup_sound: AudioStream = preload("res://audio/pickup.wav")
 
 var world: TileMapLayer = null
@@ -75,7 +64,7 @@ func _ready() -> void:
         if hotbar:
             hotbar.item_dropped.connect(_on_item_dropped)
             # Give player starting tool (not stackable) - just an axe, pick must be crafted
-            var axe = Item.create("Axe", axe_texture)
+            var axe = Item.create("Axe", TextureCache.get_texture("axe"))
             axe.stackable = false
             hotbar.set_item(0, axe)
 
@@ -296,27 +285,7 @@ func _on_item_dropped(item: Item, _slot_index: int) -> void:
 
 
 func _get_texture_path(texture: Texture2D) -> String:
-    if texture == rock_item_texture:
-        return "rock_item"
-    elif texture == wood_texture:
-        return "wood"
-    elif texture == box_texture:
-        return "box"
-    elif texture == wood_wall_texture:
-        return "wood_wall"
-    elif texture == stone_wall_texture:
-        return "stone_wall"
-    elif texture == axe_texture:
-        return "axe"
-    elif texture == wood_pick_texture:
-        return "wood_pick"
-    elif texture == wood_axe_texture:
-        return "wood_axe"
-    elif texture == stone_pick_texture:
-        return "stone_pick"
-    elif texture == stone_axe_texture:
-        return "stone_axe"
-    return "fallback"  # Default fallback
+    return TextureCache.get_key(texture)
 
 
 # Called by world.gd when placement is confirmed

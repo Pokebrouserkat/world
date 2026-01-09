@@ -65,17 +65,6 @@ var _tile_modifications: Dictionary = {}  # Vector2i -> source_id
 var _dropped_items: Dictionary = {}  # network_id -> DroppedItem
 var _next_item_id: int = 0
 
-# Texture preloads for spawning items
-var rock_item_texture: Texture2D = preload("res://graphics/rock_item.png")
-var wood_texture: Texture2D = preload("res://graphics/wood.png")
-var box_texture: Texture2D = preload("res://graphics/box.png")
-var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
-var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
-var axe_texture: Texture2D = preload("res://graphics/plasticax.png")
-var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
-var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
-var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
-var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 
 # Tile durability constants
@@ -429,32 +418,11 @@ func _spawn_item_at(item_name: String, texture_key: String, quantity: int, stack
 
 
 func _get_texture_from_key(key: String) -> Texture2D:
-    match key:
-        "rock_item": return rock_item_texture
-        "wood": return wood_texture
-        "box": return box_texture
-        "wood_wall": return wood_wall_texture
-        "stone_wall": return stone_wall_texture
-        "axe": return axe_texture
-        "wood_pick": return wood_pick_texture
-        "wood_axe": return wood_axe_texture
-        "stone_pick": return stone_pick_texture
-        "stone_axe": return stone_axe_texture
-        _: return rock_item_texture
+    return TextureCache.get_texture(key)
 
 
 func _get_texture_key(texture: Texture2D) -> String:
-    if texture == rock_item_texture: return "rock_item"
-    elif texture == wood_texture: return "wood"
-    elif texture == box_texture: return "box"
-    elif texture == wood_wall_texture: return "wood_wall"
-    elif texture == stone_wall_texture: return "stone_wall"
-    elif texture == axe_texture: return "axe"
-    elif texture == wood_pick_texture: return "wood_pick"
-    elif texture == wood_axe_texture: return "wood_axe"
-    elif texture == stone_pick_texture: return "stone_pick"
-    elif texture == stone_axe_texture: return "stone_axe"
-    return "rock_item"
+    return TextureCache.get_key(texture)
 
 
 # === RPC BROADCAST METHODS ===
