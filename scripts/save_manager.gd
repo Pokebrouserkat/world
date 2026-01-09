@@ -280,11 +280,12 @@ func _ensure_textures_loaded() -> void:
 		_texture_cache["wood_axe"] = preload("res://graphics/woodax.png")
 		_texture_cache["stone_pick"] = preload("res://graphics/stonepick.png")
 		_texture_cache["stone_axe"] = preload("res://graphics/stoneax.png")
+		_texture_cache["fallback"] = preload("res://graphics/fallback.png")
 
 
 func _get_texture_from_key(key: String) -> Texture2D:
 	_ensure_textures_loaded()
-	return _texture_cache.get(key, _texture_cache["rock_item"])
+	return _texture_cache.get(key, _texture_cache["fallback"])
 
 
 func _get_texture_key(texture: Texture2D) -> String:
@@ -292,4 +293,4 @@ func _get_texture_key(texture: Texture2D) -> String:
 	for key in _texture_cache:
 		if _texture_cache[key] == texture:
 			return key
-	return "rock_item"
+	return "fallback"

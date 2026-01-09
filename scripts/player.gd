@@ -16,6 +16,7 @@ var wood_texture: Texture2D = preload("res://graphics/wood.png")
 var box_texture: Texture2D = preload("res://graphics/box.png")
 var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
 var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
+var fallback_texture: Texture2D = preload("res://graphics/fallback.png")
 var pickup_sound: AudioStream = preload("res://audio/pickup.wav")
 
 var world: TileMapLayer = null
@@ -315,7 +316,7 @@ func _get_texture_path(texture: Texture2D) -> String:
         return "stone_pick"
     elif texture == stone_axe_texture:
         return "stone_axe"
-    return "rock_item"  # Default fallback
+    return "fallback"  # Default fallback
 
 
 # Called by world.gd when placement is confirmed
