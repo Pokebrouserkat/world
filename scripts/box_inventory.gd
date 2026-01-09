@@ -342,15 +342,11 @@ func _request_set_box_slot(box_pos: Vector2i, slot: int, item) -> void:
 	if not world:
 		return
 
-	var item_name := ""
-	var texture_key := ""
+	var item_id := ""
 	var quantity := 0
-	var stackable := true
 
 	if item != null:
-		item_name = item.name
-		texture_key = world._get_texture_key(item.texture)
+		item_id = item.item_id
 		quantity = item.quantity
-		stackable = item.stackable
 
-	world.request_set_box_slot.rpc_id(1, box_pos, slot, item_name, texture_key, quantity, stackable)
+	world.request_set_box_slot.rpc_id(1, box_pos, slot, item_id, quantity)

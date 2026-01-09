@@ -232,12 +232,11 @@ func _on_player_connected(peer_id: int) -> void:
     _rpc_sync_tile_modifications.rpc_id(peer_id, _tile_modifications)
 
     # Send all dropped items
-    for item_id in _dropped_items:
-        var dropped: DroppedItem = _dropped_items[item_id]
+    for network_id in _dropped_items:
+        var dropped: DroppedItem = _dropped_items[network_id]
         if dropped and is_instance_valid(dropped) and dropped.item:
-            _rpc_spawn_dropped_item.rpc_id(peer_id, item_id, dropped.item.name,
-                _get_texture_key(dropped.item.texture), dropped.item.quantity,
-                dropped.item.stackable, dropped.global_position, 0.0)
+            _rpc_spawn_dropped_item.rpc_id(peer_id, network_id, dropped.item.item_id,
+                dropped.item.quantity, dropped.global_position, 0.0)
 
     # Send all box contents
     for box_pos in _box_contents:
@@ -245,8 +244,7 @@ func _on_player_connected(peer_id: int) -> void:
         for slot in range(contents.size()):
             var item = contents[slot]
             if item != null:
-                _rpc_sync_box_slot.rpc_id(peer_id, box_pos, slot, item.name,
-                    _get_texture_key(item.texture), item.quantity, item.stackable)
+                _rpc_sync_box_slot.rpc_id(peer_id, box_pos, slot, item.item_id, item.quantity)
 
 
 func _get_tile_durability(tile_type: String) -> int:
@@ -259,12 +257,12 @@ func _get_tile_durability(tile_type: String) -> int:
             return BASE_TILE_DURABILITY
 
 
-func _get_tool_hits(tool_name: String) -> int:
-    if tool_name.begins_with("Iron"):
+func _get_tool_hits(tool_id: String) -> int:
+    if tool_id.begins_with("iron_"):
         return IRON_TOOL_HITS
-    elif tool_name.begins_with("Stone"):
+    elif tool_id.begins_with("stone_"):
         return STONE_TOOL_HITS
-    elif tool_name.begins_with("Wood"):
+    elif tool_id.begins_with("wood_"):
         return WOOD_TOOL_HITS
     else:
         return PLASTIC_TOOL_HITS
@@ -281,9 +279,9 @@ func _get_tile_type_string(source_id: int) -> String:
         _: return "grass"
 
 
-func _is_correct_tool(tool_name: String, source_id: int) -> bool:
-    var is_pick = tool_name in ["Wood Pick", "Stone Pick", "Iron Pick"]
-    var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe", "Iron Axe"]
+func _is_correct_tool(tool_id: String, source_id: int) -> bool:
+    var is_pick = tool_id in ["wood_pick", "stone_pick", "iron_pick"]
+    var is_axe = tool_id in ["axe", "wood_axe", "stone_axe", "iron_axe"]
 
     match source_id:
         1:  # Rock - requires pick
@@ -301,7 +299,7 @@ func _is_correct_tool(tool_name: String, source_id: int) -> bool:
 
 
 @rpc("any_peer", "call_local", "reliable")
-func request_hit_tile(tile_pos: Vector2i, tool_name: String, requester_peer_id: int) -> void:
+func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: int) -> void:
     # Host validates and processes tile hits
     if not multiplayer.is_server():
         return
@@ -311,7 +309,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_name: String, requester_peer_id: 
         return
 
     # Check if correct tool is used
-    if not _is_correct_tool(tool_name, source_id):
+    if not _is_correct_tool(tool_id, source_id):
         return
 
     var tile_type = _get_tile_type_string(source_id)
@@ -326,7 +324,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_name: String, requester_peer_id: 
         _tile_health[tile_pos] = _get_tile_durability(tile_type)
 
     # Calculate damage
-    var tool_hits = _get_tool_hits(tool_name)
+    var tool_hits = _get_tool_hits(tool_id)
     var damage = ceili(float(BASE_TILE_DURABILITY) / tool_hits)
 
     _tile_health[tile_pos] -= damage
@@ -349,16 +347,16 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         var rock_count = randi_range(1, 4)
         for i in range(rock_count):
             var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
-            _spawn_item_at("Rock", "rock_item", 1, true, tile_world_pos + spread_offset, 0.3)
+            _spawn_item_by_id("rock", 1, tile_world_pos + spread_offset, 0.3)
         # 1 in 10 chance to drop iron ore
         if randi() % 10 == 0:
             var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
-            _spawn_item_at("Iron Ore", "iron_ore", 1, true, tile_world_pos + spread_offset, 0.3)
+            _spawn_item_by_id("iron_ore", 1, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "tree":
         # Spread out 10 wood drops
         for i in range(10):
             var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-            _spawn_item_at("Wood", "wood", 1, true, tile_world_pos + spread_offset, 0.3)
+            _spawn_item_by_id("wood", 1, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "box":
         # Drop box contents first - drop each item in stack individually
         var contents = clear_box_contents(tile_pos)
@@ -366,31 +364,28 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
             if item != null:
                 for i in range(item.quantity):
                     var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-                    _spawn_item_at(item.name, _get_texture_key(item.texture), 1,
-                        item.stackable, tile_world_pos + spread_offset, 0.3)
-        _spawn_item_at("Box", "box", 1, true, tile_world_pos, 0.0)
+                    _spawn_item_by_id(item.item_id, 1, tile_world_pos + spread_offset, 0.3)
+        _spawn_item_by_id("box", 1, tile_world_pos, 0.0)
     elif tile_type == "wood_wall":
-        _spawn_item_at("Wood Wall", "wood_wall", 1, true, tile_world_pos, 0.0)
+        _spawn_item_by_id("wood_wall", 1, tile_world_pos, 0.0)
     elif tile_type == "stone_wall":
-        _spawn_item_at("Stone Wall", "stone_wall", 1, true, tile_world_pos, 0.0)
+        _spawn_item_by_id("stone_wall", 1, tile_world_pos, 0.0)
     elif tile_type == "furnace":
         # Drop furnace contents first
         var state = clear_furnace_state(tile_pos)
         if state.input_item != null:
             for i in range(state.input_item.quantity):
                 var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-                _spawn_item_at(state.input_item.name, _get_texture_key(state.input_item.texture), 1,
-                    state.input_item.stackable, tile_world_pos + spread_offset, 0.3)
+                _spawn_item_by_id(state.input_item.item_id, 1, tile_world_pos + spread_offset, 0.3)
         if state.output_item != null:
             for i in range(state.output_item.quantity):
                 var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
-                _spawn_item_at(state.output_item.name, _get_texture_key(state.output_item.texture), 1,
-                    state.output_item.stackable, tile_world_pos + spread_offset, 0.3)
-        _spawn_item_at("Furnace", "furnace", 1, true, tile_world_pos, 0.0)
+                _spawn_item_by_id(state.output_item.item_id, 1, tile_world_pos + spread_offset, 0.3)
+        _spawn_item_by_id("furnace", 1, tile_world_pos, 0.0)
 
 
 @rpc("any_peer", "call_local", "reliable")
-func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_name: String, requester_peer_id: int) -> void:
+func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String, requester_peer_id: int) -> void:
     # Host validates and processes tile placement
     if not multiplayer.is_server():
         return
@@ -416,9 +411,9 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_name: Stri
     # Tell the requester to consume their item
     if requester_peer_id == 1:
         # Host is placing - call directly since call_remote won't reach us
-        _confirm_placement_local(item_name)
+        _confirm_placement_local(item_id)
     else:
-        _rpc_confirm_placement.rpc_id(requester_peer_id, item_name)
+        _rpc_confirm_placement.rpc_id(requester_peer_id, item_id)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -438,8 +433,7 @@ func request_pickup_item(network_id: int, requester_peer_id: int) -> void:
     dropped.being_picked_up = true
 
     # Create item for the picker
-    var item = Item.create(dropped.item.name, dropped.item.texture, dropped.item.quantity)
-    item.stackable = dropped.item.stackable
+    var item = Item.create(dropped.item.item_id, dropped.item.quantity)
 
     # Remove from tracking and broadcast removal
     _dropped_items.erase(network_id)
@@ -450,33 +444,24 @@ func request_pickup_item(network_id: int, requester_peer_id: int) -> void:
         # Host is picking up - call directly since call_remote won't reach us
         _confirm_pickup_local(item)
     else:
-        _rpc_confirm_pickup.rpc_id(requester_peer_id, item.name, _get_texture_key(item.texture),
-            item.quantity, item.stackable)
+        _rpc_confirm_pickup.rpc_id(requester_peer_id, item.item_id, item.quantity)
 
 
 @rpc("any_peer", "call_local", "reliable")
-func request_drop_item(item_name: String, texture_key: String, quantity: int, stackable: bool, pos: Vector2, requester_peer_id: int) -> void:
+func request_drop_item(item_id: String, quantity: int, pos: Vector2, requester_peer_id: int) -> void:
     # Host spawns dropped item
     if not multiplayer.is_server():
         return
 
-    _spawn_item_at(item_name, texture_key, quantity, stackable, pos, 1.0)
+    _spawn_item_by_id(item_id, quantity, pos, 1.0)
 
 
-func _spawn_item_at(item_name: String, texture_key: String, quantity: int, stackable: bool, pos: Vector2, pickup_delay: float) -> void:
+func _spawn_item_by_id(item_id: String, quantity: int, pos: Vector2, pickup_delay: float) -> void:
     var network_id = _next_item_id
     _next_item_id += 1
 
     # Spawn locally and on all clients
-    _rpc_spawn_dropped_item.rpc(network_id, item_name, texture_key, quantity, stackable, pos, pickup_delay)
-
-
-func _get_texture_from_key(key: String) -> Texture2D:
-    return TextureCache.get_texture(key)
-
-
-func _get_texture_key(texture: Texture2D) -> String:
-    return TextureCache.get_key(texture)
+    _rpc_spawn_dropped_item.rpc(network_id, item_id, quantity, pos, pickup_delay)
 
 
 # === RPC BROADCAST METHODS ===
@@ -498,12 +483,9 @@ func _rpc_sync_tile_modifications(modifications: Dictionary) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
-func _rpc_spawn_dropped_item(network_id: int, item_name: String, texture_key: String,
-        quantity: int, stackable: bool, pos: Vector2, pickup_delay: float) -> void:
+func _rpc_spawn_dropped_item(network_id: int, item_id: String, quantity: int, pos: Vector2, pickup_delay: float) -> void:
     var dropped = dropped_item_scene.instantiate() as DroppedItem
-    var texture = _get_texture_from_key(texture_key)
-    var item = Item.create(item_name, texture, quantity)
-    item.stackable = stackable
+    var item = Item.create(item_id, quantity)
     dropped.set_item(item)
     dropped.network_id = network_id
     dropped.add_to_group("dropped_items")
@@ -537,25 +519,23 @@ func _rpc_remove_dropped_item(network_id: int, picker_peer_id: int) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func _rpc_confirm_placement(item_name: String) -> void:
-    _confirm_placement_local(item_name)
+func _rpc_confirm_placement(item_id: String) -> void:
+    _confirm_placement_local(item_id)
 
 
-func _confirm_placement_local(item_name: String) -> void:
+func _confirm_placement_local(item_id: String) -> void:
     # Local player consumes item from inventory
     var players = get_tree().get_nodes_in_group("player")
     for player in players:
         if player.is_local_player():
-            player.on_placement_confirmed(item_name)
+            player.on_placement_confirmed(item_id)
             break
 
 
 @rpc("authority", "call_remote", "reliable")
-func _rpc_confirm_pickup(item_name: String, texture_key: String, quantity: int, stackable: bool) -> void:
+func _rpc_confirm_pickup(item_id: String, quantity: int) -> void:
     # Local player receives item
-    var texture = _get_texture_from_key(texture_key)
-    var item = Item.create(item_name, texture, quantity)
-    item.stackable = stackable
+    var item = Item.create(item_id, quantity)
     _confirm_pickup_local(item)
 
 
@@ -570,16 +550,14 @@ func _confirm_pickup_local(item: Item) -> void:
 # === BOX INVENTORY SYNC ===
 
 @rpc("any_peer", "call_local", "reliable")
-func request_set_box_slot(box_pos: Vector2i, slot: int, item_name: String, texture_key: String, quantity: int, stackable: bool) -> void:
+func request_set_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantity: int) -> void:
     # Host validates and processes box slot changes
     if not multiplayer.is_server():
         return
 
     var item: Item = null
-    if item_name != "":
-        var texture = _get_texture_from_key(texture_key)
-        item = Item.create(item_name, texture, quantity)
-        item.stackable = stackable
+    if item_id != "":
+        item = Item.create(item_id, quantity)
 
     # Update local storage
     var contents = get_box_contents(box_pos)
@@ -587,20 +565,18 @@ func request_set_box_slot(box_pos: Vector2i, slot: int, item_name: String, textu
         contents[slot] = item
 
     # Broadcast to all clients
-    _rpc_sync_box_slot.rpc(box_pos, slot, item_name, texture_key, quantity, stackable)
+    _rpc_sync_box_slot.rpc(box_pos, slot, item_id, quantity)
 
 
 @rpc("authority", "call_local", "reliable")
-func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_name: String, texture_key: String, quantity: int, stackable: bool) -> void:
+func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantity: int) -> void:
     # Skip on server - already updated
     if multiplayer.is_server():
         return
 
     var item: Item = null
-    if item_name != "":
-        var texture = _get_texture_from_key(texture_key)
-        item = Item.create(item_name, texture, quantity)
-        item.stackable = stackable
+    if item_id != "":
+        item = Item.create(item_id, quantity)
 
     var contents = get_box_contents(box_pos)
     if slot >= 0 and slot < BOX_SLOT_COUNT:

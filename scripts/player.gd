@@ -64,9 +64,8 @@ func _ready() -> void:
 
         if hotbar:
             hotbar.item_dropped.connect(_on_item_dropped)
-            # Give player starting tool (not stackable) - just an axe, pick must be crafted
-            var axe = Item.create("Axe", TextureCache.get_texture("axe"))
-            axe.stackable = false
+            # Give player starting tool - just an axe, pick must be crafted
+            var axe = Item.create("axe")
             hotbar.set_item(0, axe)
 
         # Find box inventory and furnace inventory
@@ -126,9 +125,9 @@ func _handle_left_click() -> void:
         return
 
     # Check what item is selected and perform appropriate action
-    if selected_item.name in ["Box", "Wood Wall", "Stone Wall", "Furnace"]:
+    if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace"]:
         _try_place_item()
-    elif _is_tool(selected_item.name):
+    elif _is_tool(selected_item.item_id):
         _try_use_tool()
 
 
@@ -162,8 +161,8 @@ func _handle_right_click() -> void:
         furnace_inventory.open_for_furnace(tile_pos)
 
 
-func _is_tool(item_name: String) -> bool:
-    return item_name in ["Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe", "Iron Pick", "Iron Axe"]
+func _is_tool(item_id: String) -> bool:
+    return item_id in ["axe", "wood_pick", "wood_axe", "stone_pick", "stone_axe", "iron_pick", "iron_axe"]
 
 
 func _get_tool_hits(item_name: String) -> int:
@@ -183,8 +182,8 @@ func _try_use_tool() -> void:
     if selected_item == null:
         return
 
-    var tool_name = selected_item.name
-    if not _is_tool(tool_name):
+    var tool_id = selected_item.item_id
+    if not _is_tool(tool_id):
         return
 
     # Get mouse position in world coordinates
@@ -201,7 +200,7 @@ func _try_use_tool() -> void:
 
     # Request tile hit through world (host-authoritative)
     if source_id > 0:  # Not grass
-        world.request_hit_tile.rpc_id(1, tile_pos, tool_name, peer_id)
+        world.request_hit_tile.rpc_id(1, tile_pos, tool_id, peer_id)
 
 
 func _try_place_item() -> void:
@@ -214,14 +213,14 @@ func _try_place_item() -> void:
 
     # Determine which tile to place based on item
     var tile_source_id: int = -1
-    match selected_item.name:
-        "Box":
+    match selected_item.item_id:
+        "box":
             tile_source_id = 3
-        "Wood Wall":
+        "wood_wall":
             tile_source_id = 4
-        "Stone Wall":
+        "stone_wall":
             tile_source_id = 5
-        "Furnace":
+        "furnace":
             tile_source_id = 6
         _:
             return
@@ -238,7 +237,7 @@ func _try_place_item() -> void:
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
 
     # Request placement through world (host-authoritative)
-    world.request_place_tile.rpc_id(1, tile_pos, tile_source_id, selected_item.name, peer_id)
+    world.request_place_tile.rpc_id(1, tile_pos, tile_source_id, selected_item.item_id, peer_id)
 
 
 func _try_pickup() -> void:
@@ -290,19 +289,15 @@ func _on_item_dropped(item: Item, _slot_index: int) -> void:
     # Request drop through world (host-authoritative)
     var drop_offset = Vector2(sprite_size, 0).rotated(randf() * TAU)
     var drop_pos = global_position + drop_offset
-    world.request_drop_item.rpc_id(1, item.name, _get_texture_path(item.texture), item.quantity, item.stackable, drop_pos, peer_id)
-
-
-func _get_texture_path(texture: Texture2D) -> String:
-    return TextureCache.get_key(texture)
+    world.request_drop_item.rpc_id(1, item.item_id, item.quantity, drop_pos, peer_id)
 
 
 # Called by world.gd when placement is confirmed
-func on_placement_confirmed(item_name: String) -> void:
+func on_placement_confirmed(item_id: String) -> void:
     if not hotbar:
         return
     var selected_item = hotbar.get_selected_item()
-    if selected_item and selected_item.name == item_name:
+    if selected_item and selected_item.item_id == item_id:
         selected_item.quantity -= 1
         if selected_item.quantity <= 0:
             hotbar.set_item(hotbar.selected_slot, null)

@@ -161,8 +161,8 @@ func _process(delta: float) -> void:
 	var state = world.get_furnace_state(current_furnace_pos)
 
 	# Update smelting progress if there's input and room for output
-	if state.input_item != null and state.input_item.name == "Iron Ore":
-		var can_output = state.output_item == null or (state.output_item.name == "Iron" and state.output_item.quantity < 99)
+	if state.input_item != null and state.input_item.item_id == "iron_ore":
+		var can_output = state.output_item == null or (state.output_item.item_id == "iron" and state.output_item.quantity < 99)
 		if can_output:
 			state.smelt_progress += delta
 			if state.smelt_progress >= SMELT_TIME:
@@ -173,7 +173,7 @@ func _process(delta: float) -> void:
 					state.input_item = null
 
 				if state.output_item == null:
-					state.output_item = Item.create("Iron", iron_texture, 1)
+					state.output_item = Item.create("iron", 1)
 				else:
 					state.output_item.quantity += 1
 
@@ -206,7 +206,7 @@ func _update_ui(state: Dictionary) -> void:
 	var slot_size = slot_texture.get_width()
 
 	# Show progress display only when actively smelting
-	var is_smelting = state.input_item != null and state.input_item.name == "Iron Ore"
+	var is_smelting = state.input_item != null and state.input_item.item_id == "iron_ore"
 	progress_container.visible = is_smelting
 
 	if is_smelting:
@@ -339,12 +339,12 @@ func _end_drag(pos: Vector2) -> void:
 	if drag_from_hotbar_slot >= 0:
 		# Dragging from hotbar
 		var hotbar_item = hotbar.get_item(drag_from_hotbar_slot)
-		if target_input and hotbar_item != null and hotbar_item.name == "Iron Ore":
+		if target_input and hotbar_item != null and hotbar_item.item_id == "iron_ore":
 			# Move to input slot
 			if state.input_item == null:
 				state.input_item = hotbar_item.duplicate()
 				hotbar.set_item(drag_from_hotbar_slot, null)
-			elif state.input_item.name == "Iron Ore" and state.input_item.quantity < 99:
+			elif state.input_item.item_id == "iron_ore" and state.input_item.quantity < 99:
 				var can_add = 99 - state.input_item.quantity
 				var to_add = mini(hotbar_item.quantity, can_add)
 				state.input_item.quantity += to_add
@@ -362,7 +362,7 @@ func _end_drag(pos: Vector2) -> void:
 			if hotbar_item == null:
 				hotbar.set_item(target_hotbar_slot, state.input_item)
 				state.input_item = null
-			elif hotbar_item.name == "Iron Ore" and hotbar_item.quantity < 99:
+			elif hotbar_item.item_id == "iron_ore" and hotbar_item.quantity < 99:
 				var can_add = 99 - hotbar_item.quantity
 				var to_add = mini(state.input_item.quantity, can_add)
 				hotbar_item.quantity += to_add
@@ -380,7 +380,7 @@ func _end_drag(pos: Vector2) -> void:
 			if hotbar_item == null:
 				hotbar.set_item(target_hotbar_slot, state.output_item)
 				state.output_item = null
-			elif hotbar_item.name == "Iron" and hotbar_item.quantity < 99:
+			elif hotbar_item.item_id == "iron" and hotbar_item.quantity < 99:
 				var can_add = 99 - hotbar_item.quantity
 				var to_add = mini(state.output_item.quantity, can_add)
 				hotbar_item.quantity += to_add

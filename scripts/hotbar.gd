@@ -184,8 +184,7 @@ func _drop_selected_item() -> void:
 		if stack.quantity > 1:
 			# Drop one from the stack
 			stack.quantity -= 1
-			var dropped_item = Item.create(stack.name, stack.texture, 1)
-			dropped_item.stackable = stack.stackable
+			var dropped_item = Item.create(stack.item_id, 1)
 			_update_item_icons()
 			item_dropped.emit(dropped_item, selected_slot)
 		else:

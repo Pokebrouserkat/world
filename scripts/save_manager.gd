@@ -134,10 +134,8 @@ func _serialize_hotbar(hotbar: Node) -> Array:
 		if item:
 			slots.append({
 				"slot": i,
-				"name": item.name,
-				"texture_key": TextureCache.get_key(item.texture),
-				"quantity": item.quantity,
-				"stackable": item.stackable
+				"id": item.item_id,
+				"quantity": item.quantity
 			})
 	return slots
 
@@ -156,10 +154,8 @@ func _serialize_dropped_items(world: TileMapLayer) -> Array:
 	for node in dropped_nodes:
 		if node.item:
 			items.append({
-				"name": node.item.name,
-				"texture_key": TextureCache.get_key(node.item.texture),
+				"id": node.item.item_id,
 				"quantity": node.item.quantity,
-				"stackable": node.item.stackable,
 				"position": {"x": node.global_position.x, "y": node.global_position.y}
 			})
 	return items
@@ -173,10 +169,8 @@ func _serialize_box_contents(world: TileMapLayer) -> Dictionary:
 		for item in world._box_contents[pos]:
 			if item:
 				contents.append({
-					"name": item.name,
-					"texture_key": TextureCache.get_key(item.texture),
-					"quantity": item.quantity,
-					"stackable": item.stackable
+					"id": item.item_id,
+					"quantity": item.quantity
 				})
 			else:
 				contents.append(null)
@@ -203,9 +197,7 @@ func _deserialize_hotbar(data: Array, hotbar: Node) -> void:
 
 	# Load saved items
 	for item_data in data:
-		var texture = TextureCache.get_texture(item_data.texture_key)
-		var item = Item.create(item_data.name, texture, item_data.quantity)
-		item.stackable = item_data.stackable
+		var item = Item.create(item_data.id, item_data.quantity)
 		hotbar.set_item(item_data.slot, item)
 
 
@@ -239,8 +231,7 @@ func _deserialize_dropped_items(data: Array, world: TileMapLayer) -> void:
 	# Spawn saved items
 	for item_data in data:
 		var pos = Vector2(item_data.position.x, item_data.position.y)
-		world._spawn_item_at(item_data.name, item_data.texture_key,
-			item_data.quantity, item_data.stackable, pos, 0.0)
+		world._spawn_item_by_id(item_data.id, item_data.quantity, pos, 0.0)
 
 
 func _deserialize_box_contents(data: Dictionary, world: TileMapLayer) -> void:
@@ -255,9 +246,7 @@ func _deserialize_box_contents(data: Dictionary, world: TileMapLayer) -> void:
 			var contents: Array = []
 			for item_data in data[key]:
 				if item_data:
-					var texture = TextureCache.get_texture(item_data.texture_key)
-					var item = Item.create(item_data.name, texture, item_data.quantity)
-					item.stackable = item_data.stackable
+					var item = Item.create(item_data.id, item_data.quantity)
 					contents.append(item)
 				else:
 					contents.append(null)

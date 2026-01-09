@@ -2,12 +2,14 @@ extends Control
 
 signal closed
 
+const ItemRegistry = preload("res://scripts/item_registry.gd")
+
 var hotbar: Node = null
 var player: Node = null
 var is_open: bool = false
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 
-# Recipe structure: {"output_name": {"ingredients": {"item_name": quantity}, "output_quantity": int, "texture": Texture2D}}
+# Recipe structure: {"output_id": {"ingredients": {"item_id": quantity}, "output_quantity": int}}
 var recipes: Dictionary = {}
 
 # UI elements
@@ -15,25 +17,9 @@ var panel: NinePatchRect = null
 var recipe_container: VBoxContainer = null
 var recipe_buttons: Array[TextureButton] = []
 
-# Textures
-var box_texture: Texture2D = preload("res://graphics/box.png")
-var wood_texture: Texture2D = preload("res://graphics/wood.png")
-var rock_texture: Texture2D = preload("res://graphics/rock_item.png")
+# UI textures
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
 var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
-var wood_pick_texture: Texture2D = preload("res://graphics/woodpick.png")
-var wood_axe_texture: Texture2D = preload("res://graphics/woodax.png")
-var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
-var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
-var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
-var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
-var iron_texture: Texture2D = preload("res://graphics/iron.png")
-var iron_pick_texture: Texture2D = preload("res://graphics/ironpick.png")
-var iron_axe_texture: Texture2D = preload("res://graphics/ironax.png")
-var furnace_texture: Texture2D = preload("res://graphics/furnace.png")
-
-# Ingredient textures lookup
-var ingredient_textures: Dictionary = {}
 
 
 func _ready() -> void:
@@ -50,80 +36,59 @@ func _ready() -> void:
 
 
 func _setup_recipes() -> void:
-	# Set up ingredient texture lookup
-	ingredient_textures["Wood"] = wood_texture
-	ingredient_textures["Rock"] = rock_texture
-	ingredient_textures["Iron"] = iron_texture
-
-	recipes["Box"] = {
-		"ingredients": {"Wood": 5},
-		"output_quantity": 1,
-		"texture": box_texture
+	recipes["box"] = {
+		"ingredients": {"wood": 5},
+		"output_quantity": 1
 	}
 
 	# Wood tools - 5 wood each
-	recipes["Wood Pick"] = {
-		"ingredients": {"Wood": 5},
-		"output_quantity": 1,
-		"texture": wood_pick_texture,
-		"stackable": false
+	recipes["wood_pick"] = {
+		"ingredients": {"wood": 5},
+		"output_quantity": 1
 	}
 
-	recipes["Wood Axe"] = {
-		"ingredients": {"Wood": 5},
-		"output_quantity": 1,
-		"texture": wood_axe_texture,
-		"stackable": false
+	recipes["wood_axe"] = {
+		"ingredients": {"wood": 5},
+		"output_quantity": 1
 	}
 
 	# Stone tools - 2 wood + 3 stone each
-	recipes["Stone Pick"] = {
-		"ingredients": {"Wood": 2, "Rock": 3},
-		"output_quantity": 1,
-		"texture": stone_pick_texture,
-		"stackable": false
+	recipes["stone_pick"] = {
+		"ingredients": {"wood": 2, "rock": 3},
+		"output_quantity": 1
 	}
 
-	recipes["Stone Axe"] = {
-		"ingredients": {"Wood": 2, "Rock": 3},
-		"output_quantity": 1,
-		"texture": stone_axe_texture,
-		"stackable": false
+	recipes["stone_axe"] = {
+		"ingredients": {"wood": 2, "rock": 3},
+		"output_quantity": 1
 	}
 
 	# Walls - 20 of respective material
-	recipes["Wood Wall"] = {
-		"ingredients": {"Wood": 20},
-		"output_quantity": 1,
-		"texture": wood_wall_texture
+	recipes["wood_wall"] = {
+		"ingredients": {"wood": 20},
+		"output_quantity": 1
 	}
 
-	recipes["Stone Wall"] = {
-		"ingredients": {"Rock": 20},
-		"output_quantity": 1,
-		"texture": stone_wall_texture
+	recipes["stone_wall"] = {
+		"ingredients": {"rock": 20},
+		"output_quantity": 1
 	}
 
 	# Furnace - 10 rock
-	recipes["Furnace"] = {
-		"ingredients": {"Rock": 10},
-		"output_quantity": 1,
-		"texture": furnace_texture
+	recipes["furnace"] = {
+		"ingredients": {"rock": 10},
+		"output_quantity": 1
 	}
 
 	# Iron tools - 2 wood + 3 iron each
-	recipes["Iron Pick"] = {
-		"ingredients": {"Wood": 2, "Iron": 3},
-		"output_quantity": 1,
-		"texture": iron_pick_texture,
-		"stackable": false
+	recipes["iron_pick"] = {
+		"ingredients": {"wood": 2, "iron": 3},
+		"output_quantity": 1
 	}
 
-	recipes["Iron Axe"] = {
-		"ingredients": {"Wood": 2, "Iron": 3},
-		"output_quantity": 1,
-		"texture": iron_axe_texture,
-		"stackable": false
+	recipes["iron_axe"] = {
+		"ingredients": {"wood": 2, "iron": 3},
+		"output_quantity": 1
 	}
 
 
@@ -203,17 +168,18 @@ func _populate_recipes() -> void:
 		recipe_container.add_child(row)
 
 
-func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContainer:
+func _create_recipe_row(recipe_id: String, recipe: Dictionary) -> HBoxContainer:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 
 	# Clickable output icon
 	var output_btn = TextureButton.new()
-	output_btn.texture_normal = recipe.texture
+	var output_texture_key = ItemRegistry.get_texture_key(recipe_id)
+	output_btn.texture_normal = TextureCache.get_texture(output_texture_key)
 	output_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	output_btn.stretch_mode = TextureButton.STRETCH_KEEP
-	output_btn.pressed.connect(_on_craft_pressed.bind(recipe_name))
+	output_btn.pressed.connect(_on_craft_pressed.bind(recipe_id))
 	row.add_child(output_btn)
 	recipe_buttons.append(output_btn)
 
@@ -225,7 +191,7 @@ func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContaine
 
 	# Ingredients
 	var first_ing = true
-	for ing_name in recipe.ingredients:
+	for ing_id in recipe.ingredients:
 		if not first_ing:
 			var plus = Label.new()
 			plus.text = "+"
@@ -235,8 +201,8 @@ func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContaine
 
 		# Ingredient icon (smaller to show it's not clickable)
 		var ing_icon = TextureRect.new()
-		if ingredient_textures.has(ing_name):
-			ing_icon.texture = ingredient_textures[ing_name]
+		var ing_texture_key = ItemRegistry.get_texture_key(ing_id)
+		ing_icon.texture = TextureCache.get_texture(ing_texture_key)
 		ing_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		ing_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ing_icon.custom_minimum_size = Vector2(12, 12)
@@ -245,7 +211,7 @@ func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContaine
 
 		# Quantity label
 		var qty = Label.new()
-		qty.text = str(recipe.ingredients[ing_name])
+		qty.text = str(recipe.ingredients[ing_id])
 		qty.add_theme_font_size_override("font_size", 10)
 		qty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(qty)
@@ -253,23 +219,21 @@ func _create_recipe_row(recipe_name: String, recipe: Dictionary) -> HBoxContaine
 	return row
 
 
-func _on_craft_pressed(recipe_name: String) -> void:
+func _on_craft_pressed(recipe_id: String) -> void:
 	if not hotbar:
 		return
 
-	var recipe = recipes[recipe_name]
+	var recipe = recipes[recipe_id]
 	if not _can_craft(recipe):
 		return
 
 	# Consume ingredients
-	for ing_name in recipe.ingredients:
-		var needed = recipe.ingredients[ing_name]
-		_consume_item(ing_name, needed)
+	for ing_id in recipe.ingredients:
+		var needed = recipe.ingredients[ing_id]
+		_consume_item(ing_id, needed)
 
 	# Create output item
-	var output = Item.create(recipe_name, recipe.texture, recipe.output_quantity)
-	if recipe.has("stackable") and recipe.stackable == false:
-		output.stackable = false
+	var output = Item.create(recipe_id, recipe.output_quantity)
 
 	# Try to add to inventory, drop if full
 	if not hotbar.add_item(output):
@@ -282,30 +246,30 @@ func _can_craft(recipe: Dictionary) -> bool:
 	if not hotbar:
 		return false
 
-	for ing_name in recipe.ingredients:
-		var needed = recipe.ingredients[ing_name]
-		var have = _count_item(ing_name)
+	for ing_id in recipe.ingredients:
+		var needed = recipe.ingredients[ing_id]
+		var have = _count_item(ing_id)
 		if have < needed:
 			return false
 	return true
 
 
-func _count_item(item_name: String) -> int:
+func _count_item(item_id: String) -> int:
 	var total = 0
 	for i in range(hotbar.slot_count):
 		var item = hotbar.get_item(i)
-		if item and item.name == item_name:
+		if item and item.item_id == item_id:
 			total += item.quantity
 	return total
 
 
-func _consume_item(item_name: String, amount: int) -> void:
+func _consume_item(item_id: String, amount: int) -> void:
 	var remaining = amount
 	for i in range(hotbar.slot_count):
 		if remaining <= 0:
 			break
 		var item = hotbar.get_item(i)
-		if item and item.name == item_name:
+		if item and item.item_id == item_id:
 			var to_take = mini(item.quantity, remaining)
 			item.quantity -= to_take
 			remaining -= to_take
