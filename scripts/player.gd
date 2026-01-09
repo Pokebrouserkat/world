@@ -22,6 +22,7 @@ const STONE_TOOL_HITS: int = 3
 var _pending_left_click: bool = false
 var _pending_right_click: bool = false
 var box_inventory: Node = null
+var furnace_inventory: Node = null
 var _last_pickup_sound_frame: int = -1
 
 
@@ -68,8 +69,9 @@ func _ready() -> void:
             axe.stackable = false
             hotbar.set_item(0, axe)
 
-        # Find box inventory
+        # Find box inventory and furnace inventory
         box_inventory = get_tree().get_first_node_in_group("box_inventory")
+        furnace_inventory = get_tree().get_first_node_in_group("furnace_inventory")
 
 
 func _physics_process(_delta: float) -> void:
@@ -124,18 +126,20 @@ func _handle_left_click() -> void:
         return
 
     # Check what item is selected and perform appropriate action
-    if selected_item.name == "Box" or selected_item.name == "Wood Wall" or selected_item.name == "Stone Wall":
+    if selected_item.name in ["Box", "Wood Wall", "Stone Wall", "Furnace"]:
         _try_place_item()
     elif _is_tool(selected_item.name):
         _try_use_tool()
 
 
 func _handle_right_click() -> void:
-    if not world or not box_inventory:
+    if not world:
         return
 
-    # Don't open if box inventory is already open
-    if box_inventory.is_open:
+    # Don't open if any inventory is already open
+    if box_inventory and box_inventory.is_open:
+        return
+    if furnace_inventory and furnace_inventory.is_open:
         return
 
     # Get mouse position in world coordinates
@@ -151,12 +155,15 @@ func _handle_right_click() -> void:
     var source_id = world.get_cell_source_id(tile_pos)
 
     # Check if it's a box tile (source_id 3)
-    if source_id == 3:
+    if source_id == 3 and box_inventory:
         box_inventory.open_for_box(tile_pos)
+    # Check if it's a furnace tile (source_id 6)
+    elif source_id == 6 and furnace_inventory:
+        furnace_inventory.open_for_furnace(tile_pos)
 
 
 func _is_tool(item_name: String) -> bool:
-    return item_name in ["Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe"]
+    return item_name in ["Axe", "Wood Pick", "Wood Axe", "Stone Pick", "Stone Axe", "Iron Pick", "Iron Axe"]
 
 
 func _get_tool_hits(item_name: String) -> int:
@@ -214,6 +221,8 @@ func _try_place_item() -> void:
             tile_source_id = 4
         "Stone Wall":
             tile_source_id = 5
+        "Furnace":
+            tile_source_id = 6
         _:
             return
 

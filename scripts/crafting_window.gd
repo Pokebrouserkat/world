@@ -27,6 +27,10 @@ var stone_pick_texture: Texture2D = preload("res://graphics/stonepick.png")
 var stone_axe_texture: Texture2D = preload("res://graphics/stoneax.png")
 var wood_wall_texture: Texture2D = preload("res://graphics/woodwall.png")
 var stone_wall_texture: Texture2D = preload("res://graphics/stonewall.png")
+var iron_texture: Texture2D = preload("res://graphics/iron.png")
+var iron_pick_texture: Texture2D = preload("res://graphics/ironpick.png")
+var iron_axe_texture: Texture2D = preload("res://graphics/ironax.png")
+var furnace_texture: Texture2D = preload("res://graphics/furnace.png")
 
 # Ingredient textures lookup
 var ingredient_textures: Dictionary = {}
@@ -49,6 +53,7 @@ func _setup_recipes() -> void:
 	# Set up ingredient texture lookup
 	ingredient_textures["Wood"] = wood_texture
 	ingredient_textures["Rock"] = rock_texture
+	ingredient_textures["Iron"] = iron_texture
 
 	recipes["Box"] = {
 		"ingredients": {"Wood": 5},
@@ -97,6 +102,28 @@ func _setup_recipes() -> void:
 		"ingredients": {"Rock": 20},
 		"output_quantity": 1,
 		"texture": stone_wall_texture
+	}
+
+	# Furnace - 10 rock
+	recipes["Furnace"] = {
+		"ingredients": {"Rock": 10},
+		"output_quantity": 1,
+		"texture": furnace_texture
+	}
+
+	# Iron tools - 2 wood + 3 iron each
+	recipes["Iron Pick"] = {
+		"ingredients": {"Wood": 2, "Iron": 3},
+		"output_quantity": 1,
+		"texture": iron_pick_texture,
+		"stackable": false
+	}
+
+	recipes["Iron Axe"] = {
+		"ingredients": {"Wood": 2, "Iron": 3},
+		"output_quantity": 1,
+		"texture": iron_axe_texture,
+		"stackable": false
 	}
 
 

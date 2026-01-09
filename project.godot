@@ -42,6 +42,14 @@ window/per_pixel_transparency/allowed=true
 export/convert_text_resources_to_binary=false
 version_control/autoload_on_startup=true
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+
+[gdunit4]
+
+settings/common/update_notification_enabled=false
+
 [physics]
 
 2d/run_on_separate_thread=true

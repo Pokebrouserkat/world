@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=26 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
@@ -14,7 +14,9 @@
 [ext_resource type="PackedScene" path="res://scenes/box_inventory.tscn" id="13_box_inv"]
 [ext_resource type="Script" uid="uid://ds48s4p3l7g7g" path="res://scripts/player_spawner.gd" id="14_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/pause_menu.tscn" id="15_pause_menu"]
-[ext_resource type="Texture2D" uid="uid://pause_icon" path="res://graphics/pause.png" id="16_pause_icon"]
+[ext_resource type="Texture2D" uid="uid://f7rk6dmy0laf" path="res://graphics/pause.png" id="16_pause_icon"]
+[ext_resource type="Texture2D" path="res://graphics/furnace.png" id="17_furnace"]
+[ext_resource type="PackedScene" path="res://scenes/furnace_inventory.tscn" id="18_furnace_inv"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -48,6 +50,11 @@ texture = ExtResource("12_stonewall")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_furnace"]
+texture = ExtResource("17_furnace")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
@@ -56,6 +63,7 @@ sources/2 = SubResource("TileSetAtlasSource_tree")
 sources/3 = SubResource("TileSetAtlasSource_box")
 sources/4 = SubResource("TileSetAtlasSource_woodwall")
 sources/5 = SubResource("TileSetAtlasSource_stonewall")
+sources/6 = SubResource("TileSetAtlasSource_furnace")
 
 [node name="Node2D" type="Node2D"]
 y_sort_enabled = true
@@ -85,9 +93,12 @@ script = ExtResource("14_spawner")
 
 [node name="BoxInventory" parent="CanvasLayer" instance=ExtResource("13_box_inv")]
 
+[node name="FurnaceInventory" parent="CanvasLayer" instance=ExtResource("18_furnace_inv")]
+
 [node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("15_pause_menu")]
 
 [node name="PauseButton" type="TextureButton" parent="CanvasLayer"]
+texture_filter = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -96,7 +107,6 @@ offset_top = 8.0
 offset_right = -8.0
 offset_bottom = 24.0
 grow_horizontal = 0
-texture_filter = 1
 texture_normal = ExtResource("16_pause_icon")
 stretch_mode = 0
 

@@ -21,6 +21,11 @@ static func _ensure_loaded() -> void:
 	_cache["wood_axe"] = preload("res://graphics/woodax.png")
 	_cache["stone_pick"] = preload("res://graphics/stonepick.png")
 	_cache["stone_axe"] = preload("res://graphics/stoneax.png")
+	_cache["iron_ore"] = preload("res://graphics/ironore.png")
+	_cache["iron"] = preload("res://graphics/iron.png")
+	_cache["iron_pick"] = preload("res://graphics/ironpick.png")
+	_cache["iron_axe"] = preload("res://graphics/ironax.png")
+	_cache["furnace"] = preload("res://graphics/furnace.png")
 	_cache["fallback"] = preload("res://graphics/fallback.png")
 
 

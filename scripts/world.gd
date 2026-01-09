@@ -7,12 +7,16 @@ enum TileType {
     TREE = 2,
     BOX = 3,
     WOOD_WALL = 4,
-    STONE_WALL = 5
+    STONE_WALL = 5,
+    FURNACE = 6
 }
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
 var _box_contents: Dictionary = {}
 const BOX_SLOT_COUNT: int = 9
+
+# Furnace state storage: Dictionary[Vector2i, {input_item, output_item, smelt_progress}]
+var _furnace_states: Dictionary = {}
 
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
@@ -21,7 +25,8 @@ const TILE_SOURCE = {
     TileType.TREE: 2,
     TileType.BOX: 3,
     TileType.WOOD_WALL: 4,
-    TileType.STONE_WALL: 5
+    TileType.STONE_WALL: 5,
+    TileType.FURNACE: 6
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -31,7 +36,8 @@ const TILE_COORDS = {
     TileType.TREE: Vector2i(0, 0),
     TileType.BOX: Vector2i(0, 0),
     TileType.WOOD_WALL: Vector2i(0, 0),
-    TileType.STONE_WALL: Vector2i(0, 0)
+    TileType.STONE_WALL: Vector2i(0, 0),
+    TileType.FURNACE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -74,6 +80,7 @@ const STONE_WALL_DURABILITY: int = 30
 const PLASTIC_TOOL_HITS: int = 10
 const WOOD_TOOL_HITS: int = 5
 const STONE_TOOL_HITS: int = 3
+const IRON_TOOL_HITS: int = 1
 
 
 func _ready() -> void:
@@ -190,6 +197,30 @@ func clear_box_contents(box_pos: Vector2i) -> Array:
     return contents
 
 
+# Furnace state functions
+func get_furnace_state(furnace_pos: Vector2i) -> Dictionary:
+    if not _furnace_states.has(furnace_pos):
+        _furnace_states[furnace_pos] = {
+            "input_item": null,
+            "output_item": null,
+            "smelt_progress": 0.0
+        }
+    return _furnace_states[furnace_pos]
+
+
+func set_furnace_state(furnace_pos: Vector2i, state: Dictionary) -> void:
+    _furnace_states[furnace_pos] = state
+
+
+func clear_furnace_state(furnace_pos: Vector2i) -> Dictionary:
+    # Returns state and removes from storage (for when furnace is broken)
+    var state: Dictionary = {"input_item": null, "output_item": null, "smelt_progress": 0.0}
+    if _furnace_states.has(furnace_pos):
+        state = _furnace_states[furnace_pos]
+        _furnace_states.erase(furnace_pos)
+    return state
+
+
 # === MULTIPLAYER RPC METHODS ===
 
 func _on_player_connected(peer_id: int) -> void:
@@ -229,7 +260,9 @@ func _get_tile_durability(tile_type: String) -> int:
 
 
 func _get_tool_hits(tool_name: String) -> int:
-    if tool_name.begins_with("Stone"):
+    if tool_name.begins_with("Iron"):
+        return IRON_TOOL_HITS
+    elif tool_name.begins_with("Stone"):
         return STONE_TOOL_HITS
     elif tool_name.begins_with("Wood"):
         return WOOD_TOOL_HITS
@@ -244,12 +277,13 @@ func _get_tile_type_string(source_id: int) -> String:
         3: return "box"
         4: return "wood_wall"
         5: return "stone_wall"
+        6: return "furnace"
         _: return "grass"
 
 
 func _is_correct_tool(tool_name: String, source_id: int) -> bool:
-    var is_pick = tool_name in ["Wood Pick", "Stone Pick"]
-    var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe"]
+    var is_pick = tool_name in ["Wood Pick", "Stone Pick", "Iron Pick"]
+    var is_axe = tool_name in ["Axe", "Wood Axe", "Stone Axe", "Iron Axe"]
 
     match source_id:
         1:  # Rock - requires pick
@@ -260,6 +294,8 @@ func _is_correct_tool(tool_name: String, source_id: int) -> bool:
             return true
         4, 5:  # Walls - any tool works
             return true
+        6:  # Furnace - requires any pick
+            return is_pick
         _:
             return false
 
@@ -280,8 +316,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_name: String, requester_peer_id: 
 
     var tile_type = _get_tile_type_string(source_id)
 
-    # Box is instant break
-    if source_id == 3:
+    # Box and furnace are instant break
+    if source_id == 3 or source_id == 6:
         _break_tile(tile_pos, tile_type)
         return
 
@@ -314,6 +350,10 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         for i in range(rock_count):
             var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
             _spawn_item_at("Rock", "rock_item", 1, true, tile_world_pos + spread_offset, 0.3)
+        # 1 in 10 chance to drop iron ore
+        if randi() % 10 == 0:
+            var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+            _spawn_item_at("Iron Ore", "iron_ore", 1, true, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "tree":
         # Spread out 10 wood drops
         for i in range(10):
@@ -333,6 +373,20 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         _spawn_item_at("Wood Wall", "wood_wall", 1, true, tile_world_pos, 0.0)
     elif tile_type == "stone_wall":
         _spawn_item_at("Stone Wall", "stone_wall", 1, true, tile_world_pos, 0.0)
+    elif tile_type == "furnace":
+        # Drop furnace contents first
+        var state = clear_furnace_state(tile_pos)
+        if state.input_item != null:
+            for i in range(state.input_item.quantity):
+                var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
+                _spawn_item_at(state.input_item.name, _get_texture_key(state.input_item.texture), 1,
+                    state.input_item.stackable, tile_world_pos + spread_offset, 0.3)
+        if state.output_item != null:
+            for i in range(state.output_item.quantity):
+                var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
+                _spawn_item_at(state.output_item.name, _get_texture_key(state.output_item.texture), 1,
+                    state.output_item.stackable, tile_world_pos + spread_offset, 0.3)
+        _spawn_item_at("Furnace", "furnace", 1, true, tile_world_pos, 0.0)
 
 
 @rpc("any_peer", "call_local", "reliable")
