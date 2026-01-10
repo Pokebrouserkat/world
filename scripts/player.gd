@@ -308,3 +308,9 @@ func on_placement_confirmed(item_id: String) -> void:
 func on_pickup_confirmed(item: Item) -> void:
     if hotbar and hotbar.add_item(item):
         _play_pickup_sound()
+    else:
+        # Inventory full - drop the item back on the ground
+        if world:
+            var drop_offset = Vector2(sprite_size, 0).rotated(randf() * TAU)
+            var drop_pos = global_position + drop_offset
+            world.request_drop_item.rpc_id(1, item.item_id, item.quantity, drop_pos, peer_id)

@@ -430,11 +430,13 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String
     if source_id != 0:
         return
 
-    # Don't allow placing on player positions
+    # Don't allow placing on player positions - use world coordinates for robustness
+    var tile_world_pos = to_global(map_to_local(tile_pos))
+    var tile_half_size = Vector2(tile_set.tile_size) / 2.0
     var players = get_tree().get_nodes_in_group("player")
     for player in players:
-        var player_tile = local_to_map(to_local(player.global_position))
-        if tile_pos == player_tile:
+        var player_pos = player.global_position
+        if abs(player_pos.x - tile_world_pos.x) < tile_half_size.x and abs(player_pos.y - tile_world_pos.y) < tile_half_size.y:
             return
 
     # Place the tile and broadcast
