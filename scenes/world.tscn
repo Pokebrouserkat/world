@@ -1,10 +1,10 @@
-[gd_scene load_steps=26 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=28 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://b6hktgs6xgdqk" path="res://scripts/world.gd" id="2_world"]
 [ext_resource type="Script" uid="uid://btlo8o54tldoa" path="res://scripts/grass_background.gd" id="3_grass_bg"]
 [ext_resource type="Texture2D" uid="uid://7ces8w53o73e" path="res://graphics/rock.png" id="4_rock"]
-[ext_resource type="PackedScene" path="res://scenes/hotbar.tscn" id="5_hotbar"]
+[ext_resource type="PackedScene" uid="uid://hotbar123" path="res://scenes/hotbar.tscn" id="5_hotbar"]
 [ext_resource type="Texture2D" uid="uid://ctpqvjo54ixdk" path="res://graphics/tree.png" id="6_tree"]
 [ext_resource type="PackedScene" path="res://scenes/crafting_window.tscn" id="8_crafting"]
 [ext_resource type="Script" uid="uid://b1r440gqpqbhn" path="res://scripts/game_manager.gd" id="9_game_manager"]
@@ -15,8 +15,9 @@
 [ext_resource type="Script" uid="uid://ds48s4p3l7g7g" path="res://scripts/player_spawner.gd" id="14_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/pause_menu.tscn" id="15_pause_menu"]
 [ext_resource type="Texture2D" uid="uid://f7rk6dmy0laf" path="res://graphics/pause.png" id="16_pause_icon"]
-[ext_resource type="Texture2D" path="res://graphics/furnace.png" id="17_furnace"]
+[ext_resource type="Texture2D" uid="uid://2wvl8axgdq41" path="res://graphics/furnace.png" id="17_furnace"]
 [ext_resource type="PackedScene" path="res://scenes/furnace_inventory.tscn" id="18_furnace_inv"]
+[ext_resource type="Texture2D" uid="uid://bxfeeil8544uv" path="res://graphics/ironoretile.png" id="19_ironore"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -55,6 +56,11 @@ texture = ExtResource("17_furnace")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironore"]
+texture = ExtResource("19_ironore")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
@@ -64,6 +70,7 @@ sources/3 = SubResource("TileSetAtlasSource_box")
 sources/4 = SubResource("TileSetAtlasSource_woodwall")
 sources/5 = SubResource("TileSetAtlasSource_stonewall")
 sources/6 = SubResource("TileSetAtlasSource_furnace")
+sources/7 = SubResource("TileSetAtlasSource_ironore")
 
 [node name="Node2D" type="Node2D"]
 y_sort_enabled = true

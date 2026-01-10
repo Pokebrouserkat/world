@@ -8,7 +8,8 @@ enum TileType {
     BOX = 3,
     WOOD_WALL = 4,
     STONE_WALL = 5,
-    FURNACE = 6
+    FURNACE = 6,
+    IRON_ORE = 7
 }
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
@@ -26,7 +27,8 @@ const TILE_SOURCE = {
     TileType.BOX: 3,
     TileType.WOOD_WALL: 4,
     TileType.STONE_WALL: 5,
-    TileType.FURNACE: 6
+    TileType.FURNACE: 6,
+    TileType.IRON_ORE: 7
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -37,7 +39,8 @@ const TILE_COORDS = {
     TileType.BOX: Vector2i(0, 0),
     TileType.WOOD_WALL: Vector2i(0, 0),
     TileType.STONE_WALL: Vector2i(0, 0),
-    TileType.FURNACE: Vector2i(0, 0)
+    TileType.FURNACE: Vector2i(0, 0),
+    TileType.IRON_ORE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -45,6 +48,9 @@ const ROCK_SPAWN_CHANCE: int = 40
 
 # Chance for a tree to spawn on grass (1 in N grass tiles)
 const TREE_SPAWN_CHANCE: int = 40
+
+# Chance for iron ore to spawn (1 in N tiles) - rare
+const IRON_ORE_SPAWN_CHANCE: int = 200
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
@@ -158,6 +164,10 @@ func get_tile_type(x: int, y: int) -> TileType:
     var hash_value = _position_hash(x, y)
     if hash_value % ROCK_SPAWN_CHANCE == 0:
         return TileType.ROCK
+    # Check for iron ore (rare, use offset hash)
+    var iron_hash = _position_hash(x + 2000, y + 2000)
+    if iron_hash % IRON_ORE_SPAWN_CHANCE == 0:
+        return TileType.IRON_ORE
     # Check for tree on grass tiles (use offset hash)
     var tree_hash = _position_hash(x + 1000, y + 1000)
     if tree_hash % TREE_SPAWN_CHANCE == 0:
@@ -276,6 +286,7 @@ func _get_tile_type_string(source_id: int) -> String:
         4: return "wood_wall"
         5: return "stone_wall"
         6: return "furnace"
+        7: return "iron_ore"
         _: return "grass"
 
 
@@ -293,6 +304,8 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
         4, 5:  # Walls - any tool works
             return true
         6:  # Furnace - requires any pick
+            return is_pick
+        7:  # Iron ore - requires pick
             return is_pick
         _:
             return false
@@ -348,8 +361,18 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         for i in range(rock_count):
             var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
             _spawn_item_by_id("rock", 1, tile_world_pos + spread_offset, 0.3)
-        # 1 in 10 chance to drop iron ore
-        if randi() % 10 == 0:
+        # 20% chance to drop iron ore, with 25% chance for 2 instead of 1
+        if randi() % 5 == 0:
+            var iron_count = 1
+            if randi() % 4 == 0:
+                iron_count = 2
+            for i in range(iron_count):
+                var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+                _spawn_item_by_id("iron_ore", 1, tile_world_pos + spread_offset, 0.3)
+    elif tile_type == "iron_ore":
+        # Iron ore tiles drop 3-6 iron ore
+        var iron_count = randi_range(3, 6)
+        for i in range(iron_count):
             var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
             _spawn_item_by_id("iron_ore", 1, tile_world_pos + spread_offset, 0.3)
     elif tile_type == "tree":
