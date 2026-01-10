@@ -8,102 +8,102 @@ class_name ItemRegistry
 # display_name is what's shown to the player (defaults to id if not specified)
 # max_stack of 1 means not stackable
 const ITEMS: Dictionary = {
-	"rock": {
-		"texture_key": "rock_item",
-		"max_stack": 99,
-		"display_name": "Rock"
-	},
-	"wood": {
-		"texture_key": "wood",
-		"max_stack": 99,
-		"display_name": "Wood"
-	},
-	"box": {
-		"texture_key": "box",
-		"max_stack": 99,
-		"display_name": "Box"
-	},
-	"wood_wall": {
-		"texture_key": "wood_wall",
-		"max_stack": 99,
-		"display_name": "Wood Wall"
-	},
-	"stone_wall": {
-		"texture_key": "stone_wall",
-		"max_stack": 99,
-		"display_name": "Stone Wall"
-	},
-	"axe": {
-		"texture_key": "axe",
-		"max_stack": 1,
-		"display_name": "Axe"
-	},
-	"wood_pick": {
-		"texture_key": "wood_pick",
-		"max_stack": 1,
-		"display_name": "Wood Pick"
-	},
-	"wood_axe": {
-		"texture_key": "wood_axe",
-		"max_stack": 1,
-		"display_name": "Wood Axe"
-	},
-	"stone_pick": {
-		"texture_key": "stone_pick",
-		"max_stack": 1,
-		"display_name": "Stone Pick"
-	},
-	"stone_axe": {
-		"texture_key": "stone_axe",
-		"max_stack": 1,
-		"display_name": "Stone Axe"
-	},
-	"iron_ore": {
-		"texture_key": "iron_ore",
-		"max_stack": 99,
-		"display_name": "Iron Ore"
-	},
-	"iron": {
-		"texture_key": "iron",
-		"max_stack": 99,
-		"display_name": "Iron"
-	},
-	"iron_pick": {
-		"texture_key": "iron_pick",
-		"max_stack": 1,
-		"display_name": "Iron Pick"
-	},
-	"iron_axe": {
-		"texture_key": "iron_axe",
-		"max_stack": 1,
-		"display_name": "Iron Axe"
-	},
-	"furnace": {
-		"texture_key": "furnace",
-		"max_stack": 99,
-		"display_name": "Furnace"
-	},
+    "rock": {
+        "texture_key": "rock_item",
+        "max_stack": 99,
+        "display_name": "Rock"
+    },
+    "wood": {
+        "texture_key": "wood",
+        "max_stack": 99,
+        "display_name": "Wood"
+    },
+    "box": {
+        "texture_key": "box",
+        "max_stack": 99,
+        "display_name": "Box"
+    },
+    "wood_wall": {
+        "texture_key": "wood_wall",
+        "max_stack": 99,
+        "display_name": "Wood Wall"
+    },
+    "stone_wall": {
+        "texture_key": "stone_wall",
+        "max_stack": 99,
+        "display_name": "Stone Wall"
+    },
+    "axe": {
+        "texture_key": "axe",
+        "max_stack": 1,
+        "display_name": "Axe"
+    },
+    "wood_pick": {
+        "texture_key": "wood_pick",
+        "max_stack": 1,
+        "display_name": "Wood Pick"
+    },
+    "wood_axe": {
+        "texture_key": "wood_axe",
+        "max_stack": 1,
+        "display_name": "Wood Axe"
+    },
+    "stone_pick": {
+        "texture_key": "stone_pick",
+        "max_stack": 1,
+        "display_name": "Stone Pick"
+    },
+    "stone_axe": {
+        "texture_key": "stone_axe",
+        "max_stack": 1,
+        "display_name": "Stone Axe"
+    },
+    "iron_ore": {
+        "texture_key": "iron_ore",
+        "max_stack": 99,
+        "display_name": "Iron Ore"
+    },
+    "iron": {
+        "texture_key": "iron",
+        "max_stack": 99,
+        "display_name": "Iron"
+    },
+    "iron_pick": {
+        "texture_key": "iron_pick",
+        "max_stack": 1,
+        "display_name": "Iron Pick"
+    },
+    "iron_axe": {
+        "texture_key": "iron_axe",
+        "max_stack": 1,
+        "display_name": "Iron Axe"
+    },
+    "furnace": {
+        "texture_key": "furnace",
+        "max_stack": 99,
+        "display_name": "Furnace"
+    },
 }
 
 
 static func get_item_data(item_id: String) -> Dictionary:
-	return ITEMS.get(item_id, {})
+    return ITEMS.get(item_id, {})
 
 
 static func has_item(item_id: String) -> bool:
-	return ITEMS.has(item_id)
+    return ITEMS.has(item_id)
 
 
 static func get_display_name(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return data.get("display_name", item_id)
+    var data = get_item_data(item_id)
+    return data.get("display_name", item_id)
 
 
 static func get_texture_key(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return data.get("texture_key", "fallback")
+    var data = get_item_data(item_id)
+    return data.get("texture_key", "fallback")
 
 
 static func is_stackable(item_id: String) -> bool:
-	var data = get_item_data(item_id)
-	return data.get("max_stack", 1) > 1
+    var data = get_item_data(item_id)
+    return data.get("max_stack", 1) > 1
