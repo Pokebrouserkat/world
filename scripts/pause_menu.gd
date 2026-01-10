@@ -62,12 +62,34 @@ func _input(event: InputEvent) -> void:
             open()
         get_viewport().set_input_as_handled()
 
-    # Click outside panel to close
-    if is_open and event is InputEventMouseButton and event.pressed:
-        if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
-            if panel and not panel.get_global_rect().has_point(event.global_position):
-                close()
-                get_viewport().set_input_as_handled()
+    # Handle clicks while paused (buttons don't receive GUI input properly when paused)
+    if is_open and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+        var mouse_pos = event.global_position
+        if quit_button.get_global_rect().has_point(mouse_pos):
+            _on_quit_pressed()
+            get_viewport().set_input_as_handled()
+        elif resume_button.get_global_rect().has_point(mouse_pos):
+            _on_resume_pressed()
+            get_viewport().set_input_as_handled()
+        elif save_button.get_global_rect().has_point(mouse_pos):
+            _on_save_pressed()
+            get_viewport().set_input_as_handled()
+        elif load_button.get_global_rect().has_point(mouse_pos):
+            _on_load_pressed()
+            get_viewport().set_input_as_handled()
+        elif host_button.visible and host_button.get_global_rect().has_point(mouse_pos):
+            _on_host_pressed()
+            get_viewport().set_input_as_handled()
+        elif join_button.visible and join_button.get_global_rect().has_point(mouse_pos):
+            _on_join_pressed()
+            get_viewport().set_input_as_handled()
+        elif disconnect_button.visible and disconnect_button.get_global_rect().has_point(mouse_pos):
+            _on_disconnect_pressed()
+            get_viewport().set_input_as_handled()
+        elif panel and not panel.get_global_rect().has_point(mouse_pos):
+            # Click outside panel to close
+            close()
+            get_viewport().set_input_as_handled()
 
 
 func open() -> void:
