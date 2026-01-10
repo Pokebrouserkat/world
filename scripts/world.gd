@@ -130,6 +130,7 @@ func _update_tiles() -> void:
         return
     _last_rect = rect
 
+    # Generate new tiles in visible area
     for x in range(rect.position.x, rect.end.x):
         for y in range(rect.position.y, rect.end.y):
             var tile_pos = Vector2i(x, y)
@@ -141,6 +142,16 @@ func _update_tiles() -> void:
                     var tile_type = get_tile_type(x, y)
                     set_cell(tile_pos, TILE_SOURCE[tile_type], TILE_COORDS[tile_type])
                 _generated_tiles[tile_pos] = true
+
+    # Unload tiles outside visible area
+    var tiles_to_remove: Array[Vector2i] = []
+    for tile_pos in _generated_tiles:
+        if not rect.has_point(tile_pos):
+            tiles_to_remove.append(tile_pos)
+
+    for tile_pos in tiles_to_remove:
+        erase_cell(tile_pos)
+        _generated_tiles.erase(tile_pos)
 
 
 func get_visible_tile_rect() -> Rect2i:
