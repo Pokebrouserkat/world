@@ -49,8 +49,8 @@ const ROCK_SPAWN_CHANCE: int = 40
 # Chance for a tree to spawn on grass (1 in N grass tiles)
 const TREE_SPAWN_CHANCE: int = 40
 
-# Chance for iron ore to spawn (1 in N tiles) - rare
-const IRON_ORE_SPAWN_CHANCE: int = 200
+# Chance for iron ore to spawn (1 in N tiles) - very rare
+const IRON_ORE_SPAWN_CHANCE: int = 2000
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
