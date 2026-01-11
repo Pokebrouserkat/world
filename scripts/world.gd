@@ -364,8 +364,8 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     _tile_modifications[tile_pos] = 0
     _trigger_autosave()
 
-    # Spawn appropriate items
-    var tile_world_pos = map_to_local(tile_pos)
+    # Spawn appropriate items (add 16 to Y to compensate for sprite's -16 Y offset)
+    var tile_world_pos = map_to_local(tile_pos) + Vector2(0, 16)
 
     if tile_type == "rock":
         var rock_count = randi_range(1, 4)
