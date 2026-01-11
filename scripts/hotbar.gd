@@ -244,6 +244,20 @@ func get_selected_item() -> Item:
     return get_item(selected_slot)
 
 
+func can_add_item(item: Item) -> bool:
+    # Check if item can be added without modifying state
+    if item.stackable:
+        for i in range(slot_count):
+            if items[i] != null and items[i].can_stack_with(item):
+                if items[i].quantity < items[i].max_stack:
+                    return true
+    # Check for empty slot
+    for i in range(slot_count):
+        if items[i] == null:
+            return true
+    return false
+
+
 func add_item(item: Item) -> bool:
     # First try to stack with existing items
     if item.stackable:

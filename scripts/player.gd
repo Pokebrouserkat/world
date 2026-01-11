@@ -254,6 +254,10 @@ func _try_pickup() -> void:
 
         var dist = global_position.distance_to(dropped.global_position)
         if dist < pickup_range and dropped.item and hotbar:
+            # Skip if inventory can't accept this item
+            if not hotbar.can_add_item(dropped.item):
+                continue
+
             # Request pickup through world (host-authoritative)
             if dropped.network_id >= 0:
                 world.request_pickup_item.rpc_id(1, dropped.network_id, peer_id)
@@ -306,11 +310,7 @@ func on_placement_confirmed(item_id: String) -> void:
 
 # Called by world.gd when pickup is confirmed
 func on_pickup_confirmed(item: Item) -> void:
+    # Note: inventory capacity is checked before requesting pickup, so this should
+    # always succeed. If it fails due to a race condition, the item is lost.
     if hotbar and hotbar.add_item(item):
         _play_pickup_sound()
-    else:
-        # Inventory full - drop the item back on the ground
-        if world:
-            var drop_offset = Vector2(sprite_size, 0).rotated(randf() * TAU)
-            var drop_pos = global_position + drop_offset
-            world.request_drop_item.rpc_id(1, item.item_id, item.quantity, drop_pos, peer_id)
