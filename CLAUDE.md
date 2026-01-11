@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "Valley" - a 2D top-down game built with Godot 4.5 using GDScript and GL Compatibility renderer.
+This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 using GDScript and GL Compatibility renderer. Features infinite procedural world generation, crafting, smelting, storage boxes, and multiplayer support.
 
 ## Running the Project
 
@@ -13,46 +13,74 @@ Open in Godot Editor or run headless validation:
 "/Users/matt/Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot" --path . --headless --quit
 ```
 
+## Testing
+
+Uses GdUnit4 testing framework. Run tests with:
+```bash
+./test.sh                    # Run all tests
+./test.sh -tc PlayerTest     # Run specific test suite
+```
+
+Test files are in `test/` and extend `GdUnitTestSuite`.
+
 ## Architecture
 
-### Scene Structure
-- `scenes/world.tscn` - Main scene containing TileMapLayer, Player, and UI CanvasLayer
-- `scenes/player.tscn` - CharacterBody2D player character
-- `scenes/hotbar.tscn` - HBoxContainer-based inventory hotbar (9 slots)
-- `scenes/dropped_item.tscn` - Area2D for items dropped in world
+### Autoloads (Singletons)
+- `NetworkManager` - Multiplayer connection handling
+- `SaveManager` - Game persistence to `user://save.json`
 
 ### Core Systems
 
+**Item System** (`scripts/item.gd`, `scripts/item_registry.gd`, `scripts/texture_cache.gd`):
+- `ItemRegistry`: Central definition of all items with id, texture_key, max_stack, display_name
+- `Item`: Resource class that looks up properties from registry via `item_id`
+- `TextureCache`: Static lazy-loaded texture lookup by key
+- Create items with `Item.create(item_id, quantity)`
+- Add new items by: 1) add to `ItemRegistry.ITEMS`, 2) add texture to `TextureCache._ensure_loaded()`
+
 **World Generation** (`scripts/world.gd`):
 - Extends TileMapLayer with infinite procedural generation
-- Uses deterministic position-based hash for tile placement (WORLD_SEED constant)
-- Generates tiles on-demand based on camera viewport with tile_buffer
-- TileType enum: GRASS (0), ROCK (1) - rocks spawn 1/40 chance
-- Rocks are breakable with Pick tool, replaced with grass and drop rock items
+- Deterministic position-based hash for tile placement (WORLD_SEED)
+- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE
+- Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
+- Manages box contents (`_box_contents`) and furnace states (`_furnace_states`)
 
 **Player** (`scripts/player.gd`):
 - WASD/Arrow movement, Shift to walk slower
-- Left-click uses selected tool (Pick breaks rocks within 2-tile range)
-- Pickup system: auto-collects DroppedItems within pickup_range
-- Connects to hotbar via signal for item_dropped events
-- Derives collision/pickup sizes from sprite dimensions
+- Left-click uses selected tool (picks break rocks, axes break trees)
+- Tool tiers: plastic (10 hits) → wood (5) → stone (3) → iron (1)
+- Pickup system with audio deduplication
 
 **Inventory** (`scripts/hotbar.gd`):
-- 9-slot hotbar with keyboard selection (1-9, +/- to cycle)
-- Q key drops single item from selected slot (decrements stack)
-- Full drag-and-drop: drag between slots to swap, drag outside to drop entire stack
-- Signals: `slot_selected(index)`, `item_dropped(item, slot_index)`
-- Stacking: stackable items combine up to max_stack (99)
+- 9-slot hotbar with 1-9 selection, Q to drop
+- Full drag-and-drop between slots
+- Stacking up to max_stack (99 for most items)
 
-**Items** (`scripts/item.gd`, `scripts/dropped_item.gd`):
-- Item: Resource class with name, texture, quantity, max_stack, stackable properties
-- Item.create() static factory method for creating items
-- DroppedItem: Area2D wrapper with pickup delay and animated pickup (shrink + move to player)
+**Crafting** (`scripts/crafting_window.gd`):
+- C key toggles window
+- Recipes defined in `_setup_recipes()` as `{ingredients: {item_id: qty}, output_quantity: int}`
+
+**Smelting** (`scripts/furnace_inventory.gd`):
+- Drag iron_ore into furnace input → smelts to iron over 30 seconds
+- Furnace state persisted in world's `_furnace_states`
+
+**Storage** (`scripts/box_inventory.gd`):
+- 9-slot storage boxes placed in world
+- Contents tracked in world's `_box_contents` by tile position
 
 ### Key Patterns
-- Group-based node discovery: hotbar uses "hotbar" group, dropped items use "dropped_items" group
-- All UI and collision sizes derived from sprite texture dimensions (resolution independence)
-- Signals for loose coupling: hotbar emits item_dropped, player listens and spawns DroppedItem
+- Group-based node discovery: "world", "player", "hotbar", "dropped_items", "crafting_window", "box_inventory"
+- All UI sizes derived from sprite texture dimensions
+- Signals for loose coupling: hotbar emits `item_dropped`, windows emit `closed`
+- RPC naming conventions:
+  - `request_*` methods: client→host requests (any_peer, call_local, reliable)
+  - `_rpc_*` methods: host→client broadcasts (authority, call_local or call_remote, reliable)
+  - Host handles local player specially (call_remote won't reach self, so use direct local function calls)
+
+### Save System
+- Save file: `user://save.json` (version 1 format)
+- Saves: player position, hotbar, tile modifications, dropped items, box contents, furnace states
+- Autosaves on tile changes (debounced); only in single-player/host mode
 
 ### Display Settings
 - Base viewport: 640x360 with "canvas_items" stretch mode, aspect "expand"
