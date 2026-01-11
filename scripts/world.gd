@@ -365,7 +365,7 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     _trigger_autosave()
 
     # Spawn appropriate items
-    var tile_world_pos = to_global(map_to_local(tile_pos))
+    var tile_world_pos = map_to_local(tile_pos)
 
     if tile_type == "rock":
         var rock_count = randi_range(1, 4)
