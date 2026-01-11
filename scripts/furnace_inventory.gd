@@ -15,16 +15,15 @@ var input_icon: TextureRect = null
 var output_icon: TextureRect = null
 var input_stack_label: Label = null
 var output_stack_label: Label = null
-var progress_container: Control = null
-var ore_sprite: TextureRect = null
-var iron_sprite: TextureRect = null
-var progress_mask: Control = null
+var arrow_icon: TextureRect = null
+var progress_bar_bg: ColorRect = null
+var progress_bar_fill: ColorRect = null
+var progress_label: Label = null
 
 # Textures
 var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
-var iron_ore_texture: Texture2D = preload("res://graphics/ironore.png")
-var iron_texture: Texture2D = preload("res://graphics/iron.png")
+var arrow_texture: Texture2D = preload("res://graphics/arrow.png")
 
 # Smelting state - stored per furnace in world.gd
 const SMELT_TIME: float = 30.0
@@ -50,11 +49,13 @@ func _ready() -> void:
 
 
 func _create_ui() -> void:
-    var slot_size = slot_texture.get_width()
-    var padding = 16
-    var header_height = 20
-    var panel_width = slot_size * 3 + padding * 2 + 8
-    var panel_height = slot_size + header_height + padding * 2 + 8
+    var slot_size = slot_texture.get_width()  # 16
+    var border = 8  # Visual border inset
+    var arrow_width = 12
+    var progress_height = 8
+    var slot_row_width = slot_size * 2 + arrow_width
+    var panel_width = slot_row_width + border * 2
+    var panel_height = slot_size + progress_height + border * 2 + 4
 
     # Main panel
     panel = NinePatchRect.new()
@@ -72,22 +73,14 @@ func _create_ui() -> void:
     panel.position = -panel.size / 2
     add_child(panel)
 
-    # Title label
-    var title = Label.new()
-    title.text = "Furnace"
-    title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    title.position = Vector2(0, 6)
-    title.size = Vector2(panel_width, 14)
-    panel.add_child(title)
-
-    var content_y = header_height + padding
+    var content_y = border
 
     # Input slot (left)
     input_slot = TextureButton.new()
     input_slot.texture_normal = slot_texture
     input_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     input_slot.stretch_mode = TextureButton.STRETCH_KEEP
-    input_slot.position = Vector2(padding, content_y)
+    input_slot.position = Vector2(border, content_y)
     panel.add_child(input_slot)
 
     input_icon = TextureRect.new()
@@ -105,37 +98,22 @@ func _create_ui() -> void:
     input_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     input_slot.add_child(input_stack_label)
 
-    # Progress container (center) - shows ore transforming to iron
-    progress_container = Control.new()
-    progress_container.position = Vector2(padding + slot_size + 4, content_y)
-    progress_container.size = Vector2(slot_size, slot_size)
-    panel.add_child(progress_container)
-
-    # Iron sprite (bottom layer - revealed as progress increases)
-    iron_sprite = TextureRect.new()
-    iron_sprite.texture = iron_texture
-    iron_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    iron_sprite.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-    iron_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    iron_sprite.set_anchors_preset(Control.PRESET_FULL_RECT)
-    progress_container.add_child(iron_sprite)
-
-    # Ore sprite with clip (top layer - shrinks from bottom as progress increases)
-    ore_sprite = TextureRect.new()
-    ore_sprite.texture = iron_ore_texture
-    ore_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    ore_sprite.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-    ore_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    ore_sprite.set_anchors_preset(Control.PRESET_FULL_RECT)
-    ore_sprite.clip_contents = true
-    progress_container.add_child(ore_sprite)
+    # Arrow between slots
+    arrow_icon = TextureRect.new()
+    arrow_icon.texture = arrow_texture
+    arrow_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    arrow_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+    arrow_icon.position = Vector2(border + slot_size, content_y)
+    arrow_icon.size = Vector2(arrow_width, slot_size)
+    arrow_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    panel.add_child(arrow_icon)
 
     # Output slot (right)
     output_slot = TextureButton.new()
     output_slot.texture_normal = slot_texture
     output_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     output_slot.stretch_mode = TextureButton.STRETCH_KEEP
-    output_slot.position = Vector2(padding + slot_size * 2 + 8, content_y)
+    output_slot.position = Vector2(border + slot_size + arrow_width, content_y)
     panel.add_child(output_slot)
 
     output_icon = TextureRect.new()
@@ -152,6 +130,31 @@ func _create_ui() -> void:
     output_stack_label.add_theme_font_size_override("font_size", 8)
     output_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     output_slot.add_child(output_stack_label)
+
+    # Progress bar background
+    var progress_y = content_y + slot_size + 2
+    progress_bar_bg = ColorRect.new()
+    progress_bar_bg.color = Color(0.2, 0.2, 0.2, 1.0)
+    progress_bar_bg.position = Vector2(border, progress_y)
+    progress_bar_bg.size = Vector2(slot_row_width, progress_height)
+    panel.add_child(progress_bar_bg)
+
+    # Progress bar fill
+    progress_bar_fill = ColorRect.new()
+    progress_bar_fill.color = Color(0.8, 0.5, 0.2, 1.0)  # Orange for smelting
+    progress_bar_fill.position = Vector2(border, progress_y)
+    progress_bar_fill.size = Vector2(0, progress_height)
+    panel.add_child(progress_bar_fill)
+
+    # Progress time label
+    progress_label = Label.new()
+    progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    progress_label.position = Vector2(border, progress_y)
+    progress_label.size = Vector2(slot_row_width, progress_height)
+    progress_label.add_theme_font_size_override("font_size", 7)
+    progress_label.add_theme_color_override("font_color", Color.WHITE)
+    panel.add_child(progress_label)
 
 
 func _process(delta: float) -> void:
@@ -201,19 +204,29 @@ func _update_ui(state: Dictionary) -> void:
         output_icon.texture = null
         output_stack_label.text = ""
 
-    # Update progress visual - ore shrinks from bottom, iron shows underneath
-    var progress = state.smelt_progress / SMELT_TIME
-    var slot_size = slot_texture.get_width()
-
-    # Show progress display only when actively smelting
+    # Update progress bar
     var is_smelting = state.input_item != null and state.input_item.item_id == "iron_ore"
-    progress_container.visible = is_smelting
+    var can_output = state.output_item == null or (state.output_item.item_id == "iron" and state.output_item.quantity < 99)
 
-    if is_smelting:
-        # Ore sprite clips from bottom - position it up as progress increases
-        var clip_height = slot_size * (1.0 - progress)
-        ore_sprite.position.y = 0
-        ore_sprite.size.y = clip_height
+    if is_smelting and can_output:
+        var progress = state.smelt_progress / SMELT_TIME
+        var bar_width = progress_bar_bg.size.x * progress
+        progress_bar_fill.size.x = bar_width
+
+        var time_remaining = SMELT_TIME - state.smelt_progress
+        progress_label.text = "%ds" % int(ceil(time_remaining))
+        progress_bar_fill.visible = true
+    else:
+        progress_bar_fill.size.x = 0
+        progress_bar_fill.visible = false
+        if state.input_item == null:
+            progress_label.text = "Add ore"
+        elif not is_smelting:
+            progress_label.text = "Wrong item"
+        elif not can_output:
+            progress_label.text = "Output full"
+        else:
+            progress_label.text = ""
 
 
 func _update_item_icons() -> void:
@@ -352,6 +365,20 @@ func _end_drag(pos: Vector2) -> void:
                 if hotbar_item.quantity <= 0:
                     hotbar.set_item(drag_from_hotbar_slot, null)
             world.set_furnace_state(current_furnace_pos, state)
+            hotbar._update_item_icons()
+        elif target_hotbar_slot >= 0 and target_hotbar_slot != drag_from_hotbar_slot:
+            # Hotbar to hotbar transfer (reorganization)
+            var source_item = hotbar.get_item(drag_from_hotbar_slot)
+            var target_item = hotbar.get_item(target_hotbar_slot)
+            if target_item != null and source_item != null and target_item.can_stack_with(source_item):
+                var leftover = target_item.add_quantity(source_item.quantity)
+                if leftover == 0:
+                    hotbar.set_item(drag_from_hotbar_slot, null)
+                else:
+                    source_item.quantity = leftover
+            else:
+                hotbar.set_item(target_hotbar_slot, source_item)
+                hotbar.set_item(drag_from_hotbar_slot, target_item)
             hotbar._update_item_icons()
         hotbar.item_icons[drag_from_hotbar_slot].modulate.a = 1.0
 

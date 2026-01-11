@@ -38,6 +38,7 @@ func save_game() -> bool:
         "tile_modifications": _serialize_tile_modifications(world),
         "dropped_items": _serialize_dropped_items(world),
         "box_contents": _serialize_box_contents(world),
+        "furnace_states": _serialize_furnace_states(world),
     }
 
     var json_string = JSON.stringify(save_data, "\t")
@@ -99,6 +100,7 @@ func load_game() -> bool:
     _deserialize_tile_modifications(save_data.get("tile_modifications", {}), world)
     _deserialize_dropped_items(save_data.get("dropped_items", []), world)
     _deserialize_box_contents(save_data.get("box_contents", {}), world)
+    _deserialize_furnace_states(save_data.get("furnace_states", {}), world)
 
     _last_save_time = save_data.get("timestamp", 0)
     game_loaded.emit()
@@ -258,3 +260,49 @@ func _deserialize_box_contents(data: Dictionary, world: TileMapLayer) -> void:
                 else:
                     contents.append(null)
             world._box_contents[pos] = contents
+
+
+func _serialize_furnace_states(world: TileMapLayer) -> Dictionary:
+    var furnaces: Dictionary = {}
+    for pos in world._furnace_states:
+        var key = "%d,%d" % [pos.x, pos.y]
+        var state = world._furnace_states[pos]
+        var furnace_data: Dictionary = {
+            "smelt_progress": state.smelt_progress
+        }
+        if state.input_item:
+            furnace_data["input_item"] = {
+                "id": state.input_item.item_id,
+                "quantity": state.input_item.quantity
+            }
+        if state.output_item:
+            furnace_data["output_item"] = {
+                "id": state.output_item.item_id,
+                "quantity": state.output_item.quantity
+            }
+        furnaces[key] = furnace_data
+    return furnaces
+
+
+func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
+    # Clear existing furnace states
+    world._furnace_states.clear()
+
+    # Load saved states
+    for key in data:
+        var parts = key.split(",")
+        if parts.size() == 2:
+            var pos = Vector2i(int(parts[0]), int(parts[1]))
+            var furnace_data = data[key]
+            var state: Dictionary = {
+                "input_item": null,
+                "output_item": null,
+                "smelt_progress": furnace_data.get("smelt_progress", 0.0)
+            }
+            if furnace_data.has("input_item"):
+                var input_data = furnace_data["input_item"]
+                state.input_item = Item.create(input_data["id"], input_data["quantity"])
+            if furnace_data.has("output_item"):
+                var output_data = furnace_data["output_item"]
+                state.output_item = Item.create(output_data["id"], output_data["quantity"])
+            world._furnace_states[pos] = state

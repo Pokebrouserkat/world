@@ -56,6 +56,13 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+        # Don't intercept Escape if another window is open - let them handle it
+        var furnace = get_tree().get_first_node_in_group("furnace_inventory")
+        var box = get_tree().get_first_node_in_group("box_inventory")
+        var crafting = get_tree().get_first_node_in_group("crafting_window")
+        if (furnace and furnace.is_open) or (box and box.is_open) or (crafting and crafting.is_open):
+            return
+
         if is_open:
             close()
         else:

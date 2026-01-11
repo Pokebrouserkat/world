@@ -236,10 +236,18 @@ func _end_drag(pos: Vector2) -> void:
             # Move to box
             _transfer_hotbar_to_box(drag_from_slot, target_box_slot)
         elif target_hotbar_slot >= 0 and target_hotbar_slot != drag_from_slot:
-            # Swap within hotbar
-            var temp = hotbar.items[target_hotbar_slot]
-            hotbar.items[target_hotbar_slot] = hotbar.items[drag_from_slot]
-            hotbar.items[drag_from_slot] = temp
+            # Hotbar to hotbar transfer (reorganization with stacking)
+            var source_item = hotbar.get_item(drag_from_slot)
+            var target_item = hotbar.get_item(target_hotbar_slot)
+            if target_item != null and source_item != null and target_item.can_stack_with(source_item):
+                var leftover = target_item.add_quantity(source_item.quantity)
+                if leftover == 0:
+                    hotbar.set_item(drag_from_slot, null)
+                else:
+                    source_item.quantity = leftover
+            else:
+                hotbar.set_item(target_hotbar_slot, source_item)
+                hotbar.set_item(drag_from_slot, target_item)
             hotbar._update_item_icons()
         hotbar.item_icons[drag_from_slot].modulate.a = 1.0
     else:

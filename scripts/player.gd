@@ -73,33 +73,51 @@ func _ready() -> void:
         furnace_inventory = get_tree().get_first_node_in_group("furnace_inventory")
 
 
+func _is_any_window_open() -> bool:
+    if box_inventory and box_inventory.is_open:
+        return true
+    if furnace_inventory and furnace_inventory.is_open:
+        return true
+    var crafting = get_tree().get_first_node_in_group("crafting_window")
+    if crafting and crafting.is_open:
+        return true
+    return false
+
+
 func _physics_process(_delta: float) -> void:
     # Only process input for local player
     if not is_local_player():
         return
 
+    # Block movement when any window is open
+    var window_open = _is_any_window_open()
+
     var input_dir = Vector2.ZERO
 
-    if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A):
-        input_dir.x -= 1
-    if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D):
-        input_dir.x += 1
-    if Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W):
-        input_dir.y -= 1
-    if Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S):
-        input_dir.y += 1
+    if not window_open:
+        if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A):
+            input_dir.x -= 1
+        if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D):
+            input_dir.x += 1
+        if Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W):
+            input_dir.y -= 1
+        if Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S):
+            input_dir.y += 1
 
     var current_speed = walk_speed if Input.is_key_pressed(KEY_SHIFT) else run_speed
     velocity = input_dir.normalized() * current_speed
     move_and_slide()
 
+    # Block tile interaction when any window is open
     if _pending_left_click:
         _pending_left_click = false
-        _handle_left_click()
+        if not window_open:
+            _handle_left_click()
 
     if _pending_right_click:
         _pending_right_click = false
-        _handle_right_click()
+        if not window_open:
+            _handle_right_click()
 
     _try_pickup()
 

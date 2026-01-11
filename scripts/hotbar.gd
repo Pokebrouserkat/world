@@ -88,6 +88,11 @@ func _create_slots() -> void:
 
 
 func _input(event: InputEvent) -> void:
+    # Check if any inventory window is open - they handle drag operations including hotbar
+    var furnace = get_tree().get_first_node_in_group("furnace_inventory")
+    var box = get_tree().get_first_node_in_group("box_inventory")
+    var window_open = (furnace and furnace.is_open) or (box and box.is_open)
+
     if event is InputEventKey and event.pressed:
         var key = event.keycode
         if key >= KEY_1 and key <= KEY_9:
@@ -101,16 +106,17 @@ func _input(event: InputEvent) -> void:
         elif key == KEY_Q:
             _drop_selected_item()
 
-    # Handle drag and drop
-    if event is InputEventMouseButton:
-        if event.button_index == MOUSE_BUTTON_LEFT:
-            if event.pressed:
-                _start_drag(event.global_position)
-            else:
-                _end_drag(event.global_position)
+    # Handle drag and drop - window scripts handle their own drags when open
+    if not window_open:
+        if event is InputEventMouseButton:
+            if event.button_index == MOUSE_BUTTON_LEFT:
+                if event.pressed:
+                    _start_drag(event.global_position)
+                else:
+                    _end_drag(event.global_position)
 
-    if event is InputEventMouseMotion and dragging:
-        _update_drag(event.global_position)
+        if event is InputEventMouseMotion and dragging:
+            _update_drag(event.global_position)
 
 
 func _start_drag(pos: Vector2) -> void:
@@ -145,10 +151,20 @@ func _end_drag(pos: Vector2) -> void:
     var target_slot = _get_slot_at_position(pos)
 
     if target_slot >= 0 and target_slot != drag_from_slot:
-        # Swap items between slots
-        var temp = items[target_slot]
-        items[target_slot] = items[drag_from_slot]
-        items[drag_from_slot] = temp
+        var source_item = items[drag_from_slot]
+        var target_item = items[target_slot]
+
+        if target_item != null and target_item.can_stack_with(source_item):
+            # Stack items together
+            var leftover = target_item.add_quantity(source_item.quantity)
+            if leftover == 0:
+                items[drag_from_slot] = null
+            else:
+                source_item.quantity = leftover
+        else:
+            # Swap items between slots
+            items[target_slot] = source_item
+            items[drag_from_slot] = target_item
         _update_item_icons()
     elif target_slot < 0:
         # Dropped outside hotbar - drop the item
