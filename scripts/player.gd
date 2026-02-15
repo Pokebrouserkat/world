@@ -132,6 +132,9 @@ func _input(event: InputEvent) -> void:
             _pending_left_click = true
         elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
             _pending_right_click = true
+    elif event.is_action_pressed("use"):
+        if not _is_any_window_open():
+            _handle_interact()
 
 
 func _handle_left_click() -> void:
@@ -177,6 +180,51 @@ func _handle_right_click() -> void:
     # Check if it's a furnace tile (source_id 6)
     elif source_id == 6 and furnace_inventory:
         furnace_inventory.open_for_furnace(tile_pos)
+
+
+func _handle_interact() -> void:
+    if not world:
+        return
+
+    # Find the nearest interactable tile within 2-tile radius
+    var player_tile = world.local_to_map(world.to_local(global_position))
+    var best_tile: Vector2i
+    var best_dist: float = INF
+    var best_source: int = -1
+
+    for dx in range(-2, 3):
+        for dy in range(-2, 3):
+            if dx == 0 and dy == 0:
+                continue
+            var tile_pos = player_tile + Vector2i(dx, dy)
+            var source_id = world.get_cell_source_id(tile_pos)
+            if source_id <= 0:
+                continue
+            var tile_world_pos = world.to_global(world.map_to_local(tile_pos))
+            var dist = global_position.distance_to(tile_world_pos)
+            if dist > sprite_size * 2.0:
+                continue
+            if dist < best_dist:
+                best_dist = dist
+                best_tile = tile_pos
+                best_source = source_id
+
+    if best_source < 0:
+        return
+
+    # Containers: open them
+    if best_source == 3 and box_inventory:
+        box_inventory.open_for_box(best_tile)
+        return
+    if best_source == 6 and furnace_inventory:
+        furnace_inventory.open_for_furnace(best_tile)
+        return
+
+    # Breakable tiles: use equipped tool if correct
+    if hotbar:
+        var selected_item = hotbar.get_selected_item()
+        if selected_item and _is_tool(selected_item.item_id):
+            world.request_hit_tile.rpc_id(1, best_tile, selected_item.item_id, peer_id)
 
 
 func _is_tool(item_id: String) -> bool:

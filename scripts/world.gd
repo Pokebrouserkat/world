@@ -79,6 +79,10 @@ var _next_item_id: int = 0
 
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 
+# Hit effect textures (lazy-loaded)
+var _flash_texture: ImageTexture = null
+var _particle_texture: ImageTexture = null
+
 # Tile durability constants
 const BASE_TILE_DURABILITY: int = 10
 const WOOD_WALL_DURABILITY: int = 20
@@ -340,6 +344,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
     # Box and furnace are instant break
     if source_id == 3 or source_id == 6:
+        _rpc_show_hit_effect.rpc(tile_pos, source_id)
         _break_tile(tile_pos, tile_type)
         return
 
@@ -352,6 +357,9 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
     var damage = ceili(float(BASE_TILE_DURABILITY) / tool_hits)
 
     _tile_health[tile_pos] -= damage
+
+    # Show hit effect to all players
+    _rpc_show_hit_effect.rpc(tile_pos, source_id)
 
     if _tile_health[tile_pos] <= 0:
         _break_tile(tile_pos, tile_type)
@@ -581,6 +589,78 @@ func _confirm_pickup_local(item: Item) -> void:
         if player.is_local_player():
             player.on_pickup_confirmed(item)
             break
+
+
+# === HIT VISUAL EFFECTS ===
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_show_hit_effect(tile_pos: Vector2i, source_id: int) -> void:
+    var local_pos = map_to_local(tile_pos)
+    _create_hit_particles(local_pos, source_id)
+    _create_hit_flash(local_pos)
+
+
+func _get_hit_color(source_id: int) -> Color:
+    match source_id:
+        1: return Color(0.6, 0.6, 0.6)    # Rock - gray
+        2: return Color(0.35, 0.55, 0.2)   # Tree - green-brown
+        4: return Color(0.6, 0.4, 0.2)     # Wood wall - light brown
+        5: return Color(0.5, 0.5, 0.5)     # Stone wall - gray
+        6: return Color(0.3, 0.3, 0.3)     # Furnace - dark gray
+        7: return Color(0.7, 0.5, 0.3)     # Iron ore - brownish
+        _: return Color(0.5, 0.5, 0.5)
+
+
+func _get_particle_texture() -> ImageTexture:
+    if _particle_texture == null:
+        var img = Image.create(2, 2, false, Image.FORMAT_RGBA8)
+        img.fill(Color.WHITE)
+        _particle_texture = ImageTexture.create_from_image(img)
+    return _particle_texture
+
+
+func _get_flash_texture() -> ImageTexture:
+    if _flash_texture == null:
+        var ts = tile_set.tile_size
+        var img = Image.create(ts.x, ts.y, false, Image.FORMAT_RGBA8)
+        img.fill(Color.WHITE)
+        _flash_texture = ImageTexture.create_from_image(img)
+    return _flash_texture
+
+
+func _create_hit_particles(local_pos: Vector2, source_id: int) -> void:
+    var particles = CPUParticles2D.new()
+    particles.position = local_pos
+    particles.texture = _get_particle_texture()
+    particles.emitting = true
+    particles.one_shot = true
+    particles.explosiveness = 1.0
+    particles.amount = 6
+    particles.lifetime = 0.3
+    particles.direction = Vector2(0, -1)
+    particles.spread = 180.0
+    particles.initial_velocity_min = 15.0
+    particles.initial_velocity_max = 40.0
+    particles.gravity = Vector2(0, 80)
+    particles.color = _get_hit_color(source_id)
+    particles.z_index = 10
+    add_child(particles)
+
+    # Auto-cleanup after particles finish
+    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
+
+
+func _create_hit_flash(local_pos: Vector2) -> void:
+    var flash = Sprite2D.new()
+    flash.texture = _get_flash_texture()
+    flash.position = local_pos
+    flash.modulate = Color(1, 1, 1, 0.5)
+    flash.z_index = 10
+    add_child(flash)
+
+    var tween = create_tween()
+    tween.tween_property(flash, "modulate:a", 0.0, 0.1)
+    tween.tween_callback(flash.queue_free)
 
 
 # === BOX INVENTORY SYNC ===
