@@ -187,21 +187,21 @@ func _handle_interact() -> void:
         return
 
     # Find the nearest interactable tile within 2-tile radius
-    var player_tile = world.local_to_map(world.to_local(global_position))
+    # Use visual center (sprite is offset -16 from global_position)
+    var visual_center = global_position + Vector2(0, -sprite_size)
+    var player_tile = world.local_to_map(world.to_local(visual_center))
     var best_tile: Vector2i
     var best_dist: float = INF
     var best_source: int = -1
 
     for dx in range(-2, 3):
         for dy in range(-2, 3):
-            if dx == 0 and dy == 0:
-                continue
             var tile_pos = player_tile + Vector2i(dx, dy)
             var source_id = world.get_cell_source_id(tile_pos)
             if source_id <= 0:
                 continue
             var tile_world_pos = world.to_global(world.map_to_local(tile_pos))
-            var dist = global_position.distance_to(tile_world_pos)
+            var dist = visual_center.distance_to(tile_world_pos)
             if dist > sprite_size * 2.0:
                 continue
             if dist < best_dist:
