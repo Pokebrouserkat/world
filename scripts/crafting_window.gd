@@ -146,6 +146,12 @@ func _setup_recipes() -> void:
         "output_quantity": 1
     }
 
+    # Torch - 1 coal + 1 wood = 8 torches
+    recipes["torch"] = {
+        "ingredients": {"coal": 1, "wood": 1},
+        "output_quantity": 8
+    }
+
     # Sandbox-only items
     if GameMode.is_sandbox():
         recipes["mine_spawner"] = {
