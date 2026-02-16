@@ -49,17 +49,20 @@ const ROOF_HIT_COLORS = {
 	3: Color(0.85, 0.7, 0.2),    # Gold roof - golden
 }
 
+const MINE_DARKNESS_SOURCE: int = 4  # Roof layer source ID for mine darkness overlay
 const ROOF_REVEAL_RADIUS = {
 	0: 20.0,   # Wood roof
 	1: 28.0,   # Stone roof
 	2: 40.0,   # Iron roof
 	3: 10.0,   # Gold roof
+	4: 1.0,    # Mine darkness
 }
 const ROOF_REVEAL_EDGE_BLUR = {
 	0: 0.0,    # Wood roof - sharp
 	1: 0.0,    # Stone roof - sharp
 	2: 0.0,    # Iron roof - sharp
-	3: 160.0,   # Gold roof - blurry
+	3: 160.0,  # Gold roof - blurry
+	4: 160.0,  # Mine darkness - blurry
 }
 const ROOF_REVEAL_DURATION: float = 0.25  # seconds per transition
 var _roof_reveal_radius: float = 0.0
@@ -256,8 +259,6 @@ func _update_tiles() -> void:
 func _update_roof_shader(delta: float) -> void:
 	if not roof_layer:
 		return
-	if player_in_mine:
-		return
 	var mat = roof_layer.material as ShaderMaterial
 	if not mat:
 		return
@@ -431,6 +432,13 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 	player_in_mine = true
 	_current_mine_entrance = entrance_pos
 
+	# Place darkness overlay on roof layer
+	var origin: Vector2i = _known_mines[key]["origin"]
+	for x in range(MineGenerator.MINE_SIZE):
+		for y in range(MineGenerator.MINE_SIZE):
+			var pos = origin + Vector2i(x, y)
+			_roof_modifications[pos] = MINE_DARKNESS_SOURCE
+
 	# Force tile reload
 	_generated_tiles.clear()
 	_last_rect = Rect2i()
@@ -448,6 +456,15 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 
 
 func exit_mine() -> void:
+	# Clear darkness overlay
+	if _current_mine_entrance:
+		var key = "%d,%d" % [_current_mine_entrance.x, _current_mine_entrance.y]
+		if _known_mines.has(key):
+			var origin: Vector2i = _known_mines[key]["origin"]
+			for x in range(MineGenerator.MINE_SIZE):
+				for y in range(MineGenerator.MINE_SIZE):
+					_roof_modifications.erase(origin + Vector2i(x, y))
+
 	player_in_mine = false
 
 	# Force tile reload

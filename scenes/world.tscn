@@ -27,11 +27,11 @@
 [ext_resource type="Texture2D" uid="uid://ced5pfhhysvlk" path="res://graphics/stoneroof.png" id="25_stoneroof"]
 [ext_resource type="Texture2D" uid="uid://c0c3abcqbwaw1" path="res://graphics/ironroof.png" id="26_ironroof"]
 [ext_resource type="Texture2D" uid="uid://bwhxlyvgjugph" path="res://graphics/goldroof.png" id="27_goldroof"]
-[ext_resource type="Texture2D" path="res://graphics/mineentrance.png" id="28_mineentrance"]
-[ext_resource type="Texture2D" path="res://graphics/mineexit.png" id="29_mineexit"]
-[ext_resource type="Texture2D" path="res://graphics/cavewall.png" id="30_cavewall"]
-[ext_resource type="Texture2D" path="res://graphics/goldoretile.png" id="31_goldoretile"]
-[ext_resource type="Texture2D" path="res://graphics/cavefloor.png" id="32_cavefloor"]
+[ext_resource type="Texture2D" uid="uid://cu7ncmu0oitv0" path="res://graphics/mineentrance.png" id="28_mineentrance"]
+[ext_resource type="Texture2D" uid="uid://bed008lkici4r" path="res://graphics/mineexit.png" id="29_mineexit"]
+[ext_resource type="Texture2D" uid="uid://dh0pex71gdcop" path="res://graphics/cavewall.png" id="30_cavewall"]
+[ext_resource type="Texture2D" uid="uid://sofudasu4cct" path="res://graphics/goldoretile.png" id="31_goldoretile"]
+[ext_resource type="Texture2D" uid="uid://di3djm1qyd5vc" path="res://graphics/cavefloor.png" id="32_cavefloor"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -50,6 +50,28 @@ texture = ExtResource("22_stonefloor")
 texture = ExtResource("23_goldwall")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineentrance"]
+texture = ExtResource("28_mineentrance")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineexit"]
+texture = ExtResource("29_mineexit")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavewall"]
+texture = ExtResource("30_cavewall")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldoretile"]
+texture = ExtResource("31_goldoretile")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavefloor"]
+texture = ExtResource("32_cavefloor")
+0:0/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tree"]
 texture = ExtResource("6_tree")
@@ -91,28 +113,6 @@ texture = ExtResource("20_ironwall")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodfloor"]
 texture = ExtResource("21_woodfloor")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineentrance"]
-texture = ExtResource("28_mineentrance")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineexit"]
-texture = ExtResource("29_mineexit")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavewall"]
-texture = ExtResource("30_cavewall")
-0:0/0 = 0
-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldoretile"]
-texture = ExtResource("31_goldoretile")
-0:0/0 = 0
-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavefloor"]
-texture = ExtResource("32_cavefloor")
 0:0/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
@@ -183,11 +183,16 @@ texture = ExtResource("26_ironroof")
 texture = ExtResource("27_goldroof")
 0:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_minedarkness"]
+texture = ExtResource("30_cavewall")
+0:0/0 = 0
+
 [sub_resource type="TileSet" id="TileSet_roof"]
 sources/0 = SubResource("TileSetAtlasSource_woodroof")
 sources/1 = SubResource("TileSetAtlasSource_stoneroof")
 sources/2 = SubResource("TileSetAtlasSource_ironroof")
 sources/3 = SubResource("TileSetAtlasSource_goldroof")
+sources/4 = SubResource("TileSetAtlasSource_minedarkness")
 
 [node name="Node2D" type="Node2D" unique_id=831936643]
 y_sort_enabled = true
