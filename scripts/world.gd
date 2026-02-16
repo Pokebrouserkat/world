@@ -21,6 +21,31 @@ enum TileType {
 	CAVE_FLOOR = 16
 }
 
+# === TILE HEALTH BAR ===
+class TileHealthBar extends Node2D:
+	var ratio: float = 1.0
+	var bar_width: float = 12.0
+	var bar_height: float = 2.0
+
+	func _draw() -> void:
+		var bg_rect = Rect2(-bar_width / 2.0, 0, bar_width, bar_height)
+		draw_rect(bg_rect, Color(0.15, 0.15, 0.15, 0.8))
+		var fill_width = bar_width * ratio
+		if fill_width > 0:
+			var fill_rect = Rect2(-bar_width / 2.0, 0, fill_width, bar_height)
+			var color: Color
+			if ratio > 0.5:
+				color = Color(0.2, 0.8, 0.2)
+			elif ratio > 0.25:
+				color = Color(0.9, 0.8, 0.1)
+			else:
+				color = Color(0.9, 0.2, 0.1)
+			draw_rect(fill_rect, color)
+
+	func set_ratio(new_ratio: float) -> void:
+		ratio = clampf(new_ratio, 0.0, 1.0)
+		queue_redraw()
+
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
 var _box_contents: Dictionary = {}
 const BOX_SLOT_COUNT: int = 9
@@ -148,6 +173,10 @@ var _last_rect: Rect2i
 # Tile health tracking (moved from player.gd)
 var _tile_health: Dictionary = {}  # Vector2i -> int
 
+# Health bar tracking
+var _tile_health_bars: Dictionary = {}  # Vector2i -> TileHealthBar
+var _roof_health_bars: Dictionary = {}  # Vector2i -> TileHealthBar
+
 # Tile modifications for late-joiners (tiles changed from their procedural state)
 var _tile_modifications: Dictionary = {}  # Vector2i -> source_id
 
@@ -181,6 +210,10 @@ const STONE_TOOL_STRENGTH: int = 3
 const IRON_TOOL_STRENGTH: int = 1
 const GOLD_TOOL_STRENGTH: int = 1
 
+# Health regeneration
+const TILE_REGEN_INTERVAL: float = 2.0
+const TILE_REGEN_AMOUNT: int = 1
+
 
 func _ready() -> void:
 	add_to_group("world")
@@ -192,6 +225,13 @@ func _ready() -> void:
 
 	# Connect to NetworkManager for late-joiner sync
 	NetworkManager.player_connected.connect(_on_player_connected)
+
+	# Health regeneration timer (host-only logic in callback)
+	var regen_timer = Timer.new()
+	regen_timer.wait_time = TILE_REGEN_INTERVAL
+	regen_timer.autostart = true
+	regen_timer.timeout.connect(_on_regen_tick)
+	add_child(regen_timer)
 
 
 func _setup_tile_physics() -> void:
@@ -256,6 +296,8 @@ func _update_tiles() -> void:
 		erase_cell(tile_pos)
 		if roof_layer:
 			roof_layer.erase_cell(tile_pos)
+		_remove_health_bar(tile_pos, false)
+		_remove_health_bar(tile_pos, true)
 		_generated_tiles.erase(tile_pos)
 
 
@@ -435,6 +477,9 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 	player_in_mine = true
 	_current_mine_entrance = entrance_pos
 
+	# Clear health bars before tile reload
+	_clear_all_health_bars()
+
 	# Force tile reload
 	_generated_tiles.clear()
 	_last_rect = Rect2i()
@@ -453,6 +498,9 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 
 func exit_mine() -> void:
 	player_in_mine = false
+
+	# Clear health bars before tile reload
+	_clear_all_health_bars()
 
 	# Force tile reload
 	_generated_tiles.clear()
@@ -631,8 +679,13 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 	_rpc_show_hit_effect.rpc(tile_pos, source_id)
 
 	if _tile_health[tile_pos] <= 0:
+		_rpc_update_tile_health_bar.rpc(tile_pos, 0.0, false)
 		_break_tile(tile_pos, tile_type)
 		_tile_health.erase(tile_pos)
+	else:
+		var max_hp = _get_tile_durability(tile_type)
+		var ratio = float(_tile_health[tile_pos]) / float(max_hp)
+		_rpc_update_tile_health_bar.rpc(tile_pos, ratio, false)
 
 
 func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
@@ -803,8 +856,13 @@ func request_hit_roof(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 	_rpc_show_roof_hit_effect.rpc(tile_pos, source_id)
 
 	if _roof_health[tile_pos] <= 0:
+		_rpc_update_tile_health_bar.rpc(tile_pos, 0.0, true)
 		_break_roof(tile_pos, roof_item_id)
 		_roof_health.erase(tile_pos)
+	else:
+		var max_hp = ROOF_DURABILITY[roof_item_id]
+		var ratio = float(_roof_health[tile_pos]) / float(max_hp)
+		_rpc_update_tile_health_bar.rpc(tile_pos, ratio, true)
 
 
 func _break_roof(tile_pos: Vector2i, roof_item_id: String) -> void:
@@ -1160,6 +1218,111 @@ func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantity:
 	var box_inventory = get_tree().get_first_node_in_group("box_inventory")
 	if box_inventory and box_inventory.is_open and box_inventory.current_box_pos == box_pos:
 		box_inventory._update_item_icons()
+
+
+# === TILE HEALTH BARS ===
+
+func _show_health_bar(tile_pos: Vector2i, ratio: float, is_roof: bool) -> void:
+	var bars = _roof_health_bars if is_roof else _tile_health_bars
+	if ratio >= 1.0 or ratio <= 0.0:
+		_remove_health_bar(tile_pos, is_roof)
+		return
+
+	if bars.has(tile_pos):
+		var bar: TileHealthBar = bars[tile_pos]
+		if is_instance_valid(bar):
+			bar.set_ratio(ratio)
+			return
+
+	var bar = TileHealthBar.new()
+	bar.set_ratio(ratio)
+	if is_roof:
+		if roof_layer:
+			bar.position = roof_layer.map_to_local(tile_pos) + Vector2(0, 10)
+			bar.z_index = 21
+			roof_layer.add_child(bar)
+		else:
+			return
+	else:
+		bar.position = map_to_local(tile_pos) + Vector2(0, 10)
+		bar.z_index = 10
+		add_child(bar)
+	bars[tile_pos] = bar
+
+
+func _remove_health_bar(tile_pos: Vector2i, is_roof: bool) -> void:
+	var bars = _roof_health_bars if is_roof else _tile_health_bars
+	if bars.has(tile_pos):
+		var bar = bars[tile_pos]
+		if is_instance_valid(bar):
+			bar.queue_free()
+		bars.erase(tile_pos)
+
+
+func _clear_all_health_bars() -> void:
+	for tile_pos in _tile_health_bars:
+		var bar = _tile_health_bars[tile_pos]
+		if is_instance_valid(bar):
+			bar.queue_free()
+	_tile_health_bars.clear()
+	for tile_pos in _roof_health_bars:
+		var bar = _roof_health_bars[tile_pos]
+		if is_instance_valid(bar):
+			bar.queue_free()
+	_roof_health_bars.clear()
+
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_update_tile_health_bar(tile_pos: Vector2i, health_ratio: float, is_roof: bool) -> void:
+	if health_ratio >= 1.0 or health_ratio <= 0.0:
+		_remove_health_bar(tile_pos, is_roof)
+	else:
+		_show_health_bar(tile_pos, health_ratio, is_roof)
+
+
+func _on_regen_tick() -> void:
+	if not multiplayer.is_server():
+		return
+
+	# Regenerate ground tile health
+	var tiles_to_remove: Array[Vector2i] = []
+	for tile_pos in _tile_health:
+		var source_id = get_cell_source_id(tile_pos)
+		if source_id <= 0:
+			tiles_to_remove.append(tile_pos)
+			continue
+		var tile_type = _get_tile_type_string(source_id)
+		var max_hp = _get_tile_durability(tile_type)
+		_tile_health[tile_pos] = mini(_tile_health[tile_pos] + TILE_REGEN_AMOUNT, max_hp)
+		if _tile_health[tile_pos] >= max_hp:
+			tiles_to_remove.append(tile_pos)
+			_rpc_update_tile_health_bar.rpc(tile_pos, 1.0, false)
+		else:
+			var ratio = float(_tile_health[tile_pos]) / float(max_hp)
+			_rpc_update_tile_health_bar.rpc(tile_pos, ratio, false)
+	for tile_pos in tiles_to_remove:
+		_tile_health.erase(tile_pos)
+
+	# Regenerate roof health
+	var roofs_to_remove: Array[Vector2i] = []
+	for tile_pos in _roof_health:
+		if not roof_layer:
+			break
+		var source_id = roof_layer.get_cell_source_id(tile_pos)
+		if source_id < 0:
+			roofs_to_remove.append(tile_pos)
+			continue
+		var roof_item_id = ROOF_ITEMS[source_id]
+		var max_hp = ROOF_DURABILITY[roof_item_id]
+		_roof_health[tile_pos] = mini(_roof_health[tile_pos] + TILE_REGEN_AMOUNT, max_hp)
+		if _roof_health[tile_pos] >= max_hp:
+			roofs_to_remove.append(tile_pos)
+			_rpc_update_tile_health_bar.rpc(tile_pos, 1.0, true)
+		else:
+			var ratio = float(_roof_health[tile_pos]) / float(max_hp)
+			_rpc_update_tile_health_bar.rpc(tile_pos, ratio, true)
+	for tile_pos in roofs_to_remove:
+		_roof_health.erase(tile_pos)
 
 
 # === AUTOSAVE ===
