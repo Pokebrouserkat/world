@@ -38,6 +38,7 @@ static func _ensure_loaded() -> void:
     _cache["stone_roof"] = preload("res://graphics/stoneroof.png")
     _cache["iron_roof"] = preload("res://graphics/ironroof.png")
     _cache["gold_roof"] = preload("res://graphics/goldroof.png")
+    _cache["mine_entrance"] = preload("res://graphics/mineentrance.png")
     _cache["fallback"] = preload("res://graphics/fallback.png")
 
 

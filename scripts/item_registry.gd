@@ -143,6 +143,11 @@ const ITEMS: Dictionary = {
         "max_stack": 99,
         "display_name": "Gold Roof"
     },
+    "mine_spawner": {
+        "texture_key": "mine_entrance",
+        "max_stack": 99,
+        "display_name": "Mine Spawner"
+    },
 }
 
 

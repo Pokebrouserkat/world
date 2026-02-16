@@ -146,6 +146,13 @@ func _setup_recipes() -> void:
         "output_quantity": 1
     }
 
+    # Sandbox-only items
+    if GameMode.is_sandbox():
+        recipes["mine_spawner"] = {
+            "ingredients": {},
+            "output_quantity": 1
+        }
+
 
 func _create_ui() -> void:
     # Calculate required height based on recipe count

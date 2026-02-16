@@ -123,9 +123,6 @@ const IRON_ORE_SPAWN_CHANCE: int = 2000
 # Chance for mine entrance to spawn (1 in N tiles)
 const MINE_ENTRANCE_SPAWN_CHANCE: int = 5000
 
-# Chance for gold ore to spawn in overworld (1 in N tiles)
-const GOLD_ORE_SPAWN_CHANCE: int = 8000
-
 # Cave tile durabilities
 const CAVE_WALL_DURABILITY: int = 10
 const GOLD_ORE_DURABILITY: int = 20
@@ -342,10 +339,6 @@ func get_tile_type(x: int, y: int) -> TileType:
 	var iron_hash = _position_hash(x + 2000, y + 2000)
 	if iron_hash % IRON_ORE_SPAWN_CHANCE == 0:
 		return TileType.IRON_ORE
-	# Check for gold ore (very rare, use offset hash)
-	var gold_hash = _position_hash(x + 4000, y + 4000)
-	if gold_hash % GOLD_ORE_SPAWN_CHANCE == 0:
-		return TileType.GOLD_ORE
 	# Check for tree on grass tiles (use offset hash)
 	var tree_hash = _position_hash(x + 1000, y + 1000)
 	if tree_hash % TREE_SPAWN_CHANCE == 0:
