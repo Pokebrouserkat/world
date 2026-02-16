@@ -18,7 +18,9 @@ enum TileType {
 	MINE_EXIT = 13,
 	CAVE_WALL = 14,
 	GOLD_ORE = 15,
-	CAVE_FLOOR = 16
+	CAVE_FLOOR = 16,
+	TORCH = 17,
+	COAL_ORE = 18
 }
 
 # === TILE HEALTH BAR ===
@@ -115,7 +117,9 @@ const TILE_SOURCE = {
 	TileType.MINE_EXIT: 13,
 	TileType.CAVE_WALL: 14,
 	TileType.GOLD_ORE: 15,
-	TileType.CAVE_FLOOR: 16
+	TileType.CAVE_FLOOR: 16,
+	TileType.TORCH: 17,
+	TileType.COAL_ORE: 18
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -136,7 +140,9 @@ const TILE_COORDS = {
 	TileType.MINE_EXIT: Vector2i(0, 0),
 	TileType.CAVE_WALL: Vector2i(0, 0),
 	TileType.GOLD_ORE: Vector2i(0, 0),
-	TileType.CAVE_FLOOR: Vector2i(0, 0)
+	TileType.CAVE_FLOOR: Vector2i(0, 0),
+	TileType.TORCH: Vector2i(0, 0),
+	TileType.COAL_ORE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -154,6 +160,7 @@ const MINE_ENTRANCE_SPAWN_CHANCE: int = 5000
 # Cave tile durabilities
 const CAVE_WALL_DURABILITY: int = 10
 const GOLD_ORE_DURABILITY: int = 20
+const COAL_ORE_DURABILITY: int = 15
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
@@ -195,6 +202,8 @@ var _overworld_return_pos: Vector2 = Vector2.ZERO
 # Mine lighting state
 var _mine_lighting_active: bool = false
 var _mine_modulate: CanvasModulate = null
+var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
+var _torch_light_texture: GradientTexture2D = null
 
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
@@ -282,7 +291,7 @@ func _setup_tile_occlusion() -> void:
 	var solid_tiles = [
 		TileType.ROCK, TileType.CAVE_WALL, TileType.GOLD_ORE, TileType.IRON_ORE,
 		TileType.BOX, TileType.WOOD_WALL, TileType.STONE_WALL, TileType.FURNACE,
-		TileType.IRON_WALL, TileType.GOLD_WALL, TileType.TREE
+		TileType.IRON_WALL, TileType.GOLD_WALL, TileType.TREE, TileType.COAL_ORE
 	]
 	for tile_type in solid_tiles:
 		var source = tile_set.get_source(TILE_SOURCE[tile_type]) as TileSetAtlasSource
@@ -323,6 +332,10 @@ func _update_tiles() -> void:
 				if roof_layer:
 					if _roof_modifications.has(tile_pos):
 						roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
+				# Create light for torch tiles
+				var loaded_source = get_cell_source_id(tile_pos)
+				if loaded_source == TILE_SOURCE[TileType.TORCH]:
+					_add_torch_light(tile_pos)
 				_generated_tiles[tile_pos] = true
 
 	# Unload tiles outside visible area
@@ -337,6 +350,7 @@ func _update_tiles() -> void:
 			roof_layer.erase_cell(tile_pos)
 		_remove_health_bar(tile_pos, false)
 		_remove_health_bar(tile_pos, true)
+		_remove_torch_light(tile_pos)
 		_generated_tiles.erase(tile_pos)
 
 
@@ -558,6 +572,46 @@ func exit_mine() -> void:
 	_trigger_autosave()
 
 
+func _get_torch_light_texture() -> GradientTexture2D:
+	if _torch_light_texture == null:
+		var gradient = Gradient.new()
+		gradient.set_color(0, Color.WHITE)
+		gradient.set_color(1, Color.TRANSPARENT)
+		_torch_light_texture = GradientTexture2D.new()
+		_torch_light_texture.gradient = gradient
+		_torch_light_texture.width = 256
+		_torch_light_texture.height = 256
+		_torch_light_texture.fill = GradientTexture2D.FILL_RADIAL
+		_torch_light_texture.fill_from = Vector2(0.5, 0.5)
+		_torch_light_texture.fill_to = Vector2(0.5, 0.0)
+	return _torch_light_texture
+
+
+func _add_torch_light(tile_pos: Vector2i) -> void:
+	if _torch_lights.has(tile_pos):
+		return
+	var light = PointLight2D.new()
+	light.texture = _get_torch_light_texture()
+	light.texture_scale = 0.8
+	light.energy = 0.8
+	light.color = Color(1.0, 0.8, 0.4)
+	light.shadow_enabled = true
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.7)
+	light.shadow_filter = Light2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 1.0
+	light.position = map_to_local(tile_pos)
+	add_child(light)
+	_torch_lights[tile_pos] = light
+
+
+func _remove_torch_light(tile_pos: Vector2i) -> void:
+	if _torch_lights.has(tile_pos):
+		var light = _torch_lights[tile_pos]
+		if is_instance_valid(light):
+			light.queue_free()
+		_torch_lights.erase(tile_pos)
+
+
 func _apply_mine_lighting(enabled: bool) -> void:
 	_mine_lighting_active = enabled
 	occlusion_enabled = enabled
@@ -632,6 +686,8 @@ func _get_tile_durability(tile_type: String) -> int:
 			return CAVE_WALL_DURABILITY
 		"gold_ore":
 			return GOLD_ORE_DURABILITY
+		"coal_ore":
+			return COAL_ORE_DURABILITY
 		_:
 			return BASE_TILE_DURABILITY
 
@@ -667,6 +723,8 @@ func _get_tile_type_string(source_id: int) -> String:
 		14: return "cave_wall"
 		15: return "gold_ore"
 		16: return "cave_floor"
+		17: return "torch"
+		18: return "coal_ore"
 		_: return "grass"
 
 
@@ -689,11 +747,13 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
 			return is_pick
 		9, 10:  # Floors - any tool works
 			return true
-		12, 13, 16:  # Mine entrance/exit/cave floor - unbreakable
+		12, 13, 14, 16:  # Mine entrance/exit/cave wall/cave floor - unbreakable
 			return false
-		14:  # Cave wall - requires pick
-			return is_pick
 		15:  # Gold ore - requires pick
+			return is_pick
+		17:  # Torch - any tool works
+			return true
+		18:  # Coal ore - requires pick
 			return is_pick
 		_:
 			return false
@@ -709,8 +769,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 	if source_id <= 0:  # Grass or invalid
 		return
 
-	# Mine entrance, exit, and cave floor are unbreakable
-	if source_id in [12, 13, 16]:
+	# Mine entrance, exit, cave wall, and cave floor are unbreakable
+	if source_id in [12, 13, 14, 16]:
 		return
 
 	# Check if correct tool is used
@@ -719,8 +779,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
 	var tile_type = _get_tile_type_string(source_id)
 
-	# Box and furnace are instant break
-	if source_id == 3 or source_id == 6:
+	# Box, furnace, and torch are instant break
+	if source_id in [3, 6, 17]:
 		_rpc_show_hit_effect.rpc(tile_pos, source_id)
 		_break_tile(tile_pos, tile_type)
 		return
@@ -751,7 +811,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 	# Replace with appropriate base tile: cave floor in mines, grass in overworld
 	var replace_source: int = 0
-	if tile_type in ["cave_wall", "gold_ore", "cave_floor"]:
+	if tile_type in ["cave_wall", "gold_ore", "coal_ore", "cave_floor", "torch"]:
 		replace_source = TILE_SOURCE[TileType.CAVE_FLOOR]
 	elif tile_pos.y < -50_000:
 		# Any tile broken in mine area reveals cave floor
@@ -830,6 +890,14 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 		for i in range(gold_count):
 			var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
 			_spawn_item_by_id("gold_ore", 1, tile_world_pos + spread_offset, 0.3)
+	elif tile_type == "coal_ore":
+		var coal_count = randi_range(2, 5)
+		for i in range(coal_count):
+			var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+			_spawn_item_by_id("coal", 1, tile_world_pos + spread_offset, 0.3)
+	elif tile_type == "torch":
+		_remove_torch_light(tile_pos)
+		_spawn_item_by_id("torch", 1, tile_world_pos, 0.0)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -840,8 +908,9 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String
 
 	var source_id = get_cell_source_id(tile_pos)
 
-	# Can only place on grass
-	if source_id != 0:
+	# Can place on grass, or torches can also go on cave floor
+	var is_torch = (item_id == "torch")
+	if source_id != 0 and not (is_torch and source_id == TILE_SOURCE[TileType.CAVE_FLOOR]):
 		return
 
 	# Don't allow placing on player positions - use world coordinates for robustness
@@ -987,6 +1056,11 @@ func _spawn_item_by_id(item_id: String, quantity: int, pos: Vector2, pickup_dela
 @rpc("authority", "call_local", "reliable")
 func _rpc_sync_tile_change(tile_pos: Vector2i, source_id: int) -> void:
 	set_cell(tile_pos, source_id, Vector2i(0, 0))
+	# Manage torch lights on tile changes
+	if source_id == TILE_SOURCE[TileType.TORCH]:
+		_add_torch_light(tile_pos)
+	else:
+		_remove_torch_light(tile_pos)
 	if not multiplayer.is_server():
 		_tile_modifications[tile_pos] = source_id
 
@@ -1115,6 +1189,8 @@ func _get_hit_color(source_id: int) -> Color:
 		11: return Color(0.85, 0.7, 0.2)   # Gold wall - golden
 		14: return Color(0.3, 0.28, 0.25)  # Cave wall - dark
 		15: return Color(0.85, 0.7, 0.2)   # Gold ore - golden
+		17: return Color(0.8, 0.5, 0.2)    # Torch - orange
+		18: return Color(0.15, 0.15, 0.15) # Coal ore - dark
 		_: return Color(0.5, 0.5, 0.5)
 
 

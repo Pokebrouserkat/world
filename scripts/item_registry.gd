@@ -148,6 +148,16 @@ const ITEMS: Dictionary = {
         "max_stack": 99,
         "display_name": "Mine Spawner"
     },
+    "torch": {
+        "texture_key": "torch",
+        "max_stack": 99,
+        "display_name": "Torch"
+    },
+    "coal": {
+        "texture_key": "coal",
+        "max_stack": 99,
+        "display_name": "Coal"
+    },
 }
 
 

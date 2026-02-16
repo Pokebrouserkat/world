@@ -18,6 +18,7 @@ const CAVE_FLOOR_SOURCE: int = 16
 const ROCK_SOURCE: int = 1
 const IRON_ORE_SOURCE: int = 7
 const GOLD_ORE_SOURCE: int = 15
+const COAL_ORE_SOURCE: int = 18
 const MINE_EXIT_SOURCE: int = 13
 
 
@@ -34,10 +35,14 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 
 	var tiles: Dictionary = {}  # Vector2i -> source_id
 
-	# Fill area with cave wall
+	# 1 in 10 chance for a stone cave (breakable rock walls instead of unbreakable cave walls)
+	var is_stone_cave = (rng.randi() % 10) == 0
+	var wall_source = ROCK_SOURCE if is_stone_cave else CAVE_WALL_SOURCE
+
+	# Fill area with walls
 	for x in range(MINE_SIZE):
 		for y in range(MINE_SIZE):
-			tiles[origin + Vector2i(x, y)] = CAVE_WALL_SOURCE
+			tiles[origin + Vector2i(x, y)] = wall_source
 
 	# Generate rooms
 	var rooms: Array = []  # Array of Rect2i
@@ -68,8 +73,10 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 				var r = rng.randf()
 				if r < 0.03:
 					tiles[pos] = GOLD_ORE_SOURCE
-				elif r < 0.11:
+				elif r < 0.08:
 					tiles[pos] = IRON_ORE_SOURCE
+				elif r < 0.16:
+					tiles[pos] = COAL_ORE_SOURCE
 				elif r < 0.26:
 					tiles[pos] = ROCK_SOURCE
 
@@ -88,7 +95,7 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 	tiles[exit_pos] = MINE_EXIT_SOURCE
 	for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 		var adj = exit_pos + offset
-		if tiles.has(adj) and tiles[adj] == CAVE_WALL_SOURCE:
+		if tiles.has(adj) and tiles[adj] != CAVE_FLOOR_SOURCE:
 			tiles[adj] = CAVE_FLOOR_SOURCE
 
 	return {"tiles": tiles, "exit_pos": exit_pos}
