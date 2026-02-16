@@ -26,6 +26,7 @@ var is_open: bool = false
 
 
 func _ready() -> void:
+    add_to_group("pause_menu")
     visible = false
     mouse_filter = Control.MOUSE_FILTER_STOP
 
