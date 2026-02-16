@@ -94,6 +94,7 @@ var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
 var _particle_texture: ImageTexture = null
+var _flash_shader: Shader = null
 
 # Tile durability constants
 const BASE_TILE_DURABILITY: int = 10
@@ -634,8 +635,11 @@ func _confirm_pickup_local(item: Item) -> void:
 @rpc("authority", "call_local", "reliable")
 func _rpc_show_hit_effect(tile_pos: Vector2i, source_id: int) -> void:
     var local_pos = map_to_local(tile_pos)
+    # Adjust position for tree's texture_origin offset (drawn 12px higher)
+    if source_id == 2:
+        local_pos.y -= 12
     _create_hit_particles(local_pos, source_id)
-    _create_hit_flash(local_pos)
+    _create_hit_flash(local_pos, source_id)
 
 
 func _get_hit_color(source_id: int) -> Color:
@@ -685,19 +689,42 @@ func _create_hit_particles(local_pos: Vector2, source_id: int) -> void:
     particles.initial_velocity_max = 40.0
     particles.gravity = Vector2(0, 80)
     particles.color = _get_hit_color(source_id)
-    particles.z_index = 10
+    # Floors render below player
+    if source_id == 9 or source_id == 10:
+        particles.z_index = -1
+    else:
+        particles.z_index = 10
     add_child(particles)
 
     # Auto-cleanup after particles finish
     get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
 
 
-func _create_hit_flash(local_pos: Vector2) -> void:
+func _get_flash_shader() -> Shader:
+    if _flash_shader == null:
+        _flash_shader = Shader.new()
+        _flash_shader.code = "shader_type canvas_item;\nvoid fragment() { COLOR = vec4(1.0, 1.0, 1.0, texture(TEXTURE, UV).a * COLOR.a); }"
+    return _flash_shader
+
+
+func _create_hit_flash(local_pos: Vector2, source_id: int) -> void:
     var flash = Sprite2D.new()
-    flash.texture = _get_flash_texture()
+    # Use the tile's own texture so the flash matches its shape
+    var atlas_source = tile_set.get_source(source_id) as TileSetAtlasSource
+    if atlas_source:
+        flash.texture = atlas_source.texture
+        var mat = ShaderMaterial.new()
+        mat.shader = _get_flash_shader()
+        flash.material = mat
+    else:
+        flash.texture = _get_flash_texture()
     flash.position = local_pos
     flash.modulate = Color(1, 1, 1, 0.5)
-    flash.z_index = 10
+    # Floors render below player
+    if source_id == 9 or source_id == 10:
+        flash.z_index = -1
+    else:
+        flash.z_index = 10
     add_child(flash)
 
     var tween = create_tween()
