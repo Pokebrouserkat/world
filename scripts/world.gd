@@ -101,11 +101,12 @@ const WOOD_WALL_DURABILITY: int = 20
 const STONE_WALL_DURABILITY: int = 30
 const IRON_WALL_DURABILITY: int = 60
 const GOLD_WALL_DURABILITY: int = 120
-const PLASTIC_TOOL_HITS: int = 10
-const WOOD_TOOL_HITS: int = 5
-const STONE_TOOL_HITS: int = 3
-const IRON_TOOL_HITS: int = 1
-const GOLD_TOOL_HITS: int = 1
+const IRON_ORE_DURABILITY: int = 20
+const PLASTIC_TOOL_STRENGTH: int = 10
+const WOOD_TOOL_STRENGTH: int = 5
+const STONE_TOOL_STRENGTH: int = 3
+const IRON_TOOL_STRENGTH: int = 1
+const GOLD_TOOL_STRENGTH: int = 1
 
 
 func _ready() -> void:
@@ -297,21 +298,23 @@ func _get_tile_durability(tile_type: String) -> int:
             return IRON_WALL_DURABILITY
         "gold_wall":
             return GOLD_WALL_DURABILITY
+        "iron_ore":
+            return IRON_ORE_DURABILITY
         _:
             return BASE_TILE_DURABILITY
 
 
-func _get_tool_hits(tool_id: String) -> int:
+func _get_tool_strength(tool_id: String) -> int:
     if tool_id.begins_with("gold_"):
-        return GOLD_TOOL_HITS
+        return GOLD_TOOL_STRENGTH
     elif tool_id.begins_with("iron_"):
-        return IRON_TOOL_HITS
+        return IRON_TOOL_STRENGTH
     elif tool_id.begins_with("stone_"):
-        return STONE_TOOL_HITS
+        return STONE_TOOL_STRENGTH
     elif tool_id.begins_with("wood_"):
-        return WOOD_TOOL_HITS
+        return WOOD_TOOL_STRENGTH
     else:
-        return PLASTIC_TOOL_HITS
+        return PLASTIC_TOOL_STRENGTH
 
 
 func _get_tile_type_string(source_id: int) -> String:
@@ -380,8 +383,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
         _tile_health[tile_pos] = _get_tile_durability(tile_type)
 
     # Calculate damage
-    var tool_hits = _get_tool_hits(tool_id)
-    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_hits)
+    var tool_strength = _get_tool_strength(tool_id)
+    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_strength)
 
     _tile_health[tile_pos] -= damage
 

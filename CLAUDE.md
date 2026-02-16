@@ -48,7 +48,7 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 **Player** (`scripts/player.gd`):
 - WASD/Arrow movement, Shift to walk slower
 - Left-click uses selected tool (picks break rocks, axes break trees)
-- Tool tiers: plastic (10 hits) → wood (5) → stone (3) → iron (1) → gold (1)
+- Tool tiers: plastic (10 strength) → wood (5) → stone (3) → iron (1) → gold (1)
 - Wall durability: wood (20) → stone (30) → iron (60) → gold (120); floors (10)
 - Pickup system with audio deduplication
 
