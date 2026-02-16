@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 using GDScript and GL Compatibility renderer. Features infinite procedural world generation, crafting, smelting, storage boxes, and LAN multiplayer (up to 4 players).
+This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 using GDScript and GL Compatibility renderer. Features infinite procedural world generation, crafting, smelting, storage boxes, and multiplayer support.
 
 ## Running the Project
 
@@ -26,8 +26,14 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 ## Architecture
 
 ### Autoloads (Singletons)
-- `NetworkManager` (`scripts/network_manager.gd`) - LAN multiplayer via ENetMultiplayerPeer (port 8903, max 4 players)
-- `SaveManager` (`scripts/save_manager.gd`) - Game persistence to `user://save.json`
+- `GameMode` - Tracks current mode (NORMAL or SANDBOX); `GameMode.is_sandbox()` for checks
+- `NetworkManager` - Multiplayer connection handling
+- `SaveManager` - Game persistence to `user://save.json` (normal) or `user://sandbox_save.json` (sandbox)
+
+### Game Flow
+- Main menu (`scenes/main_menu.tscn`) is the entry point with Play and Sandbox buttons
+- Play starts normal mode; Sandbox starts creative mode (free crafting, separate save file)
+- Pause menu (ESC) has a "Main Menu" button to return to mode selection
 
 ### Core Systems
 
@@ -40,32 +46,27 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 
 **World Generation** (`scripts/world.gd`):
 - Extends TileMapLayer with infinite procedural generation
-- Deterministic position-based hash (sin-based) for tile placement (WORLD_SEED = 12345)
-- Spawn rates: rocks 1/40, trees 1/40 (on grass), iron ore 1/2000
-- TileType enum values match atlas source IDs in the TileSet (0=GRASS through 11=GOLD_WALL)
+- Deterministic position-based hash for tile placement (WORLD_SEED)
+- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL
 - Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
 - Manages box contents (`_box_contents`) and furnace states (`_furnace_states`)
 - Manages roof layer (separate TileMapLayer "RoofLayer" at z_index=20) with `_roof_modifications`
 
 **Player** (`scripts/player.gd`):
 - WASD/Arrow movement, Shift to walk slower
-- Left-click uses selected tool (picks break rocks/ore, axes break trees)
-- Damage formula: `ceil(BASE_TILE_DURABILITY / tool_strength)` per hit — lower strength = more damage
-- Tool strength: plastic (10) → wood (5) → stone (3) → iron (1) → gold (1)
-- Tile durability: base (10), wood walls/roofs (20), stone (30), iron ore (20), iron walls/roofs (60), gold (120), floors (10)
+- Left-click uses selected tool (picks break rocks, axes break trees)
+- Tool tiers: plastic (10 strength) → wood (5) → stone (3) → iron (1) → gold (1)
+- Wall/roof durability: wood (20) → stone (30) → iron (60) → gold (120); floors (10)
 - Pickup system with audio deduplication
 
 **Inventory** (`scripts/hotbar.gd`):
 - 9-slot hotbar with 1-9 selection, Q to drop
 - Full drag-and-drop between slots
-- Stacking up to max_stack (99 for most items, 1 for tools)
+- Stacking up to max_stack (99 for most items)
 
 **Crafting** (`scripts/crafting_window.gd`):
 - C key toggles window
 - Recipes defined in `_setup_recipes()` as `{ingredients: {item_id: qty}, output_quantity: int}`
-- Tools: wood (5 wood), stone (2 wood + 3 rock), iron (2 wood + 3 iron), gold (2 wood + 3 gold)
-- Walls: 20 of material; Roofs: 10 of material; Floors: 5 of material
-- Other: box (5 wood), furnace (10 rock)
 
 **Smelting** (`scripts/furnace_inventory.gd`):
 - Drag ore into furnace input → smelts over 30 seconds (iron_ore→iron, gold_ore→gold)
@@ -79,13 +80,8 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 **Roofs** (managed by `scripts/world.gd`, rendered on separate "RoofLayer" TileMapLayer):
 - Placeable over any tile, rendered at z_index=20 (above everything)
 - 4 tiers: wood, stone, iron, gold (durability matches wall tiers)
-- Transparency shader (embedded in world.tscn) reveals player when standing under enclosed roof (tile + 4 cardinal neighbors)
-- Reveal radius scales by tier: 20→28→40→56px; gold tier adds edge blur
+- Transparency shader reveals player when standing under enclosed roof (tile + 4 cardinal neighbors)
 - Roof source IDs in RoofLayer TileSet: 0=wood, 1=stone, 2=iron, 3=gold
-
-**Game Manager** (`scripts/game_manager.gd`):
-- CMD+W closes open windows (crafting, box inventory)
-- Auto-loads save file on startup in single-player mode
 
 ### Key Patterns
 - Group-based node discovery: "world", "player", "hotbar", "dropped_items", "crafting_window", "box_inventory"
@@ -95,7 +91,6 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
   - `request_*` methods: client→host requests (any_peer, call_local, reliable)
   - `_rpc_*` methods: host→client broadcasts (authority, call_local or call_remote, reliable)
   - Host handles local player specially (call_remote won't reach self, so use direct local function calls)
-- Player movement synced via MultiplayerSynchronizer; all other state via explicit RPCs
 
 ### Save System
 - Save file: `user://save.json` (version 1 format)
@@ -103,7 +98,5 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 - Autosaves on tile changes (debounced); only in single-player/host mode
 
 ### Display Settings
-- Base viewport: 640x360, window override 1600x1200
-- Stretch mode "canvas_items", aspect "expand"
-- All tiles 16x16 pixels (tree sprite is 37x40 with y_sort_origin offset)
+- Base viewport: 640x360 with "canvas_items" stretch mode, aspect "expand"
 - Physics runs on separate thread

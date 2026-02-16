@@ -8,6 +8,7 @@ signal resumed
 var is_open: bool = false
 
 # UI elements
+@onready var title_label: Label = $Panel/VBoxContainer/Title
 @onready var panel: Panel = $Panel
 @onready var resume_button: Button = $Panel/VBoxContainer/ResumeButton
 @onready var multiplayer_section: VBoxContainer = $Panel/VBoxContainer/MultiplayerSection
@@ -20,6 +21,7 @@ var is_open: bool = false
 @onready var save_section: VBoxContainer = $Panel/VBoxContainer/SaveSection
 @onready var save_button: Button = $Panel/VBoxContainer/SaveSection/SaveButton
 @onready var load_button: Button = $Panel/VBoxContainer/SaveSection/LoadButton
+@onready var main_menu_button: Button = $Panel/VBoxContainer/MainMenuButton
 @onready var quit_button: Button = $Panel/VBoxContainer/QuitButton
 
 
@@ -35,6 +37,7 @@ func _ready() -> void:
     ip_input.text_submitted.connect(_on_ip_submitted)
     save_button.pressed.connect(_on_save_pressed)
     load_button.pressed.connect(_on_load_pressed)
+    main_menu_button.pressed.connect(_on_main_menu_pressed)
     quit_button.pressed.connect(_on_quit_pressed)
 
     # Connect network signals
@@ -93,6 +96,9 @@ func _input(event: InputEvent) -> void:
         elif disconnect_button.visible and disconnect_button.get_global_rect().has_point(mouse_pos):
             _on_disconnect_pressed()
             get_viewport().set_input_as_handled()
+        elif main_menu_button.get_global_rect().has_point(mouse_pos):
+            _on_main_menu_pressed()
+            get_viewport().set_input_as_handled()
         elif panel and not panel.get_global_rect().has_point(mouse_pos):
             # Click outside panel to close
             close()
@@ -105,6 +111,7 @@ func open() -> void:
     is_open = true
     visible = true
     get_tree().paused = true
+    title_label.text = "Paused (Sandbox)" if GameMode.is_sandbox() else "Paused"
     _update_ui()
 
 
@@ -167,6 +174,11 @@ func _on_load_pressed() -> void:
         close()
     else:
         status_label.text = "Load failed!"
+
+
+func _on_main_menu_pressed() -> void:
+    get_tree().paused = false
+    get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 
 func _on_quit_pressed() -> void:

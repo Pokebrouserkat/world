@@ -279,13 +279,13 @@ func _on_craft_pressed(recipe_id: String) -> void:
         return
 
     var recipe = recipes[recipe_id]
-    if not _can_craft(recipe):
-        return
-
-    # Consume ingredients
-    for ing_id in recipe.ingredients:
-        var needed = recipe.ingredients[ing_id]
-        _consume_item(ing_id, needed)
+    if not GameMode.is_sandbox():
+        if not _can_craft(recipe):
+            return
+        # Consume ingredients
+        for ing_id in recipe.ingredients:
+            var needed = recipe.ingredients[ing_id]
+            _consume_item(ing_id, needed)
 
     # Create output item
     var output = Item.create(recipe_id, recipe.output_quantity)
@@ -353,7 +353,7 @@ func _update_craft_buttons() -> void:
     var idx = 0
     for recipe_name in recipes:
         if idx < recipe_buttons.size():
-            var can_craft = _can_craft(recipes[recipe_name])
+            var can_craft = GameMode.is_sandbox() or _can_craft(recipes[recipe_name])
             # Dim the button if can't craft
             recipe_buttons[idx].modulate.a = 1.0 if can_craft else 0.4
         idx += 1
