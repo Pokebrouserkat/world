@@ -74,8 +74,13 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 **Roofs** (managed by `scripts/world.gd`, rendered on separate "RoofLayer" TileMapLayer):
 - Placeable over any tile, rendered at z_index=20 (above everything)
 - 4 tiers: wood, stone, iron, gold (durability matches wall tiers)
-- Transparency shader reveals player when standing under enclosed roof (tile + 4 cardinal neighbors)
+- Transparency shader (embedded in world.tscn) reveals player when standing under enclosed roof (tile + 4 cardinal neighbors)
+- Reveal radius scales by tier: 20→28→40→56px; gold tier adds edge blur
 - Roof source IDs in RoofLayer TileSet: 0=wood, 1=stone, 2=iron, 3=gold
+
+**Game Manager** (`scripts/game_manager.gd`):
+- CMD+W closes open windows (crafting, box inventory)
+- Auto-loads save file on startup in single-player mode
 
 ### Key Patterns
 - Group-based node discovery: "world", "player", "hotbar", "dropped_items", "crafting_window", "box_inventory"
