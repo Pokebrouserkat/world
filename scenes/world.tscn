@@ -1,4 +1,4 @@
-[gd_scene load_steps=46 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Script" uid="uid://oxvke4venva8" path="res://scripts/coordinate_display.gd" id="1_coords"]
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
@@ -19,14 +19,14 @@
 [ext_resource type="Texture2D" uid="uid://2wvl8axgdq41" path="res://graphics/furnace.png" id="17_furnace"]
 [ext_resource type="PackedScene" path="res://scenes/furnace_inventory.tscn" id="18_furnace_inv"]
 [ext_resource type="Texture2D" uid="uid://bxfeeil8544uv" path="res://graphics/ironoretile.png" id="19_ironore"]
-[ext_resource type="Texture2D" path="res://graphics/ironwall.png" id="20_ironwall"]
-[ext_resource type="Texture2D" path="res://graphics/woodfloor.png" id="21_woodfloor"]
-[ext_resource type="Texture2D" path="res://graphics/stonefloor.png" id="22_stonefloor"]
-[ext_resource type="Texture2D" path="res://graphics/goldwall.png" id="23_goldwall"]
-[ext_resource type="Texture2D" path="res://graphics/woodroof.png" id="24_woodroof"]
-[ext_resource type="Texture2D" path="res://graphics/stoneroof.png" id="25_stoneroof"]
-[ext_resource type="Texture2D" path="res://graphics/ironroof.png" id="26_ironroof"]
-[ext_resource type="Texture2D" path="res://graphics/goldroof.png" id="27_goldroof"]
+[ext_resource type="Texture2D" uid="uid://vyu48ytqya8x" path="res://graphics/ironwall.png" id="20_ironwall"]
+[ext_resource type="Texture2D" uid="uid://de04ctij40ier" path="res://graphics/woodfloor.png" id="21_woodfloor"]
+[ext_resource type="Texture2D" uid="uid://c8oj6al71sved" path="res://graphics/stonefloor.png" id="22_stonefloor"]
+[ext_resource type="Texture2D" uid="uid://dlkxfeotmtndp" path="res://graphics/goldwall.png" id="23_goldwall"]
+[ext_resource type="Texture2D" uid="uid://d31l7ywvh44ov" path="res://graphics/woodroof.png" id="24_woodroof"]
+[ext_resource type="Texture2D" uid="uid://ced5pfhhysvlk" path="res://graphics/stoneroof.png" id="25_stoneroof"]
+[ext_resource type="Texture2D" uid="uid://c0c3abcqbwaw1" path="res://graphics/ironroof.png" id="26_ironroof"]
+[ext_resource type="Texture2D" uid="uid://bwhxlyvgjugph" path="res://graphics/goldroof.png" id="27_goldroof"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -34,6 +34,15 @@ texture = ExtResource("1_f3sb7")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rock"]
 texture = ExtResource("4_rock")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonefloor"]
+texture = ExtResource("22_stonefloor")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldwall"]
+texture = ExtResource("23_goldwall")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
@@ -79,15 +88,6 @@ texture = ExtResource("20_ironwall")
 texture = ExtResource("21_woodfloor")
 0:0/0 = 0
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonefloor"]
-texture = ExtResource("22_stonefloor")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldwall"]
-texture = ExtResource("23_goldwall")
-0:0/0 = 0
-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
-
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
@@ -102,28 +102,6 @@ sources/8 = SubResource("TileSetAtlasSource_ironwall")
 sources/9 = SubResource("TileSetAtlasSource_woodfloor")
 sources/10 = SubResource("TileSetAtlasSource_stonefloor")
 sources/11 = SubResource("TileSetAtlasSource_goldwall")
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodroof"]
-texture = ExtResource("24_woodroof")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stoneroof"]
-texture = ExtResource("25_stoneroof")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironroof"]
-texture = ExtResource("26_ironroof")
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldroof"]
-texture = ExtResource("27_goldroof")
-0:0/0 = 0
-
-[sub_resource type="TileSet" id="TileSet_roof"]
-sources/0 = SubResource("TileSetAtlasSource_woodroof")
-sources/1 = SubResource("TileSetAtlasSource_stoneroof")
-sources/2 = SubResource("TileSetAtlasSource_ironroof")
-sources/3 = SubResource("TileSetAtlasSource_goldroof")
 
 [sub_resource type="Shader" id="Shader_roof"]
 code = "shader_type canvas_item;
@@ -157,10 +135,32 @@ shader_parameter/reveal_radius = 24.0
 shader_parameter/fade_width = 16.0
 shader_parameter/enabled = false
 
-[node name="Node2D" type="Node2D"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodroof"]
+texture = ExtResource("24_woodroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stoneroof"]
+texture = ExtResource("25_stoneroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironroof"]
+texture = ExtResource("26_ironroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldroof"]
+texture = ExtResource("27_goldroof")
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_roof"]
+sources/0 = SubResource("TileSetAtlasSource_woodroof")
+sources/1 = SubResource("TileSetAtlasSource_stoneroof")
+sources/2 = SubResource("TileSetAtlasSource_ironroof")
+sources/3 = SubResource("TileSetAtlasSource_goldroof")
+
+[node name="Node2D" type="Node2D" unique_id=831936643]
 y_sort_enabled = true
 
-[node name="GrassBackground" type="Sprite2D" parent="."]
+[node name="GrassBackground" type="Sprite2D" parent="." unique_id=2142582241]
 z_index = -1
 texture_repeat = 2
 texture = ExtResource("1_f3sb7")
@@ -168,40 +168,40 @@ region_enabled = true
 region_rect = Rect2(0, 0, 2048, 2048)
 script = ExtResource("3_grass_bg")
 
-[node name="TileMapLayer" type="TileMapLayer" parent="."]
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=601903756]
 y_sort_enabled = true
 tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
 
-[node name="RoofLayer" type="TileMapLayer" parent="."]
+[node name="RoofLayer" type="TileMapLayer" parent="." unique_id=838200516]
 z_index = 20
 material = SubResource("ShaderMaterial_roof")
 tile_set = SubResource("TileSet_roof")
 
-[node name="PlayerSpawner" type="Node" parent="."]
+[node name="PlayerSpawner" type="Node" parent="." unique_id=1256637933]
 script = ExtResource("14_spawner")
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=800297506]
 
-[node name="CoordinateDisplay" type="Label" parent="CanvasLayer"]
+[node name="CoordinateDisplay" type="Label" parent="CanvasLayer" unique_id=2036557718]
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 150.0
 offset_bottom = 24.0
 script = ExtResource("1_coords")
 
-[node name="Hotbar" parent="CanvasLayer" instance=ExtResource("5_hotbar")]
+[node name="Hotbar" parent="CanvasLayer" unique_id=143203180 instance=ExtResource("5_hotbar")]
 
-[node name="CraftingWindow" parent="CanvasLayer" instance=ExtResource("8_crafting")]
+[node name="CraftingWindow" parent="CanvasLayer" unique_id=1542540060 instance=ExtResource("8_crafting")]
 
-[node name="BoxInventory" parent="CanvasLayer" instance=ExtResource("13_box_inv")]
+[node name="BoxInventory" parent="CanvasLayer" unique_id=1652486033 instance=ExtResource("13_box_inv")]
 
-[node name="FurnaceInventory" parent="CanvasLayer" instance=ExtResource("18_furnace_inv")]
+[node name="FurnaceInventory" parent="CanvasLayer" unique_id=1076421505 instance=ExtResource("18_furnace_inv")]
 
-[node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("15_pause_menu")]
+[node name="PauseMenu" parent="CanvasLayer" unique_id=48765547 instance=ExtResource("15_pause_menu")]
 
-[node name="PauseButton" type="TextureButton" parent="CanvasLayer"]
+[node name="PauseButton" type="TextureButton" parent="CanvasLayer" unique_id=267175584]
 texture_filter = 1
 anchors_preset = 1
 anchor_left = 1.0
@@ -214,5 +214,5 @@ grow_horizontal = 0
 texture_normal = ExtResource("16_pause_icon")
 stretch_mode = 0
 
-[node name="GameManager" type="Node" parent="."]
+[node name="GameManager" type="Node" parent="." unique_id=621051890]
 script = ExtResource("9_game_manager")
