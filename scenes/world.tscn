@@ -32,6 +32,7 @@
 [ext_resource type="Texture2D" uid="uid://dh0pex71gdcop" path="res://graphics/cavewall.png" id="30_cavewall"]
 [ext_resource type="Texture2D" uid="uid://sofudasu4cct" path="res://graphics/goldoretile.png" id="31_goldoretile"]
 [ext_resource type="Texture2D" uid="uid://di3djm1qyd5vc" path="res://graphics/cavefloor.png" id="32_cavefloor"]
+[ext_resource type="Script" uid="uid://b3hdimq3douky" path="res://scripts/critter_manager.gd" id="33_critter_mgr"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -40,6 +41,7 @@ texture = ExtResource("1_f3sb7")
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rock"]
 texture = ExtResource("4_rock")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonefloor"]
@@ -49,24 +51,29 @@ texture = ExtResource("22_stonefloor")
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldwall"]
 texture = ExtResource("23_goldwall")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineentrance"]
 texture = ExtResource("28_mineentrance")
 0:0/0 = 0
+0:0/0/z_index = 1
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineexit"]
 texture = ExtResource("29_mineexit")
 0:0/0 = 0
+0:0/0/z_index = 1
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavewall"]
 texture = ExtResource("30_cavewall")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldoretile"]
 texture = ExtResource("31_goldoretile")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavefloor"]
@@ -78,37 +85,44 @@ texture = ExtResource("6_tree")
 texture_region_size = Vector2i(37, 40)
 0:0/0 = 0
 0:0/0/texture_origin = Vector2i(0, 12)
+0:0/0/z_index = 1
 0:0/0/y_sort_origin = 20
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_box"]
 texture = ExtResource("10_box")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodwall"]
 texture = ExtResource("11_woodwall")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonewall"]
 texture = ExtResource("12_stonewall")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_furnace"]
 texture = ExtResource("17_furnace")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironore"]
 texture = ExtResource("19_ironore")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironwall"]
 texture = ExtResource("20_ironwall")
 0:0/0 = 0
+0:0/0/z_index = 1
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodfloor"]
@@ -210,6 +224,10 @@ y_sort_enabled = true
 tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
+
+[node name="CritterLayer" type="Node2D" parent="." unique_id=104124892]
+y_sort_enabled = true
+script = ExtResource("33_critter_mgr")
 
 [node name="RoofLayer" type="TileMapLayer" parent="." unique_id=838200516]
 z_index = 20

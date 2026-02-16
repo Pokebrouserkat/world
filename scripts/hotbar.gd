@@ -220,7 +220,7 @@ func select_slot(index: int) -> void:
 func _update_slot_visuals() -> void:
     for i in range(slots.size()):
         var slot = slots[i]
-        var is_selected = (i == selected_slot)
+        var is_selected = i == selected_slot
 
         if i == 0:
             slot.texture_normal = left_on if is_selected else left_off
