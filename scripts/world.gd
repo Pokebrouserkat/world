@@ -192,6 +192,10 @@ var player_in_mine: bool = false
 var _current_mine_entrance: Vector2i = Vector2i.ZERO
 var _overworld_return_pos: Vector2 = Vector2.ZERO
 
+# Mine lighting state
+var _mine_lighting_active: bool = false
+var _mine_modulate: CanvasModulate = null
+
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
 var _particle_texture: ImageTexture = null
@@ -218,6 +222,7 @@ const TILE_REGEN_AMOUNT: int = 1
 func _ready() -> void:
 	add_to_group("world")
 	_setup_tile_physics()
+	_setup_tile_occlusion()
 	_update_tiles()
 
 	# Find the roof layer sibling
@@ -256,9 +261,45 @@ func _setup_tile_physics() -> void:
 				tile_data.set_collision_polygon_points(0, 0, polygon)
 
 
+func _setup_tile_occlusion() -> void:
+	if not tile_set:
+		return
+	# Add occlusion layer to tileset for Light2D shadow casting
+	if tile_set.get_occlusion_layers_count() == 0:
+		tile_set.add_occlusion_layer()
+
+	var tile_size = tile_set.tile_size
+	var half_w = tile_size.x / 2.0
+	var half_h = tile_size.y / 2.0
+	var polygon = PackedVector2Array([
+		Vector2(-half_w, -half_h),
+		Vector2(half_w, -half_h),
+		Vector2(half_w, half_h),
+		Vector2(-half_w, half_h)
+	])
+
+	# Add occlusion polygons to all solid tiles that should block light
+	var solid_tiles = [
+		TileType.ROCK, TileType.CAVE_WALL, TileType.GOLD_ORE, TileType.IRON_ORE,
+		TileType.BOX, TileType.WOOD_WALL, TileType.STONE_WALL, TileType.FURNACE,
+		TileType.IRON_WALL, TileType.GOLD_WALL, TileType.TREE
+	]
+	for tile_type in solid_tiles:
+		var source = tile_set.get_source(TILE_SOURCE[tile_type]) as TileSetAtlasSource
+		if source:
+			var tile_data = source.get_tile_data(TILE_COORDS[tile_type], 0)
+			if tile_data:
+				var occluder = OccluderPolygon2D.new()
+				occluder.polygon = polygon
+				tile_data.set_occluder(0, occluder)
+
+
 func _process(delta: float) -> void:
 	_update_tiles()
 	_update_roof_shader(delta)
+	# Toggle mine lighting when player_in_mine state changes (handles enter/exit and save load)
+	if player_in_mine != _mine_lighting_active:
+		_apply_mine_lighting(player_in_mine)
 
 
 func _update_tiles() -> void:
@@ -282,8 +323,6 @@ func _update_tiles() -> void:
 				if roof_layer:
 					if _roof_modifications.has(tile_pos):
 						roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
-					elif player_in_mine:
-						roof_layer.set_cell(tile_pos, MINE_DARKNESS_SOURCE, Vector2i(0, 0))
 				_generated_tiles[tile_pos] = true
 
 	# Unload tiles outside visible area
@@ -517,6 +556,27 @@ func exit_mine() -> void:
 			camera.reset_smoothing()
 
 	_trigger_autosave()
+
+
+func _apply_mine_lighting(enabled: bool) -> void:
+	_mine_lighting_active = enabled
+	occlusion_enabled = enabled
+
+	if enabled:
+		if not _mine_modulate:
+			_mine_modulate = CanvasModulate.new()
+			_mine_modulate.name = "MineModulate"
+			_mine_modulate.color = Color(0.05, 0.05, 0.08)
+			get_parent().add_child(_mine_modulate)
+		_mine_modulate.visible = true
+	else:
+		if _mine_modulate:
+			_mine_modulate.visible = false
+
+	# Toggle player's mine light
+	var player = _get_local_player()
+	if player and player.has_method("set_mine_light"):
+		player.set_mine_light(enabled)
 
 
 func _get_local_player() -> CharacterBody2D:
@@ -837,7 +897,7 @@ func request_hit_roof(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 		return
 
 	var source_id = roof_layer.get_cell_source_id(tile_pos)
-	if source_id < 0:
+	if source_id < 0 or source_id >= ROOF_ITEMS.size():
 		return
 
 	var roof_item_id = ROOF_ITEMS[source_id]

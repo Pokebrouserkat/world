@@ -25,6 +25,8 @@ var box_inventory: Node = null
 var furnace_inventory: Node = null
 var _last_pickup_sound_frame: int = -1
 var _stuck_frames: int = 0
+var _mine_light: PointLight2D = null
+var _mine_ambient_light: PointLight2D = null
 
 
 func is_local_player() -> bool:
@@ -57,6 +59,8 @@ func _ready() -> void:
 
 	# Find world tilemap for rock breaking (sibling node)
 	world = get_parent().get_node_or_null("TileMapLayer") as TileMapLayer
+
+	_setup_mine_light()
 
 	# Only local player sets up hotbar and UI connections
 	if is_local_player():
@@ -292,6 +296,56 @@ func _push_out_of_collision() -> void:
 		_stuck_frames = 0
 
 
+func _setup_mine_light() -> void:
+	# Create radial gradient texture for light falloff
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color.WHITE)
+	gradient.set_color(1, Color.TRANSPARENT)
+
+	var tex = GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.width = 256
+	tex.height = 256
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+
+	# Main light with shadows - illuminates floors/background, blocked by walls
+	_mine_light = PointLight2D.new()
+	_mine_light.name = "MineLight"
+	_mine_light.position = Vector2(0, -16)
+	_mine_light.enabled = false
+	_mine_light.texture = tex
+	_mine_light.texture_scale = 1.2
+	_mine_light.energy = 1.0
+	_mine_light.color = Color(1.0, 0.95, 0.85)
+	_mine_light.shadow_enabled = true
+	_mine_light.shadow_color = Color(0.0, 0.0, 0.0, 0.8)
+	_mine_light.shadow_filter = Light2D.SHADOW_FILTER_PCF5
+	_mine_light.shadow_filter_smooth = 1.0
+	add_child(_mine_light)
+
+	# Ambient light without shadows - illuminates nearby walls so occluding
+	# tiles are still visible based on proximity to the player
+	_mine_ambient_light = PointLight2D.new()
+	_mine_ambient_light.name = "MineAmbientLight"
+	_mine_ambient_light.position = Vector2(0, -16)
+	_mine_ambient_light.enabled = false
+	_mine_ambient_light.texture = tex
+	_mine_ambient_light.texture_scale = 0.5
+	_mine_ambient_light.energy = 0.6
+	_mine_ambient_light.color = Color(0.85, 0.9, 1.0)
+	_mine_ambient_light.shadow_enabled = false
+	add_child(_mine_ambient_light)
+
+
+func set_mine_light(enabled: bool) -> void:
+	if _mine_light:
+		_mine_light.enabled = enabled
+	if _mine_ambient_light:
+		_mine_ambient_light.enabled = enabled
+
+
 func _is_tool(item_id: String) -> bool:
 	return item_id in ["axe", "wood_pick", "wood_axe", "stone_pick", "stone_axe", "iron_pick", "iron_axe", "gold_pick", "gold_axe"]
 
@@ -327,10 +381,10 @@ func _try_use_tool() -> void:
 	if global_position.distance_to(tile_center) > use_range:
 		return
 
-	# Check roof layer first - break roofs before ground tiles
+	# Check roof layer first - break roofs before ground tiles (skip mine darkness overlay)
 	if world.roof_layer:
 		var roof_source_id = world.roof_layer.get_cell_source_id(tile_pos)
-		if roof_source_id >= 0:
+		if roof_source_id >= 0 and roof_source_id != world.MINE_DARKNESS_SOURCE:
 			world.request_hit_roof.rpc_id(1, tile_pos, tool_id, peer_id)
 			return
 
