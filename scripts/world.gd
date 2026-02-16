@@ -52,16 +52,21 @@ const ROOF_REVEAL_RADIUS = {
     0: 20.0,   # Wood roof
     1: 28.0,   # Stone roof
     2: 40.0,   # Iron roof
-    3: 56.0,   # Gold roof
+    3: 10.0,   # Gold roof
 }
 const ROOF_REVEAL_EDGE_BLUR = {
     0: 0.0,    # Wood roof - sharp
     1: 0.0,    # Stone roof - sharp
     2: 0.0,    # Iron roof - sharp
-    3: 16.0,   # Gold roof - blurry
+    3: 160.0,   # Gold roof - blurry
 }
-const ROOF_REVEAL_SPEED: float = 120.0  # pixels per second
+const ROOF_REVEAL_DURATION: float = 0.25  # seconds per transition
 var _roof_reveal_radius: float = 0.0
+var _roof_fade_width: float = 0.0
+var _roof_reveal_speed: float = 0.0
+var _roof_blur_speed: float = 0.0
+var _roof_reveal_target: float = 0.0
+var _roof_blur_target: float = 0.0
 
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
@@ -283,13 +288,22 @@ func _update_roof_shader(delta: float) -> void:
                 neighbor_count += 1
         under_roof = neighbor_count >= 3
 
-    # Animate reveal radius - target depends on roof material
+    # Animate reveal radius and blur - targets depend on roof material
     var reveal_target = ROOF_REVEAL_RADIUS.get(roof_source, 20.0) if under_roof else 0.0
-    _roof_reveal_radius = move_toward(_roof_reveal_radius, reveal_target, ROOF_REVEAL_SPEED * delta)
+    var blur_target = ROOF_REVEAL_EDGE_BLUR.get(roof_source, 0.0) if under_roof else 0.0
+    # Recompute speeds only when targets change
+    if reveal_target != _roof_reveal_target:
+        _roof_reveal_target = reveal_target
+        _roof_reveal_speed = absf(reveal_target - _roof_reveal_radius) / ROOF_REVEAL_DURATION
+    if blur_target != _roof_blur_target:
+        _roof_blur_target = blur_target
+        _roof_blur_speed = absf(blur_target - _roof_fade_width) / ROOF_REVEAL_DURATION
+    _roof_reveal_radius = move_toward(_roof_reveal_radius, reveal_target, _roof_reveal_speed * delta)
+    _roof_fade_width = move_toward(_roof_fade_width, blur_target, _roof_blur_speed * delta)
 
-    mat.set_shader_parameter("enabled", _roof_reveal_radius > 0.0)
+    mat.set_shader_parameter("enabled", _roof_reveal_radius > 0.0 or _roof_fade_width > 0.0)
     mat.set_shader_parameter("reveal_radius", _roof_reveal_radius)
-    mat.set_shader_parameter("fade_width", ROOF_REVEAL_EDGE_BLUR.get(roof_source, 0.0))
+    mat.set_shader_parameter("fade_width", _roof_fade_width)
 
 
 func get_visible_tile_rect() -> Rect2i:
