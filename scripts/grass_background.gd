@@ -1,7 +1,7 @@
 extends Sprite2D
 
 var _grass_texture: Texture2D = preload("res://graphics/grass.png")
-var _cave_texture: Texture2D = preload("res://graphics/stonefloor.png")
+var _cave_texture: Texture2D = preload("res://graphics/cavefloor.png")
 
 func _ready() -> void:
     centered = false

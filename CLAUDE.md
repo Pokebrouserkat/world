@@ -59,7 +59,7 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 **World Generation** (`scripts/world.gd`):
 - Extends TileMapLayer with infinite procedural generation
 - Deterministic position-based hash for tile placement (WORLD_SEED)
-- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL
+- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL, MINE_ENTRANCE, MINE_EXIT, CAVE_WALL, GOLD_ORE, CAVE_FLOOR
 - Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
 - Manages box contents (`_box_contents`) and furnace states (`_furnace_states`)
 - Manages roof layer (separate TileMapLayer "RoofLayer" at z_index=20) with `_roof_modifications`

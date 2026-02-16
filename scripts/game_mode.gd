@@ -9,8 +9,8 @@ var current_mode: Mode = Mode.NORMAL
 
 
 func is_sandbox() -> bool:
-    return current_mode == Mode.SANDBOX
+	return current_mode == Mode.SANDBOX
 
 
 func set_mode(mode: Mode) -> void:
-    current_mode = mode
+	current_mode = mode

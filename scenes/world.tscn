@@ -31,6 +31,7 @@
 [ext_resource type="Texture2D" path="res://graphics/mineexit.png" id="29_mineexit"]
 [ext_resource type="Texture2D" path="res://graphics/cavewall.png" id="30_cavewall"]
 [ext_resource type="Texture2D" path="res://graphics/goldoretile.png" id="31_goldoretile"]
+[ext_resource type="Texture2D" path="res://graphics/cavefloor.png" id="32_cavefloor"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -110,6 +111,10 @@ texture = ExtResource("31_goldoretile")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavefloor"]
+texture = ExtResource("32_cavefloor")
+0:0/0 = 0
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
@@ -128,6 +133,7 @@ sources/12 = SubResource("TileSetAtlasSource_mineentrance")
 sources/13 = SubResource("TileSetAtlasSource_mineexit")
 sources/14 = SubResource("TileSetAtlasSource_cavewall")
 sources/15 = SubResource("TileSetAtlasSource_goldoretile")
+sources/16 = SubResource("TileSetAtlasSource_cavefloor")
 
 [sub_resource type="Shader" id="Shader_roof"]
 code = "shader_type canvas_item;

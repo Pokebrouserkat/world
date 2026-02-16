@@ -174,16 +174,16 @@ func _handle_right_click() -> void:
 	var tile_pos = world.local_to_map(world.to_local(mouse_pos))
 	var source_id = world.get_cell_source_id(tile_pos)
 
-    # Check if it's a box tile (source_id 3)
-    if source_id == 3 and box_inventory:
-        box_inventory.open_for_box(tile_pos)
-    # Check if it's a furnace tile (source_id 6)
-    elif source_id == 6 and furnace_inventory:
-        furnace_inventory.open_for_furnace(tile_pos)
-    elif source_id == 12:  # Mine entrance
-        world.enter_mine(tile_pos)
-    elif source_id == 13:  # Mine exit
-        world.exit_mine()
+	# Check if it's a box tile (source_id 3)
+	if source_id == 3 and box_inventory:
+		box_inventory.open_for_box(tile_pos)
+	# Check if it's a furnace tile (source_id 6)
+	elif source_id == 6 and furnace_inventory:
+		furnace_inventory.open_for_furnace(tile_pos)
+	elif source_id == 12:  # Mine entrance
+		world.enter_mine(tile_pos)
+	elif source_id == 13:  # Mine exit
+		world.exit_mine()
 
 
 func _handle_interact() -> void:
@@ -246,19 +246,19 @@ func _handle_interact() -> void:
 	if best_source < 0:
 		return
 
-    # Containers: open them
-    if best_source == 3 and box_inventory:
-        box_inventory.open_for_box(best_tile)
-        return
-    if best_source == 6 and furnace_inventory:
-        furnace_inventory.open_for_furnace(best_tile)
-        return
-    if best_source == 12:  # Mine entrance
-        world.enter_mine(best_tile)
-        return
-    if best_source == 13:  # Mine exit
-        world.exit_mine()
-        return
+	# Containers: open them
+	if best_source == 3 and box_inventory:
+		box_inventory.open_for_box(best_tile)
+		return
+	if best_source == 6 and furnace_inventory:
+		furnace_inventory.open_for_furnace(best_tile)
+		return
+	if best_source == 12:  # Mine entrance
+		world.enter_mine(best_tile)
+		return
+	if best_source == 13:  # Mine exit
+		world.exit_mine()
+		return
 
 	# Breakable tiles: use equipped tool if correct
 	if hotbar:

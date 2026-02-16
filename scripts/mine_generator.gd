@@ -14,7 +14,7 @@ const CORRIDOR_WIDTH: int = 2
 
 # Tile source IDs (must match world.gd)
 const CAVE_WALL_SOURCE: int = 14
-const STONE_FLOOR_SOURCE: int = 10
+const CAVE_FLOOR_SOURCE: int = 16
 const ROCK_SOURCE: int = 1
 const IRON_ORE_SOURCE: int = 7
 const GOLD_ORE_SOURCE: int = 15
@@ -52,7 +52,7 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 	for room in rooms:
 		for x in range(room.position.x, room.end.x):
 			for y in range(room.position.y, room.end.y):
-				tiles[origin + Vector2i(x, y)] = STONE_FLOOR_SOURCE
+				tiles[origin + Vector2i(x, y)] = CAVE_FLOOR_SOURCE
 
 	# Connect rooms with corridors (connect each room to the next)
 	for i in range(rooms.size() - 1):
@@ -63,7 +63,7 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 		for x in range(room.position.x + 1, room.end.x - 1):
 			for y in range(room.position.y + 1, room.end.y - 1):
 				var pos = origin + Vector2i(x, y)
-				if tiles[pos] != STONE_FLOOR_SOURCE:
+				if tiles[pos] != CAVE_FLOOR_SOURCE:
 					continue
 				var r = rng.randf()
 				if r < 0.03:
@@ -89,7 +89,7 @@ static func generate(entrance_pos: Vector2i) -> Dictionary:
 	for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 		var adj = exit_pos + offset
 		if tiles.has(adj) and tiles[adj] == CAVE_WALL_SOURCE:
-			tiles[adj] = STONE_FLOOR_SOURCE
+			tiles[adj] = CAVE_FLOOR_SOURCE
 
 	return {"tiles": tiles, "exit_pos": exit_pos}
 
@@ -131,7 +131,7 @@ static func _carve_corridor(tiles: Dictionary, origin: Vector2i, room_a: Rect2i,
 		for w in range(CORRIDOR_WIDTH):
 			var pos = origin + Vector2i(x, a_center.y + w)
 			if tiles.has(pos):
-				tiles[pos] = STONE_FLOOR_SOURCE
+				tiles[pos] = CAVE_FLOOR_SOURCE
 
 	var y_start = mini(a_center.y, b_center.y)
 	var y_end = maxi(a_center.y, b_center.y)
@@ -139,7 +139,7 @@ static func _carve_corridor(tiles: Dictionary, origin: Vector2i, room_a: Rect2i,
 		for w in range(CORRIDOR_WIDTH):
 			var pos = origin + Vector2i(b_center.x + w, y)
 			if tiles.has(pos):
-				tiles[pos] = STONE_FLOOR_SOURCE
+				tiles[pos] = CAVE_FLOOR_SOURCE
 
 
 static func _entrance_hash(entrance_pos: Vector2i) -> int:
