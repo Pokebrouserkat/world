@@ -176,16 +176,16 @@ func _handle_right_click() -> void:
 	if furnace_inventory and furnace_inventory.is_open:
 		return
 
-	# Get mouse position in world coordinates
+	# Get mouse position in world coordinates and convert to tile
 	var mouse_pos = get_global_mouse_position()
+	var tile_pos = world.local_to_map(world.to_local(mouse_pos))
 
-	# Check if within interaction range (2 tiles)
+	# Use tile center for distance check
+	var tile_center = world.to_global(world.map_to_local(tile_pos))
 	var use_range = sprite_size * 2.0
-	if global_position.distance_to(mouse_pos) > use_range:
+	if global_position.distance_to(tile_center) > use_range:
 		return
 
-	# Convert to tile coordinates
-	var tile_pos = world.local_to_map(world.to_local(mouse_pos))
 	var source_id = world.get_cell_source_id(tile_pos)
 
 	# Check if it's a box tile (source_id 3)
@@ -317,16 +317,15 @@ func _try_use_tool() -> void:
 	if not _is_tool(tool_id):
 		return
 
-	# Get mouse position in world coordinates
+	# Get mouse position in world coordinates and convert to tile
 	var mouse_pos = get_global_mouse_position()
-
-	# Check if within range (2 tiles)
-	var use_range = sprite_size * 2.0
-	if global_position.distance_to(mouse_pos) > use_range:
-		return
-
-	# Convert to tile coordinates (global to local first)
 	var tile_pos = world.local_to_map(world.to_local(mouse_pos))
+
+	# Use tile center for distance check
+	var tile_center = world.to_global(world.map_to_local(tile_pos))
+	var use_range = sprite_size * 2.0
+	if global_position.distance_to(tile_center) > use_range:
+		return
 
 	# Check roof layer first - break roofs before ground tiles
 	if world.roof_layer:
@@ -387,16 +386,15 @@ func _try_place_item() -> void:
 		_:
 			return
 
-	# Get mouse position in world coordinates
+	# Get mouse position in world coordinates and convert to tile
 	var mouse_pos = get_global_mouse_position()
-
-	# Check if within range (2 tiles)
-	var use_range = sprite_size * 2.0
-	if global_position.distance_to(mouse_pos) > use_range:
-		return
-
-	# Convert to tile coordinates
 	var tile_pos = world.local_to_map(world.to_local(mouse_pos))
+
+	# Use tile center for distance check
+	var tile_center = world.to_global(world.map_to_local(tile_pos))
+	var use_range = sprite_size * 2.0
+	if global_position.distance_to(tile_center) > use_range:
+		return
 
 	# Route to appropriate placement RPC
 	if is_roof:
