@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 using GDScript and GL Compatibility renderer. Features infinite procedural world generation, crafting, smelting, storage boxes, and multiplayer support.
+This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.6 using GDScript and GL Compatibility renderer. Features infinite procedural world generation, crafting, smelting, storage boxes, and multiplayer support.
+
+## Code Style
+
+- **4-space indentation** for all GDScript files (enforced via `.editorconfig`)
+- Godot editor is configured to use spaces (not tabs) with convert-on-save enabled
 
 ## Running the Project
 
