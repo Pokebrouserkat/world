@@ -146,7 +146,7 @@ func _handle_left_click() -> void:
         return
 
     # Check what item is selected and perform appropriate action
-    if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace"]:
+    if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace", "iron_wall", "wood_floor", "stone_floor", "gold_wall"]:
         _try_place_item()
     elif _is_tool(selected_item.item_id):
         _try_use_tool()
@@ -228,7 +228,7 @@ func _handle_interact() -> void:
 
 
 func _is_tool(item_id: String) -> bool:
-    return item_id in ["axe", "wood_pick", "wood_axe", "stone_pick", "stone_axe", "iron_pick", "iron_axe"]
+    return item_id in ["axe", "wood_pick", "wood_axe", "stone_pick", "stone_axe", "iron_pick", "iron_axe", "gold_pick", "gold_axe"]
 
 
 func _get_tool_hits(item_name: String) -> int:
@@ -288,6 +288,14 @@ func _try_place_item() -> void:
             tile_source_id = 5
         "furnace":
             tile_source_id = 6
+        "iron_wall":
+            tile_source_id = 8
+        "wood_floor":
+            tile_source_id = 9
+        "stone_floor":
+            tile_source_id = 10
+        "gold_wall":
+            tile_source_id = 11
         _:
             return
 

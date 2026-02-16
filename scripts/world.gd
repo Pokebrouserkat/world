@@ -9,7 +9,11 @@ enum TileType {
     WOOD_WALL = 4,
     STONE_WALL = 5,
     FURNACE = 6,
-    IRON_ORE = 7
+    IRON_ORE = 7,
+    IRON_WALL = 8,
+    WOOD_FLOOR = 9,
+    STONE_FLOOR = 10,
+    GOLD_WALL = 11
 }
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
@@ -28,7 +32,11 @@ const TILE_SOURCE = {
     TileType.WOOD_WALL: 4,
     TileType.STONE_WALL: 5,
     TileType.FURNACE: 6,
-    TileType.IRON_ORE: 7
+    TileType.IRON_ORE: 7,
+    TileType.IRON_WALL: 8,
+    TileType.WOOD_FLOOR: 9,
+    TileType.STONE_FLOOR: 10,
+    TileType.GOLD_WALL: 11
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -40,7 +48,11 @@ const TILE_COORDS = {
     TileType.WOOD_WALL: Vector2i(0, 0),
     TileType.STONE_WALL: Vector2i(0, 0),
     TileType.FURNACE: Vector2i(0, 0),
-    TileType.IRON_ORE: Vector2i(0, 0)
+    TileType.IRON_ORE: Vector2i(0, 0),
+    TileType.IRON_WALL: Vector2i(0, 0),
+    TileType.WOOD_FLOOR: Vector2i(0, 0),
+    TileType.STONE_FLOOR: Vector2i(0, 0),
+    TileType.GOLD_WALL: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -87,10 +99,13 @@ var _particle_texture: ImageTexture = null
 const BASE_TILE_DURABILITY: int = 10
 const WOOD_WALL_DURABILITY: int = 20
 const STONE_WALL_DURABILITY: int = 30
+const IRON_WALL_DURABILITY: int = 60
+const GOLD_WALL_DURABILITY: int = 120
 const PLASTIC_TOOL_HITS: int = 10
 const WOOD_TOOL_HITS: int = 5
 const STONE_TOOL_HITS: int = 3
 const IRON_TOOL_HITS: int = 1
+const GOLD_TOOL_HITS: int = 1
 
 
 func _ready() -> void:
@@ -278,12 +293,18 @@ func _get_tile_durability(tile_type: String) -> int:
             return WOOD_WALL_DURABILITY
         "stone_wall":
             return STONE_WALL_DURABILITY
+        "iron_wall":
+            return IRON_WALL_DURABILITY
+        "gold_wall":
+            return GOLD_WALL_DURABILITY
         _:
             return BASE_TILE_DURABILITY
 
 
 func _get_tool_hits(tool_id: String) -> int:
-    if tool_id.begins_with("iron_"):
+    if tool_id.begins_with("gold_"):
+        return GOLD_TOOL_HITS
+    elif tool_id.begins_with("iron_"):
         return IRON_TOOL_HITS
     elif tool_id.begins_with("stone_"):
         return STONE_TOOL_HITS
@@ -302,12 +323,16 @@ func _get_tile_type_string(source_id: int) -> String:
         5: return "stone_wall"
         6: return "furnace"
         7: return "iron_ore"
+        8: return "iron_wall"
+        9: return "wood_floor"
+        10: return "stone_floor"
+        11: return "gold_wall"
         _: return "grass"
 
 
 func _is_correct_tool(tool_id: String, source_id: int) -> bool:
-    var is_pick = tool_id in ["wood_pick", "stone_pick", "iron_pick"]
-    var is_axe = tool_id in ["axe", "wood_axe", "stone_axe", "iron_axe"]
+    var is_pick = tool_id in ["wood_pick", "stone_pick", "iron_pick", "gold_pick"]
+    var is_axe = tool_id in ["axe", "wood_axe", "stone_axe", "iron_axe", "gold_axe"]
 
     match source_id:
         1:  # Rock - requires pick
@@ -316,12 +341,14 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
             return is_axe
         3:  # Box - any tool works
             return true
-        4, 5:  # Walls - any tool works
+        4, 5, 8, 11:  # Walls - any tool works
             return true
         6:  # Furnace - requires any pick
             return is_pick
         7:  # Iron ore - requires pick
             return is_pick
+        9, 10:  # Floors - any tool works
+            return true
         _:
             return false
 
@@ -424,6 +451,14 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
                 var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
                 _spawn_item_by_id(state.output_item.item_id, 1, tile_world_pos + spread_offset, 0.3)
         _spawn_item_by_id("furnace", 1, tile_world_pos, 0.0)
+    elif tile_type == "iron_wall":
+        _spawn_item_by_id("iron_wall", 1, tile_world_pos, 0.0)
+    elif tile_type == "wood_floor":
+        _spawn_item_by_id("wood_floor", 1, tile_world_pos, 0.0)
+    elif tile_type == "stone_floor":
+        _spawn_item_by_id("stone_floor", 1, tile_world_pos, 0.0)
+    elif tile_type == "gold_wall":
+        _spawn_item_by_id("gold_wall", 1, tile_world_pos, 0.0)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -608,6 +643,10 @@ func _get_hit_color(source_id: int) -> Color:
         5: return Color(0.5, 0.5, 0.5)     # Stone wall - gray
         6: return Color(0.3, 0.3, 0.3)     # Furnace - dark gray
         7: return Color(0.7, 0.5, 0.3)     # Iron ore - brownish
+        8: return Color(0.7, 0.7, 0.7)     # Iron wall - light gray
+        9: return Color(0.55, 0.35, 0.17)  # Wood floor - brown
+        10: return Color(0.55, 0.55, 0.55) # Stone floor - gray
+        11: return Color(0.85, 0.7, 0.2)   # Gold wall - golden
         _: return Color(0.5, 0.5, 0.5)
 
 

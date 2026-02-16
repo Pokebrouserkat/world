@@ -91,6 +91,40 @@ func _setup_recipes() -> void:
         "output_quantity": 1
     }
 
+    # Iron wall - 20 iron
+    recipes["iron_wall"] = {
+        "ingredients": {"iron": 20},
+        "output_quantity": 1
+    }
+
+    # Floors - 5 of respective material
+    recipes["wood_floor"] = {
+        "ingredients": {"wood": 5},
+        "output_quantity": 1
+    }
+
+    recipes["stone_floor"] = {
+        "ingredients": {"rock": 5},
+        "output_quantity": 1
+    }
+
+    # Gold tools - 2 wood + 3 gold each
+    recipes["gold_pick"] = {
+        "ingredients": {"wood": 2, "gold": 3},
+        "output_quantity": 1
+    }
+
+    recipes["gold_axe"] = {
+        "ingredients": {"wood": 2, "gold": 3},
+        "output_quantity": 1
+    }
+
+    # Gold wall - 20 gold
+    recipes["gold_wall"] = {
+        "ingredients": {"gold": 20},
+        "output_quantity": 1
+    }
+
 
 func _create_ui() -> void:
     # Calculate required height based on recipe count

@@ -83,6 +83,46 @@ const ITEMS: Dictionary = {
         "max_stack": 99,
         "display_name": "Furnace"
     },
+    "iron_wall": {
+        "texture_key": "iron_wall",
+        "max_stack": 99,
+        "display_name": "Iron Wall"
+    },
+    "wood_floor": {
+        "texture_key": "wood_floor",
+        "max_stack": 99,
+        "display_name": "Wood Floor"
+    },
+    "stone_floor": {
+        "texture_key": "stone_floor",
+        "max_stack": 99,
+        "display_name": "Stone Floor"
+    },
+    "gold_ore": {
+        "texture_key": "gold_ore",
+        "max_stack": 99,
+        "display_name": "Gold Ore"
+    },
+    "gold": {
+        "texture_key": "gold",
+        "max_stack": 99,
+        "display_name": "Gold"
+    },
+    "gold_pick": {
+        "texture_key": "gold_pick",
+        "max_stack": 1,
+        "display_name": "Gold Pick"
+    },
+    "gold_axe": {
+        "texture_key": "gold_axe",
+        "max_stack": 1,
+        "display_name": "Gold Axe"
+    },
+    "gold_wall": {
+        "texture_key": "gold_wall",
+        "max_stack": 99,
+        "display_name": "Gold Wall"
+    },
 }
 
 

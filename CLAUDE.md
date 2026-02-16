@@ -10,7 +10,7 @@ This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 usi
 
 Open in Godot Editor or run headless validation:
 ```bash
-"/Users/matt/Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot" --path . --headless --quit
+~/"Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot" --path . --headless --quit
 ```
 
 ## Testing
@@ -41,14 +41,15 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 **World Generation** (`scripts/world.gd`):
 - Extends TileMapLayer with infinite procedural generation
 - Deterministic position-based hash for tile placement (WORLD_SEED)
-- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE
+- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL
 - Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
 - Manages box contents (`_box_contents`) and furnace states (`_furnace_states`)
 
 **Player** (`scripts/player.gd`):
 - WASD/Arrow movement, Shift to walk slower
 - Left-click uses selected tool (picks break rocks, axes break trees)
-- Tool tiers: plastic (10 hits) → wood (5) → stone (3) → iron (1)
+- Tool tiers: plastic (10 hits) → wood (5) → stone (3) → iron (1) → gold (1)
+- Wall durability: wood (20) → stone (30) → iron (60) → gold (120); floors (10)
 - Pickup system with audio deduplication
 
 **Inventory** (`scripts/hotbar.gd`):
@@ -61,7 +62,8 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 - Recipes defined in `_setup_recipes()` as `{ingredients: {item_id: qty}, output_quantity: int}`
 
 **Smelting** (`scripts/furnace_inventory.gd`):
-- Drag iron_ore into furnace input → smelts to iron over 30 seconds
+- Drag ore into furnace input → smelts over 30 seconds (iron_ore→iron, gold_ore→gold)
+- Smelting recipes defined in `SMELT_RECIPES` dictionary
 - Furnace state persisted in world's `_furnace_states`
 
 **Storage** (`scripts/box_inventory.gd`):

@@ -28,6 +28,12 @@ var arrow_texture: Texture2D = preload("res://graphics/arrow.png")
 # Smelting state - stored per furnace in world.gd
 const SMELT_TIME: float = 30.0
 
+# Smelting recipes: input_id -> output_id
+const SMELT_RECIPES: Dictionary = {
+    "iron_ore": "iron",
+    "gold_ore": "gold"
+}
+
 # Drag state
 var dragging: bool = false
 var drag_from_input: bool = false
@@ -164,8 +170,9 @@ func _process(delta: float) -> void:
     var state = world.get_furnace_state(current_furnace_pos)
 
     # Update smelting progress if there's input and room for output
-    if state.input_item != null and state.input_item.item_id == "iron_ore":
-        var can_output = state.output_item == null or (state.output_item.item_id == "iron" and state.output_item.quantity < 99)
+    var smelt_output_id = _get_smelt_output(state.input_item)
+    if smelt_output_id != "":
+        var can_output = state.output_item == null or (state.output_item.item_id == smelt_output_id and state.output_item.quantity < 99)
         if can_output:
             state.smelt_progress += delta
             if state.smelt_progress >= SMELT_TIME:
@@ -176,7 +183,7 @@ func _process(delta: float) -> void:
                     state.input_item = null
 
                 if state.output_item == null:
-                    state.output_item = Item.create("iron", 1)
+                    state.output_item = Item.create(smelt_output_id, 1)
                 else:
                     state.output_item.quantity += 1
 
@@ -185,6 +192,16 @@ func _process(delta: float) -> void:
         state.smelt_progress = 0.0
 
     _update_ui(state)
+
+
+func _get_smelt_output(input_item) -> String:
+    if input_item == null:
+        return ""
+    return SMELT_RECIPES.get(input_item.item_id, "")
+
+
+func _is_smeltable(item_id: String) -> bool:
+    return SMELT_RECIPES.has(item_id)
 
 
 func _update_ui(state: Dictionary) -> void:
@@ -205,8 +222,9 @@ func _update_ui(state: Dictionary) -> void:
         output_stack_label.text = ""
 
     # Update progress bar
-    var is_smelting = state.input_item != null and state.input_item.item_id == "iron_ore"
-    var can_output = state.output_item == null or (state.output_item.item_id == "iron" and state.output_item.quantity < 99)
+    var smelt_out = _get_smelt_output(state.input_item)
+    var is_smelting = smelt_out != ""
+    var can_output = state.output_item == null or (state.output_item.item_id == smelt_out and state.output_item.quantity < 99)
 
     if is_smelting and can_output:
         var progress = state.smelt_progress / SMELT_TIME
@@ -352,12 +370,12 @@ func _end_drag(pos: Vector2) -> void:
     if drag_from_hotbar_slot >= 0:
         # Dragging from hotbar
         var hotbar_item = hotbar.get_item(drag_from_hotbar_slot)
-        if target_input and hotbar_item != null and hotbar_item.item_id == "iron_ore":
+        if target_input and hotbar_item != null and _is_smeltable(hotbar_item.item_id):
             # Move to input slot
             if state.input_item == null:
                 state.input_item = hotbar_item.duplicate()
                 hotbar.set_item(drag_from_hotbar_slot, null)
-            elif state.input_item.item_id == "iron_ore" and state.input_item.quantity < 99:
+            elif state.input_item.item_id == hotbar_item.item_id and state.input_item.quantity < 99:
                 var can_add = 99 - state.input_item.quantity
                 var to_add = mini(hotbar_item.quantity, can_add)
                 state.input_item.quantity += to_add
@@ -389,7 +407,7 @@ func _end_drag(pos: Vector2) -> void:
             if hotbar_item == null:
                 hotbar.set_item(target_hotbar_slot, state.input_item)
                 state.input_item = null
-            elif hotbar_item.item_id == "iron_ore" and hotbar_item.quantity < 99:
+            elif state.input_item != null and hotbar_item.item_id == state.input_item.item_id and hotbar_item.quantity < 99:
                 var can_add = 99 - hotbar_item.quantity
                 var to_add = mini(state.input_item.quantity, can_add)
                 hotbar_item.quantity += to_add
@@ -407,7 +425,7 @@ func _end_drag(pos: Vector2) -> void:
             if hotbar_item == null:
                 hotbar.set_item(target_hotbar_slot, state.output_item)
                 state.output_item = null
-            elif hotbar_item.item_id == "iron" and hotbar_item.quantity < 99:
+            elif state.output_item != null and hotbar_item.item_id == state.output_item.item_id and hotbar_item.quantity < 99:
                 var can_add = 99 - hotbar_item.quantity
                 var to_add = mini(state.output_item.quantity, can_add)
                 hotbar_item.quantity += to_add

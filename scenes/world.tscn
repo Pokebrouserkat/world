@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=37 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Script" uid="uid://oxvke4venva8" path="res://scripts/coordinate_display.gd" id="1_coords"]
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
@@ -19,6 +19,10 @@
 [ext_resource type="Texture2D" uid="uid://2wvl8axgdq41" path="res://graphics/furnace.png" id="17_furnace"]
 [ext_resource type="PackedScene" path="res://scenes/furnace_inventory.tscn" id="18_furnace_inv"]
 [ext_resource type="Texture2D" uid="uid://bxfeeil8544uv" path="res://graphics/ironoretile.png" id="19_ironore"]
+[ext_resource type="Texture2D" path="res://graphics/ironwall.png" id="20_ironwall"]
+[ext_resource type="Texture2D" path="res://graphics/woodfloor.png" id="21_woodfloor"]
+[ext_resource type="Texture2D" path="res://graphics/stonefloor.png" id="22_stonefloor"]
+[ext_resource type="Texture2D" path="res://graphics/goldwall.png" id="23_goldwall"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -62,6 +66,24 @@ texture = ExtResource("19_ironore")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironwall"]
+texture = ExtResource("20_ironwall")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodfloor"]
+texture = ExtResource("21_woodfloor")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stonefloor"]
+texture = ExtResource("22_stonefloor")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldwall"]
+texture = ExtResource("23_goldwall")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
 [sub_resource type="TileSet" id="TileSet_gv5m4"]
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_fj7yv")
@@ -72,6 +94,10 @@ sources/4 = SubResource("TileSetAtlasSource_woodwall")
 sources/5 = SubResource("TileSetAtlasSource_stonewall")
 sources/6 = SubResource("TileSetAtlasSource_furnace")
 sources/7 = SubResource("TileSetAtlasSource_ironore")
+sources/8 = SubResource("TileSetAtlasSource_ironwall")
+sources/9 = SubResource("TileSetAtlasSource_woodfloor")
+sources/10 = SubResource("TileSetAtlasSource_stonefloor")
+sources/11 = SubResource("TileSetAtlasSource_goldwall")
 
 [node name="Node2D" type="Node2D"]
 y_sort_enabled = true
