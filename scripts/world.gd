@@ -483,7 +483,9 @@ func get_furnace_state(furnace_pos: Vector2i) -> Dictionary:
 		_furnace_states[furnace_pos] = {
 			"input_item": null,
 			"output_item": null,
-			"smelt_progress": 0.0
+			"smelt_progress": 0.0,
+			"fuel_item": null,
+			"fuel_level": 0.0
 		}
 	return _furnace_states[furnace_pos]
 
@@ -494,7 +496,7 @@ func set_furnace_state(furnace_pos: Vector2i, state: Dictionary) -> void:
 
 func clear_furnace_state(furnace_pos: Vector2i) -> Dictionary:
 	# Returns state and removes from storage (for when furnace is broken)
-	var state: Dictionary = {"input_item": null, "output_item": null, "smelt_progress": 0.0}
+	var state: Dictionary = {"input_item": null, "output_item": null, "smelt_progress": 0.0, "fuel_item": null, "fuel_level": 0.0}
 	if _furnace_states.has(furnace_pos):
 		state = _furnace_states[furnace_pos]
 		_furnace_states.erase(furnace_pos)
@@ -871,6 +873,10 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 			for i in range(state.output_item.quantity):
 				var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
 				_spawn_item_by_id(state.output_item.item_id, 1, tile_world_pos + spread_offset, 0.3)
+		if state.get("fuel_item") != null:
+			for i in range(state.fuel_item.quantity):
+				var spread_offset = Vector2(randf_range(-12, 12), randf_range(-12, 12))
+				_spawn_item_by_id(state.fuel_item.item_id, 1, tile_world_pos + spread_offset, 0.3)
 		_spawn_item_by_id("furnace", 1, tile_world_pos, 0.0)
 	elif tile_type == "iron_wall":
 		_spawn_item_by_id("iron_wall", 1, tile_world_pos, 0.0)

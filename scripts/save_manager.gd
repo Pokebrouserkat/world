@@ -304,7 +304,8 @@ func _serialize_furnace_states(world: TileMapLayer) -> Dictionary:
         var key = "%d,%d" % [pos.x, pos.y]
         var state = world._furnace_states[pos]
         var furnace_data: Dictionary = {
-            "smelt_progress": state.smelt_progress
+            "smelt_progress": state.smelt_progress,
+            "fuel_level": state.get("fuel_level", 0.0)
         }
         if state.input_item:
             furnace_data["input_item"] = {
@@ -315,6 +316,11 @@ func _serialize_furnace_states(world: TileMapLayer) -> Dictionary:
             furnace_data["output_item"] = {
                 "id": state.output_item.item_id,
                 "quantity": state.output_item.quantity
+            }
+        if state.get("fuel_item"):
+            furnace_data["fuel_item"] = {
+                "id": state.fuel_item.item_id,
+                "quantity": state.fuel_item.quantity
             }
         furnaces[key] = furnace_data
     return furnaces
@@ -333,7 +339,9 @@ func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
             var state: Dictionary = {
                 "input_item": null,
                 "output_item": null,
-                "smelt_progress": furnace_data.get("smelt_progress", 0.0)
+                "smelt_progress": furnace_data.get("smelt_progress", 0.0),
+                "fuel_item": null,
+                "fuel_level": furnace_data.get("fuel_level", 0.0)
             }
             if furnace_data.has("input_item"):
                 var input_data = furnace_data["input_item"]
@@ -341,6 +349,9 @@ func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
             if furnace_data.has("output_item"):
                 var output_data = furnace_data["output_item"]
                 state.output_item = Item.create(output_data["id"], output_data["quantity"])
+            if furnace_data.has("fuel_item"):
+                var fuel_data = furnace_data["fuel_item"]
+                state.fuel_item = Item.create(fuel_data["id"], fuel_data["quantity"])
             world._furnace_states[pos] = state
 
 

@@ -9,13 +9,18 @@ var current_furnace_pos: Vector2i = Vector2i.ZERO
 
 # UI elements
 var panel: NinePatchRect = null
+var title_label: Label = null
 var input_slot: TextureButton = null
 var output_slot: TextureButton = null
+var fuel_slot: TextureButton = null
 var input_icon: TextureRect = null
 var output_icon: TextureRect = null
+var fuel_icon: TextureRect = null
 var input_stack_label: Label = null
 var output_stack_label: Label = null
+var fuel_stack_label: Label = null
 var arrow_icon: TextureRect = null
+var fuel_label: Label = null
 var progress_bar_bg: ColorRect = null
 var progress_bar_fill: ColorRect = null
 var progress_label: Label = null
@@ -34,10 +39,17 @@ const SMELT_RECIPES: Dictionary = {
     "gold_ore": "gold"
 }
 
+# Fuel values: how many smelts one item provides
+const FUEL_VALUES: Dictionary = {
+    "coal": 5.0,
+    "wood": 0.05
+}
+
 # Drag state
 var dragging: bool = false
 var drag_from_input: bool = false
 var drag_from_output: bool = false
+var drag_from_fuel: bool = false
 var drag_from_hotbar_slot: int = -1
 var drag_preview: TextureRect = null
 
@@ -59,9 +71,13 @@ func _create_ui() -> void:
     var border = 8  # Visual border inset
     var arrow_width = 12
     var progress_height = 8
+    var title_height = 10
+    var fuel_label_height = 7
+    var spacing = 2
+
     var slot_row_width = slot_size * 2 + arrow_width
     var panel_width = slot_row_width + border * 2
-    var panel_height = slot_size + progress_height + border * 2 + 4
+    var panel_height = border + title_height + spacing + slot_size + spacing + fuel_label_height + slot_size + spacing + progress_height + border
 
     # Main panel
     panel = NinePatchRect.new()
@@ -79,14 +95,29 @@ func _create_ui() -> void:
     panel.position = -panel.size / 2
     add_child(panel)
 
-    var content_y = border
+    var y_cursor = border
+
+    # Title label
+    title_label = Label.new()
+    title_label.text = "Furnace"
+    title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    title_label.position = Vector2(0, y_cursor)
+    title_label.size = Vector2(panel_width, title_height)
+    title_label.add_theme_font_size_override("font_size", 8)
+    title_label.add_theme_color_override("font_color", Color.WHITE)
+    title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    panel.add_child(title_label)
+    y_cursor += title_height + spacing
+
+    # === Row 1: Input slot + arrow + output slot ===
+    var row1_y = y_cursor
 
     # Input slot (left)
     input_slot = TextureButton.new()
     input_slot.texture_normal = slot_texture
     input_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     input_slot.stretch_mode = TextureButton.STRETCH_KEEP
-    input_slot.position = Vector2(border, content_y)
+    input_slot.position = Vector2(border, row1_y)
     panel.add_child(input_slot)
 
     input_icon = TextureRect.new()
@@ -109,7 +140,7 @@ func _create_ui() -> void:
     arrow_icon.texture = arrow_texture
     arrow_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     arrow_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-    arrow_icon.position = Vector2(border + slot_size, content_y)
+    arrow_icon.position = Vector2(border + slot_size, row1_y)
     arrow_icon.size = Vector2(arrow_width, slot_size)
     arrow_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
     panel.add_child(arrow_icon)
@@ -119,7 +150,7 @@ func _create_ui() -> void:
     output_slot.texture_normal = slot_texture
     output_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     output_slot.stretch_mode = TextureButton.STRETCH_KEEP
-    output_slot.position = Vector2(border + slot_size + arrow_width, content_y)
+    output_slot.position = Vector2(border + slot_size + arrow_width, row1_y)
     panel.add_child(output_slot)
 
     output_icon = TextureRect.new()
@@ -137,26 +168,61 @@ func _create_ui() -> void:
     output_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     output_slot.add_child(output_stack_label)
 
-    # Progress bar background
-    var progress_y = content_y + slot_size + 2
+    y_cursor += slot_size + spacing
+
+    # === Row 2: Fuel label + fuel slot (below input slot) ===
+    fuel_label = Label.new()
+    fuel_label.text = "Fuel"
+    fuel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    fuel_label.position = Vector2(0, y_cursor)
+    fuel_label.size = Vector2(panel_width, fuel_label_height)
+    fuel_label.add_theme_font_size_override("font_size", 7)
+    fuel_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+    fuel_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    panel.add_child(fuel_label)
+    y_cursor += fuel_label_height
+
+    fuel_slot = TextureButton.new()
+    fuel_slot.texture_normal = slot_texture
+    fuel_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    fuel_slot.stretch_mode = TextureButton.STRETCH_KEEP
+    fuel_slot.position = Vector2(border, y_cursor)
+    panel.add_child(fuel_slot)
+
+    fuel_icon = TextureRect.new()
+    fuel_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    fuel_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+    fuel_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    fuel_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+    fuel_slot.add_child(fuel_icon)
+
+    fuel_stack_label = Label.new()
+    fuel_stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    fuel_stack_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+    fuel_stack_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+    fuel_stack_label.add_theme_font_size_override("font_size", 8)
+    fuel_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    fuel_slot.add_child(fuel_stack_label)
+
+    y_cursor += slot_size + spacing
+
+    # === Progress bar (full width) ===
     progress_bar_bg = ColorRect.new()
     progress_bar_bg.color = Color(0.2, 0.2, 0.2, 1.0)
-    progress_bar_bg.position = Vector2(border, progress_y)
+    progress_bar_bg.position = Vector2(border, y_cursor)
     progress_bar_bg.size = Vector2(slot_row_width, progress_height)
     panel.add_child(progress_bar_bg)
 
-    # Progress bar fill
     progress_bar_fill = ColorRect.new()
     progress_bar_fill.color = Color(0.8, 0.5, 0.2, 1.0)  # Orange for smelting
-    progress_bar_fill.position = Vector2(border, progress_y)
+    progress_bar_fill.position = Vector2(border, y_cursor)
     progress_bar_fill.size = Vector2(0, progress_height)
     panel.add_child(progress_bar_fill)
 
-    # Progress time label
     progress_label = Label.new()
     progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-    progress_label.position = Vector2(border, progress_y)
+    progress_label.position = Vector2(border, y_cursor)
     progress_label.size = Vector2(slot_row_width, progress_height)
     progress_label.add_theme_font_size_override("font_size", 7)
     progress_label.add_theme_color_override("font_color", Color.WHITE)
@@ -174,20 +240,29 @@ func _process(delta: float) -> void:
     if smelt_output_id != "":
         var can_output = state.output_item == null or (state.output_item.item_id == smelt_output_id and state.output_item.quantity < 99)
         if can_output:
-            state.smelt_progress += delta
-            if state.smelt_progress >= SMELT_TIME:
-                # Smelting complete
-                state.smelt_progress = 0.0
-                state.input_item.quantity -= 1
-                if state.input_item.quantity <= 0:
-                    state.input_item = null
+            # Check fuel
+            if state.get("fuel_level", 0.0) <= 0.0:
+                _try_consume_fuel(state)
 
-                if state.output_item == null:
-                    state.output_item = Item.create(smelt_output_id, 1)
-                else:
-                    state.output_item.quantity += 1
+            if state.get("fuel_level", 0.0) > 0.0:
+                # Consume fuel proportionally
+                state.fuel_level -= delta / SMELT_TIME
+                state.smelt_progress += delta
 
-                world.set_furnace_state(current_furnace_pos, state)
+                if state.smelt_progress >= SMELT_TIME:
+                    # Smelting complete
+                    state.smelt_progress = 0.0
+                    state.input_item.quantity -= 1
+                    if state.input_item.quantity <= 0:
+                        state.input_item = null
+
+                    if state.output_item == null:
+                        state.output_item = Item.create(smelt_output_id, 1)
+                    else:
+                        state.output_item.quantity += 1
+
+                    world.set_furnace_state(current_furnace_pos, state)
+            # else: no fuel, smelting pauses (progress doesn't reset)
     else:
         state.smelt_progress = 0.0
 
@@ -202,6 +277,27 @@ func _get_smelt_output(input_item) -> String:
 
 func _is_smeltable(item_id: String) -> bool:
     return SMELT_RECIPES.has(item_id)
+
+
+func _is_fuel(item_id: String) -> bool:
+    return FUEL_VALUES.has(item_id)
+
+
+func _get_fuel_value(item_id: String) -> float:
+    return FUEL_VALUES.get(item_id, 0.0)
+
+
+func _try_consume_fuel(state: Dictionary) -> void:
+    var fuel_item = state.get("fuel_item")
+    if fuel_item == null:
+        return
+    var fuel_value = _get_fuel_value(fuel_item.item_id)
+    if fuel_value <= 0.0:
+        return
+    state.fuel_level = fuel_value
+    fuel_item.quantity -= 1
+    if fuel_item.quantity <= 0:
+        state.fuel_item = null
 
 
 func _update_ui(state: Dictionary) -> void:
@@ -221,12 +317,22 @@ func _update_ui(state: Dictionary) -> void:
         output_icon.texture = null
         output_stack_label.text = ""
 
+    # Update fuel slot
+    var fuel_item = state.get("fuel_item")
+    if fuel_item != null:
+        fuel_icon.texture = fuel_item.texture
+        fuel_stack_label.text = str(fuel_item.quantity) if fuel_item.quantity > 1 else ""
+    else:
+        fuel_icon.texture = null
+        fuel_stack_label.text = ""
+
     # Update progress bar
     var smelt_out = _get_smelt_output(state.input_item)
     var is_smelting = smelt_out != ""
-    var can_output = state.output_item == null or (state.output_item.item_id == smelt_out and state.output_item.quantity < 99)
+    var can_output = state.output_item == null or (is_smelting and state.output_item.item_id == smelt_out and state.output_item.quantity < 99)
+    var has_fuel = state.get("fuel_level", 0.0) > 0.0 or (state.get("fuel_item") != null and _get_fuel_value(state.fuel_item.item_id) > 0.0)
 
-    if is_smelting and can_output:
+    if is_smelting and can_output and has_fuel:
         var progress = state.smelt_progress / SMELT_TIME
         var bar_width = progress_bar_bg.size.x * progress
         progress_bar_fill.size.x = bar_width
@@ -243,6 +349,8 @@ func _update_ui(state: Dictionary) -> void:
             progress_label.text = "Wrong item"
         elif not can_output:
             progress_label.text = "Output full"
+        elif not has_fuel:
+            progress_label.text = "Add fuel"
         else:
             progress_label.text = ""
 
@@ -314,6 +422,7 @@ func _start_drag(pos: Vector2) -> void:
         dragging = true
         drag_from_input = true
         drag_from_output = false
+        drag_from_fuel = false
         drag_from_hotbar_slot = -1
         _create_drag_preview(state.input_item.texture, pos)
         input_icon.modulate.a = 0.3
@@ -325,9 +434,23 @@ func _start_drag(pos: Vector2) -> void:
         dragging = true
         drag_from_input = false
         drag_from_output = true
+        drag_from_fuel = false
         drag_from_hotbar_slot = -1
         _create_drag_preview(state.output_item.texture, pos)
         output_icon.modulate.a = 0.3
+        get_viewport().set_input_as_handled()
+        return
+
+    # Check fuel slot
+    var fuel_item = state.get("fuel_item")
+    if fuel_slot.get_global_rect().has_point(pos) and fuel_item != null:
+        dragging = true
+        drag_from_input = false
+        drag_from_output = false
+        drag_from_fuel = true
+        drag_from_hotbar_slot = -1
+        _create_drag_preview(fuel_item.texture, pos)
+        fuel_icon.modulate.a = 0.3
         get_viewport().set_input_as_handled()
         return
 
@@ -337,6 +460,7 @@ func _start_drag(pos: Vector2) -> void:
         dragging = true
         drag_from_input = false
         drag_from_output = false
+        drag_from_fuel = false
         drag_from_hotbar_slot = hotbar_slot
         _create_drag_preview(hotbar.get_item(hotbar_slot).texture, pos)
         hotbar.item_icons[hotbar_slot].modulate.a = 0.3
@@ -366,6 +490,7 @@ func _end_drag(pos: Vector2) -> void:
     var target_hotbar_slot = _get_hotbar_slot_at_position(pos)
     var target_input = input_slot.get_global_rect().has_point(pos)
     var target_output = output_slot.get_global_rect().has_point(pos)
+    var target_fuel = fuel_slot.get_global_rect().has_point(pos)
 
     if drag_from_hotbar_slot >= 0:
         # Dragging from hotbar
@@ -379,6 +504,21 @@ func _end_drag(pos: Vector2) -> void:
                 var can_add = 99 - state.input_item.quantity
                 var to_add = mini(hotbar_item.quantity, can_add)
                 state.input_item.quantity += to_add
+                hotbar_item.quantity -= to_add
+                if hotbar_item.quantity <= 0:
+                    hotbar.set_item(drag_from_hotbar_slot, null)
+            world.set_furnace_state(current_furnace_pos, state)
+            hotbar._update_item_icons()
+        elif target_fuel and hotbar_item != null and _is_fuel(hotbar_item.item_id):
+            # Move to fuel slot
+            var current_fuel = state.get("fuel_item")
+            if current_fuel == null:
+                state.fuel_item = hotbar_item.duplicate()
+                hotbar.set_item(drag_from_hotbar_slot, null)
+            elif current_fuel.item_id == hotbar_item.item_id and current_fuel.quantity < 99:
+                var can_add = 99 - current_fuel.quantity
+                var to_add = mini(hotbar_item.quantity, can_add)
+                current_fuel.quantity += to_add
                 hotbar_item.quantity -= to_add
                 if hotbar_item.quantity <= 0:
                     hotbar.set_item(drag_from_hotbar_slot, null)
@@ -436,6 +576,25 @@ func _end_drag(pos: Vector2) -> void:
             hotbar._update_item_icons()
         output_icon.modulate.a = 1.0
 
+    elif drag_from_fuel:
+        # Dragging from fuel
+        if target_hotbar_slot >= 0:
+            var fuel_item = state.get("fuel_item")
+            var hotbar_item = hotbar.get_item(target_hotbar_slot)
+            if hotbar_item == null:
+                hotbar.set_item(target_hotbar_slot, fuel_item)
+                state.fuel_item = null
+            elif fuel_item != null and hotbar_item.item_id == fuel_item.item_id and hotbar_item.quantity < 99:
+                var can_add = 99 - hotbar_item.quantity
+                var to_add = mini(fuel_item.quantity, can_add)
+                hotbar_item.quantity += to_add
+                fuel_item.quantity -= to_add
+                if fuel_item.quantity <= 0:
+                    state.fuel_item = null
+            world.set_furnace_state(current_furnace_pos, state)
+            hotbar._update_item_icons()
+        fuel_icon.modulate.a = 1.0
+
     _update_item_icons()
 
     # Clean up drag preview
@@ -446,6 +605,7 @@ func _end_drag(pos: Vector2) -> void:
     dragging = false
     drag_from_input = false
     drag_from_output = false
+    drag_from_fuel = false
     drag_from_hotbar_slot = -1
 
 
@@ -483,12 +643,15 @@ func close() -> void:
             input_icon.modulate.a = 1.0
         elif drag_from_output:
             output_icon.modulate.a = 1.0
+        elif drag_from_fuel:
+            fuel_icon.modulate.a = 1.0
         if drag_preview:
             drag_preview.queue_free()
             drag_preview = null
         dragging = false
         drag_from_input = false
         drag_from_output = false
+        drag_from_fuel = false
         drag_from_hotbar_slot = -1
 
     closed.emit()
