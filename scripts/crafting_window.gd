@@ -15,11 +15,12 @@ var recipes: Dictionary = {}
 # UI elements
 var panel: NinePatchRect = null
 var recipe_container: VBoxContainer = null
-var recipe_buttons: Array[TextureButton] = []
+var recipe_buttons: Array[Button] = []
 
 # UI textures
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
 var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
+var button_texture: Texture2D = preload("res://graphics/button.png")
 
 
 func _ready() -> void:
@@ -174,7 +175,7 @@ func _create_ui() -> void:
     var max_height = 288
     var needs_scroll = content_height > max_height
     var panel_height = min(content_height, max_height)
-    var panel_width = 140
+    var panel_width = 200
 
     # Main panel
     panel = NinePatchRect.new()
@@ -236,20 +237,30 @@ func _populate_recipes() -> void:
         recipe_container.add_child(row)
 
 
+func _make_button_style(modulate_color: Color = Color.WHITE) -> StyleBoxTexture:
+    var style = StyleBoxTexture.new()
+    style.texture = button_texture
+    style.texture_margin_left = 4
+    style.texture_margin_right = 4
+    style.texture_margin_top = 4
+    style.texture_margin_bottom = 4
+    style.modulate_color = modulate_color
+    return style
+
+
 func _create_recipe_row(recipe_id: String, recipe: Dictionary) -> HBoxContainer:
     var row = HBoxContainer.new()
     row.add_theme_constant_override("separation", 4)
-    row.alignment = BoxContainer.ALIGNMENT_CENTER
+    row.alignment = BoxContainer.ALIGNMENT_BEGIN
 
-    # Clickable output icon
-    var output_btn = TextureButton.new()
+    # Output icon (display only)
+    var output_icon = TextureRect.new()
     var output_texture_key = ItemRegistry.get_texture_key(recipe_id)
-    output_btn.texture_normal = TextureCache.get_texture(output_texture_key)
-    output_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    output_btn.stretch_mode = TextureButton.STRETCH_KEEP
-    output_btn.pressed.connect(_on_craft_pressed.bind(recipe_id))
-    row.add_child(output_btn)
-    recipe_buttons.append(output_btn)
+    output_icon.texture = TextureCache.get_texture(output_texture_key)
+    output_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    output_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    output_icon.custom_minimum_size = Vector2(16, 16)
+    row.add_child(output_icon)
 
     # Equals sign
     var equals = Label.new()
@@ -267,7 +278,7 @@ func _create_recipe_row(recipe_id: String, recipe: Dictionary) -> HBoxContainer:
             row.add_child(plus)
         first_ing = false
 
-        # Ingredient icon (smaller to show it's not clickable)
+        # Ingredient icon
         var ing_icon = TextureRect.new()
         var ing_texture_key = ItemRegistry.get_texture_key(ing_id)
         ing_icon.texture = TextureCache.get_texture(ing_texture_key)
@@ -283,6 +294,23 @@ func _create_recipe_row(recipe_id: String, recipe: Dictionary) -> HBoxContainer:
         qty.add_theme_font_size_override("font_size", 10)
         qty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
         row.add_child(qty)
+
+    # Expanding spacer
+    var spacer = Control.new()
+    spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    row.add_child(spacer)
+
+    # Craft button
+    var craft_btn = Button.new()
+    craft_btn.text = "Craft"
+    craft_btn.add_theme_font_size_override("font_size", 10)
+    craft_btn.add_theme_stylebox_override("normal", _make_button_style())
+    craft_btn.add_theme_stylebox_override("hover", _make_button_style(Color(1.2, 1.2, 1.2)))
+    craft_btn.add_theme_stylebox_override("pressed", _make_button_style(Color(0.8, 0.8, 0.8)))
+    craft_btn.add_theme_stylebox_override("disabled", _make_button_style(Color(0.5, 0.5, 0.5)))
+    craft_btn.pressed.connect(_on_craft_pressed.bind(recipe_id))
+    row.add_child(craft_btn)
+    recipe_buttons.append(craft_btn)
 
     return row
 
@@ -367,8 +395,7 @@ func _update_craft_buttons() -> void:
     for recipe_name in recipes:
         if idx < recipe_buttons.size():
             var can_craft = GameMode.is_sandbox() or _can_craft(recipes[recipe_name])
-            # Dim the button if can't craft
-            recipe_buttons[idx].modulate.a = 1.0 if can_craft else 0.4
+            recipe_buttons[idx].disabled = not can_craft
         idx += 1
 
 
