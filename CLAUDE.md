@@ -26,8 +26,14 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 ## Architecture
 
 ### Autoloads (Singletons)
+- `GameMode` - Tracks current mode (NORMAL or SANDBOX); `GameMode.is_sandbox()` for checks
 - `NetworkManager` - Multiplayer connection handling
-- `SaveManager` - Game persistence to `user://save.json`
+- `SaveManager` - Game persistence to `user://save.json` (normal) or `user://sandbox_save.json` (sandbox)
+
+### Game Flow
+- Main menu (`scenes/main_menu.tscn`) is the entry point with Play and Sandbox buttons
+- Play starts normal mode; Sandbox starts creative mode (free crafting, separate save file)
+- Pause menu (ESC) has a "Main Menu" button to return to mode selection
 
 ### Core Systems
 

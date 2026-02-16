@@ -3,7 +3,14 @@ extends Node
 ## SaveManager - Handles game save/load functionality
 ## Autoload singleton for managing game persistence
 
-const SAVE_PATH: String = "user://save.json"
+const NORMAL_SAVE_PATH: String = "user://save.json"
+const SANDBOX_SAVE_PATH: String = "user://sandbox_save.json"
+
+
+func _get_save_path() -> String:
+    if GameMode.is_sandbox():
+        return SANDBOX_SAVE_PATH
+    return NORMAL_SAVE_PATH
 
 signal game_saved
 signal game_loaded
@@ -18,7 +25,7 @@ func get_last_save_time() -> int:
 
 
 func has_save_file() -> bool:
-    return FileAccess.file_exists(SAVE_PATH)
+    return FileAccess.file_exists(_get_save_path())
 
 
 func save_game() -> bool:
@@ -43,7 +50,7 @@ func save_game() -> bool:
     }
 
     var json_string = JSON.stringify(save_data, "\t")
-    var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+    var file = FileAccess.open(_get_save_path(), FileAccess.WRITE)
     if not file:
         save_failed.emit("Could not open save file")
         return false
@@ -61,7 +68,7 @@ func load_game() -> bool:
         load_failed.emit("No save file found")
         return false
 
-    var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+    var file = FileAccess.open(_get_save_path(), FileAccess.READ)
     if not file:
         load_failed.emit("Could not open save file")
         return false
@@ -84,7 +91,7 @@ func load_game() -> bool:
     var hotbar_data = save_data.get("hotbar", [])
     if hotbar_data.size() > 0 and hotbar_data[0].has("name"):
         load_failed.emit("Incompatible save format, deleting")
-        DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+        DirAccess.remove_absolute(ProjectSettings.globalize_path(_get_save_path()))
         return false
 
     var world = _get_world()
