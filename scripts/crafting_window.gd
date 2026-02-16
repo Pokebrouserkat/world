@@ -125,6 +125,27 @@ func _setup_recipes() -> void:
         "output_quantity": 1
     }
 
+    # Roofs - 10 of respective material
+    recipes["wood_roof"] = {
+        "ingredients": {"wood": 10},
+        "output_quantity": 1
+    }
+
+    recipes["stone_roof"] = {
+        "ingredients": {"rock": 10},
+        "output_quantity": 1
+    }
+
+    recipes["iron_roof"] = {
+        "ingredients": {"iron": 10},
+        "output_quantity": 1
+    }
+
+    recipes["gold_roof"] = {
+        "ingredients": {"gold": 10},
+        "output_quantity": 1
+    }
+
 
 func _create_ui() -> void:
     # Calculate required height based on recipe count

@@ -146,7 +146,7 @@ func _handle_left_click() -> void:
         return
 
     # Check what item is selected and perform appropriate action
-    if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace", "iron_wall", "wood_floor", "stone_floor", "gold_wall"]:
+    if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace", "iron_wall", "wood_floor", "stone_floor", "gold_wall", "wood_roof", "stone_roof", "iron_roof", "gold_roof"]:
         _try_place_item()
     elif _is_tool(selected_item.item_id):
         _try_use_tool()
@@ -190,6 +190,36 @@ func _handle_interact() -> void:
     # Use visual center (sprite is offset -16 from global_position)
     var visual_center = global_position + Vector2(0, -sprite_size)
     var player_tile = world.local_to_map(world.to_local(visual_center))
+
+    # Check roof layer first for nearest roof tile
+    var best_roof_tile: Vector2i
+    var best_roof_dist: float = INF
+    var has_roof_target: bool = false
+
+    if world.roof_layer:
+        for dx in range(-2, 3):
+            for dy in range(-2, 3):
+                var tile_pos = player_tile + Vector2i(dx, dy)
+                var roof_source = world.roof_layer.get_cell_source_id(tile_pos)
+                if roof_source < 0:
+                    continue
+                var tile_world_pos = world.to_global(world.map_to_local(tile_pos))
+                var dist = visual_center.distance_to(tile_world_pos)
+                if dist > sprite_size * 2.0:
+                    continue
+                if dist < best_roof_dist:
+                    best_roof_dist = dist
+                    best_roof_tile = tile_pos
+                    has_roof_target = true
+
+    if has_roof_target:
+        if hotbar:
+            var selected_item = hotbar.get_selected_item()
+            if selected_item and _is_tool(selected_item.item_id):
+                world.request_hit_roof.rpc_id(1, best_roof_tile, selected_item.item_id, peer_id)
+        return
+
+    # Find nearest ground tile
     var best_tile: Vector2i
     var best_dist: float = INF
     var best_source: int = -1
@@ -262,6 +292,14 @@ func _try_use_tool() -> void:
 
     # Convert to tile coordinates (global to local first)
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
+
+    # Check roof layer first - break roofs before ground tiles
+    if world.roof_layer:
+        var roof_source_id = world.roof_layer.get_cell_source_id(tile_pos)
+        if roof_source_id >= 0:
+            world.request_hit_roof.rpc_id(1, tile_pos, tool_id, peer_id)
+            return
+
     var source_id = world.get_cell_source_id(tile_pos)
 
     # Request tile hit through world (host-authoritative)
@@ -279,6 +317,7 @@ func _try_place_item() -> void:
 
     # Determine which tile to place based on item
     var tile_source_id: int = -1
+    var is_roof: bool = false
     match selected_item.item_id:
         "box":
             tile_source_id = 3
@@ -296,6 +335,18 @@ func _try_place_item() -> void:
             tile_source_id = 10
         "gold_wall":
             tile_source_id = 11
+        "wood_roof":
+            tile_source_id = 0
+            is_roof = true
+        "stone_roof":
+            tile_source_id = 1
+            is_roof = true
+        "iron_roof":
+            tile_source_id = 2
+            is_roof = true
+        "gold_roof":
+            tile_source_id = 3
+            is_roof = true
         _:
             return
 
@@ -310,8 +361,11 @@ func _try_place_item() -> void:
     # Convert to tile coordinates
     var tile_pos = world.local_to_map(world.to_local(mouse_pos))
 
-    # Request placement through world (host-authoritative)
-    world.request_place_tile.rpc_id(1, tile_pos, tile_source_id, selected_item.item_id, peer_id)
+    # Route to appropriate placement RPC
+    if is_roof:
+        world.request_place_roof.rpc_id(1, tile_pos, tile_source_id, selected_item.item_id, peer_id)
+    else:
+        world.request_place_tile.rpc_id(1, tile_pos, tile_source_id, selected_item.item_id, peer_id)
 
 
 func _try_pickup() -> void:

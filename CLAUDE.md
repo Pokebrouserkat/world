@@ -44,12 +44,13 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 - TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL
 - Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
 - Manages box contents (`_box_contents`) and furnace states (`_furnace_states`)
+- Manages roof layer (separate TileMapLayer "RoofLayer" at z_index=20) with `_roof_modifications`
 
 **Player** (`scripts/player.gd`):
 - WASD/Arrow movement, Shift to walk slower
 - Left-click uses selected tool (picks break rocks, axes break trees)
 - Tool tiers: plastic (10 strength) → wood (5) → stone (3) → iron (1) → gold (1)
-- Wall durability: wood (20) → stone (30) → iron (60) → gold (120); floors (10)
+- Wall/roof durability: wood (20) → stone (30) → iron (60) → gold (120); floors (10)
 - Pickup system with audio deduplication
 
 **Inventory** (`scripts/hotbar.gd`):
@@ -70,6 +71,12 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 - 9-slot storage boxes placed in world
 - Contents tracked in world's `_box_contents` by tile position
 
+**Roofs** (managed by `scripts/world.gd`, rendered on separate "RoofLayer" TileMapLayer):
+- Placeable over any tile, rendered at z_index=20 (above everything)
+- 4 tiers: wood, stone, iron, gold (durability matches wall tiers)
+- Transparency shader reveals player when standing under enclosed roof (tile + 4 cardinal neighbors)
+- Roof source IDs in RoofLayer TileSet: 0=wood, 1=stone, 2=iron, 3=gold
+
 ### Key Patterns
 - Group-based node discovery: "world", "player", "hotbar", "dropped_items", "crafting_window", "box_inventory"
 - All UI sizes derived from sprite texture dimensions
@@ -81,7 +88,7 @@ Test files are in `test/` and extend `GdUnitTestSuite`.
 
 ### Save System
 - Save file: `user://save.json` (version 1 format)
-- Saves: player position, hotbar, tile modifications, dropped items, box contents, furnace states
+- Saves: player position, hotbar, tile modifications, roof modifications, dropped items, box contents, furnace states
 - Autosaves on tile changes (debounced); only in single-player/host mode
 
 ### Display Settings

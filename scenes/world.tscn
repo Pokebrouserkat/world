@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3 uid="uid://1upm5bo81qsc"]
+[gd_scene load_steps=46 format=3 uid="uid://1upm5bo81qsc"]
 
 [ext_resource type="Script" uid="uid://oxvke4venva8" path="res://scripts/coordinate_display.gd" id="1_coords"]
 [ext_resource type="Texture2D" uid="uid://huo76fjmjhqp" path="res://graphics/grass.png" id="1_f3sb7"]
@@ -23,6 +23,10 @@
 [ext_resource type="Texture2D" path="res://graphics/woodfloor.png" id="21_woodfloor"]
 [ext_resource type="Texture2D" path="res://graphics/stonefloor.png" id="22_stonefloor"]
 [ext_resource type="Texture2D" path="res://graphics/goldwall.png" id="23_goldwall"]
+[ext_resource type="Texture2D" path="res://graphics/woodroof.png" id="24_woodroof"]
+[ext_resource type="Texture2D" path="res://graphics/stoneroof.png" id="25_stoneroof"]
+[ext_resource type="Texture2D" path="res://graphics/ironroof.png" id="26_ironroof"]
+[ext_resource type="Texture2D" path="res://graphics/goldroof.png" id="27_goldroof"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -99,6 +103,60 @@ sources/9 = SubResource("TileSetAtlasSource_woodfloor")
 sources/10 = SubResource("TileSetAtlasSource_stonefloor")
 sources/11 = SubResource("TileSetAtlasSource_goldwall")
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_woodroof"]
+texture = ExtResource("24_woodroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_stoneroof"]
+texture = ExtResource("25_stoneroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ironroof"]
+texture = ExtResource("26_ironroof")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_goldroof"]
+texture = ExtResource("27_goldroof")
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_roof"]
+sources/0 = SubResource("TileSetAtlasSource_woodroof")
+sources/1 = SubResource("TileSetAtlasSource_stoneroof")
+sources/2 = SubResource("TileSetAtlasSource_ironroof")
+sources/3 = SubResource("TileSetAtlasSource_goldroof")
+
+[sub_resource type="Shader" id="Shader_roof"]
+code = "shader_type canvas_item;
+uniform vec2 player_pos;
+uniform float reveal_radius = 24.0;
+uniform float fade_width = 16.0;
+uniform bool enabled = false;
+
+varying vec2 world_pos;
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	if (!enabled) {
+		COLOR = tex;
+	} else {
+		float dist = distance(world_pos, player_pos);
+		float alpha = smoothstep(reveal_radius, reveal_radius + fade_width, dist);
+		COLOR = vec4(tex.rgb, tex.a * alpha);
+	}
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_roof"]
+shader = SubResource("Shader_roof")
+shader_parameter/player_pos = Vector2(0, 0)
+shader_parameter/reveal_radius = 24.0
+shader_parameter/fade_width = 16.0
+shader_parameter/enabled = false
+
 [node name="Node2D" type="Node2D"]
 y_sort_enabled = true
 
@@ -115,6 +173,11 @@ y_sort_enabled = true
 tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
+
+[node name="RoofLayer" type="TileMapLayer" parent="."]
+z_index = 20
+material = SubResource("ShaderMaterial_roof")
+tile_set = SubResource("TileSet_roof")
 
 [node name="PlayerSpawner" type="Node" parent="."]
 script = ExtResource("14_spawner")

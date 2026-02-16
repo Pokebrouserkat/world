@@ -123,6 +123,26 @@ const ITEMS: Dictionary = {
         "max_stack": 99,
         "display_name": "Gold Wall"
     },
+    "wood_roof": {
+        "texture_key": "wood_roof",
+        "max_stack": 99,
+        "display_name": "Wood Roof"
+    },
+    "stone_roof": {
+        "texture_key": "stone_roof",
+        "max_stack": 99,
+        "display_name": "Stone Roof"
+    },
+    "iron_roof": {
+        "texture_key": "iron_roof",
+        "max_stack": 99,
+        "display_name": "Iron Roof"
+    },
+    "gold_roof": {
+        "texture_key": "gold_roof",
+        "max_stack": 99,
+        "display_name": "Gold Roof"
+    },
 }
 
 

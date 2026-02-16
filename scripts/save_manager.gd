@@ -36,6 +36,7 @@ func save_game() -> bool:
         "player": _serialize_player(player),
         "hotbar": _serialize_hotbar(hotbar),
         "tile_modifications": _serialize_tile_modifications(world),
+        "roof_modifications": _serialize_roof_modifications(world),
         "dropped_items": _serialize_dropped_items(world),
         "box_contents": _serialize_box_contents(world),
         "furnace_states": _serialize_furnace_states(world),
@@ -98,6 +99,7 @@ func load_game() -> bool:
     _deserialize_player(save_data.get("player", {}), player)
     _deserialize_hotbar(save_data.get("hotbar", []), hotbar)
     _deserialize_tile_modifications(save_data.get("tile_modifications", {}), world)
+    _deserialize_roof_modifications(save_data.get("roof_modifications", {}), world)
     _deserialize_dropped_items(save_data.get("dropped_items", []), world)
     _deserialize_box_contents(save_data.get("box_contents", {}), world)
     _deserialize_furnace_states(save_data.get("furnace_states", {}), world)
@@ -154,6 +156,14 @@ func _serialize_tile_modifications(world: TileMapLayer) -> Dictionary:
     for pos in world._tile_modifications:
         var key = "%d,%d" % [pos.x, pos.y]
         mods[key] = world._tile_modifications[pos]
+    return mods
+
+
+func _serialize_roof_modifications(world: TileMapLayer) -> Dictionary:
+    var mods: Dictionary = {}
+    for pos in world._roof_modifications:
+        var key = "%d,%d" % [pos.x, pos.y]
+        mods[key] = world._roof_modifications[pos]
     return mods
 
 
@@ -223,6 +233,17 @@ func _deserialize_tile_modifications(data: Dictionary, world: TileMapLayer) -> v
             world._tile_modifications[pos] = data[key]
 
     # Force tile regeneration
+    world._last_rect = Rect2i()
+
+
+func _deserialize_roof_modifications(data: Dictionary, world: TileMapLayer) -> void:
+    world._roof_modifications.clear()
+    for key in data:
+        var parts = key.split(",")
+        if parts.size() == 2:
+            var pos = Vector2i(int(parts[0]), int(parts[1]))
+            world._roof_modifications[pos] = data[key]
+    # Force tile regeneration to pick up roof tiles
     world._last_rect = Rect2i()
 
 

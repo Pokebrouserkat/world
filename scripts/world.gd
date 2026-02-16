@@ -23,6 +23,31 @@ const BOX_SLOT_COUNT: int = 9
 # Furnace state storage: Dictionary[Vector2i, {input_item, output_item, smelt_progress}]
 var _furnace_states: Dictionary = {}
 
+# === ROOF LAYER ===
+var roof_layer: TileMapLayer = null
+var _roof_modifications: Dictionary = {}  # Vector2i -> source_id (0=wood,1=stone,2=iron,3=gold)
+var _roof_health: Dictionary = {}  # Vector2i -> int
+
+const ROOF_ITEMS: Array[String] = ["wood_roof", "stone_roof", "iron_roof", "gold_roof"]
+
+const ROOF_DURABILITY = {
+    "wood_roof": 20,
+    "stone_roof": 30,
+    "iron_roof": 60,
+    "gold_roof": 120,
+}
+
+const ROOF_HIT_COLORS = {
+    0: Color(0.55, 0.35, 0.17),  # Wood roof - brown
+    1: Color(0.55, 0.55, 0.55),  # Stone roof - gray
+    2: Color(0.78, 0.78, 0.82),  # Iron roof - silver
+    3: Color(0.85, 0.7, 0.2),    # Gold roof - golden
+}
+
+const ROOF_REVEAL_TARGET: float = 24.0
+const ROOF_REVEAL_SPEED: float = 120.0  # pixels per second
+var _roof_reveal_radius: float = 0.0
+
 # Atlas source ID for each tile type
 const TILE_SOURCE = {
     TileType.GRASS: 0,
@@ -115,6 +140,9 @@ func _ready() -> void:
     _setup_tile_physics()
     _update_tiles()
 
+    # Find the roof layer sibling
+    roof_layer = get_parent().get_node_or_null("RoofLayer") as TileMapLayer
+
     # Connect to NetworkManager for late-joiner sync
     NetworkManager.player_connected.connect(_on_player_connected)
 
@@ -141,8 +169,9 @@ func _setup_tile_physics() -> void:
                 tile_data.set_collision_polygon_points(0, 0, polygon)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     _update_tiles()
+    _update_roof_shader(delta)
 
 
 func _update_tiles() -> void:
@@ -162,6 +191,9 @@ func _update_tiles() -> void:
                 else:
                     var tile_type = get_tile_type(x, y)
                     set_cell(tile_pos, TILE_SOURCE[tile_type], TILE_COORDS[tile_type])
+                # Load roof tiles for this position
+                if roof_layer and _roof_modifications.has(tile_pos):
+                    roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
                 _generated_tiles[tile_pos] = true
 
     # Unload tiles outside visible area
@@ -172,7 +204,51 @@ func _update_tiles() -> void:
 
     for tile_pos in tiles_to_remove:
         erase_cell(tile_pos)
+        if roof_layer:
+            roof_layer.erase_cell(tile_pos)
         _generated_tiles.erase(tile_pos)
+
+
+func _update_roof_shader(delta: float) -> void:
+    if not roof_layer:
+        return
+    var mat = roof_layer.material as ShaderMaterial
+    if not mat:
+        return
+
+    # Find local player
+    var players = get_tree().get_nodes_in_group("player")
+    var local_player: Node = null
+    for player in players:
+        if player.is_local_player():
+            local_player = player
+            break
+    if not local_player:
+        return
+
+    # Use visual center (sprite is drawn 16px above global_position)
+    var visual_center = local_player.global_position + Vector2(0, -16)
+    mat.set_shader_parameter("player_pos", visual_center)
+
+    # Check if player is under roof - require current tile + at least 3 of 4 cardinal neighbors
+    var player_local = roof_layer.to_local(visual_center)
+    var player_tile = roof_layer.local_to_map(player_local)
+    var under_roof = roof_layer.get_cell_source_id(player_tile) >= 0
+    if under_roof:
+        var neighbor_count: int = 0
+        for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+            if roof_layer.get_cell_source_id(player_tile + offset) >= 0:
+                neighbor_count += 1
+        under_roof = neighbor_count >= 3
+
+    # Animate reveal radius
+    if under_roof:
+        _roof_reveal_radius = move_toward(_roof_reveal_radius, ROOF_REVEAL_TARGET, ROOF_REVEAL_SPEED * delta)
+    else:
+        _roof_reveal_radius = move_toward(_roof_reveal_radius, 0.0, ROOF_REVEAL_SPEED * delta)
+
+    mat.set_shader_parameter("enabled", _roof_reveal_radius > 0.0)
+    mat.set_shader_parameter("reveal_radius", _roof_reveal_radius)
 
 
 func get_visible_tile_rect() -> Rect2i:
@@ -279,6 +355,9 @@ func _on_player_connected(peer_id: int) -> void:
         if dropped and is_instance_valid(dropped) and dropped.item:
             _rpc_spawn_dropped_item.rpc_id(peer_id, network_id, dropped.item.item_id,
                 dropped.item.quantity, dropped.global_position, 0.0)
+
+    # Send roof modifications
+    _rpc_sync_roof_modifications.rpc_id(peer_id, _roof_modifications)
 
     # Send all box contents
     for box_pos in _box_contents:
@@ -500,6 +579,69 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String
 
 
 @rpc("any_peer", "call_local", "reliable")
+func request_place_roof(tile_pos: Vector2i, roof_source_id: int, item_id: String, requester_peer_id: int) -> void:
+    if not multiplayer.is_server():
+        return
+    if not roof_layer:
+        return
+
+    # Can only place if no roof already there
+    if roof_layer.get_cell_source_id(tile_pos) >= 0:
+        return
+
+    # Place the roof and broadcast
+    _rpc_sync_roof_change.rpc(tile_pos, roof_source_id)
+    _roof_modifications[tile_pos] = roof_source_id
+    _trigger_autosave()
+
+    # Tell the requester to consume their item
+    if requester_peer_id == 1:
+        _confirm_placement_local(item_id)
+    else:
+        _rpc_confirm_placement.rpc_id(requester_peer_id, item_id)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func request_hit_roof(tile_pos: Vector2i, tool_id: String, requester_peer_id: int) -> void:
+    if not multiplayer.is_server():
+        return
+    if not roof_layer:
+        return
+
+    var source_id = roof_layer.get_cell_source_id(tile_pos)
+    if source_id < 0:
+        return
+
+    var roof_item_id = ROOF_ITEMS[source_id]
+
+    # Initialize health if not tracked
+    if not _roof_health.has(tile_pos):
+        _roof_health[tile_pos] = ROOF_DURABILITY[roof_item_id]
+
+    # Calculate damage
+    var tool_strength = _get_tool_strength(tool_id)
+    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_strength)
+
+    _roof_health[tile_pos] -= damage
+
+    # Show hit effect on roof layer
+    _rpc_show_roof_hit_effect.rpc(tile_pos, source_id)
+
+    if _roof_health[tile_pos] <= 0:
+        _break_roof(tile_pos, roof_item_id)
+        _roof_health.erase(tile_pos)
+
+
+func _break_roof(tile_pos: Vector2i, roof_item_id: String) -> void:
+    _rpc_sync_roof_change.rpc(tile_pos, -1)
+    _roof_modifications.erase(tile_pos)
+    _trigger_autosave()
+
+    var tile_world_pos = roof_layer.map_to_local(tile_pos) + Vector2(0, 16)
+    _spawn_item_by_id(roof_item_id, 1, tile_world_pos, 0.0)
+
+
+@rpc("any_peer", "call_local", "reliable")
 func request_pickup_item(network_id: int, requester_peer_id: int) -> void:
     # Host validates and processes item pickup
     if not multiplayer.is_server():
@@ -563,6 +705,30 @@ func _rpc_sync_tile_modifications(modifications: Dictionary) -> void:
     for pos in modifications:
         if _generated_tiles.has(pos):
             set_cell(pos, modifications[pos], Vector2i(0, 0))
+
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_sync_roof_change(tile_pos: Vector2i, source_id: int) -> void:
+    if not roof_layer:
+        return
+    if source_id < 0:
+        roof_layer.erase_cell(tile_pos)
+    else:
+        roof_layer.set_cell(tile_pos, source_id, Vector2i(0, 0))
+    if not multiplayer.is_server():
+        if source_id < 0:
+            _roof_modifications.erase(tile_pos)
+        else:
+            _roof_modifications[tile_pos] = source_id
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_sync_roof_modifications(modifications: Dictionary) -> void:
+    _roof_modifications = modifications
+    if roof_layer:
+        for pos in modifications:
+            if _generated_tiles.has(pos):
+                roof_layer.set_cell(pos, modifications[pos], Vector2i(0, 0))
 
 
 @rpc("authority", "call_local", "reliable")
@@ -730,6 +896,52 @@ func _create_hit_flash(local_pos: Vector2, source_id: int) -> void:
     var tween = create_tween()
     tween.tween_property(flash, "modulate:a", 0.0, 0.1)
     tween.tween_callback(flash.queue_free)
+
+
+# === ROOF HIT EFFECTS ===
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_show_roof_hit_effect(tile_pos: Vector2i, roof_source_id: int) -> void:
+    if not roof_layer:
+        return
+    var local_pos = roof_layer.map_to_local(tile_pos)
+
+    # Particles
+    var particles = CPUParticles2D.new()
+    particles.position = local_pos
+    particles.texture = _get_particle_texture()
+    particles.emitting = true
+    particles.one_shot = true
+    particles.explosiveness = 1.0
+    particles.amount = 6
+    particles.lifetime = 0.3
+    particles.direction = Vector2(0, -1)
+    particles.spread = 180.0
+    particles.initial_velocity_min = 15.0
+    particles.initial_velocity_max = 40.0
+    particles.gravity = Vector2(0, 80)
+    particles.color = ROOF_HIT_COLORS.get(roof_source_id, Color(0.5, 0.5, 0.5))
+    particles.z_index = 21  # Above roof layer (z=20)
+    roof_layer.add_child(particles)
+    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
+
+    # Flash
+    var flash = Sprite2D.new()
+    var atlas_source = roof_layer.tile_set.get_source(roof_source_id) as TileSetAtlasSource
+    if atlas_source:
+        flash.texture = atlas_source.texture
+        var mat = ShaderMaterial.new()
+        mat.shader = _get_flash_shader()
+        flash.material = mat
+    else:
+        flash.texture = _get_flash_texture()
+    flash.position = local_pos
+    flash.modulate = Color(1, 1, 1, 0.5)
+    flash.z_index = 21
+    roof_layer.add_child(flash)
+    var flash_tween = create_tween()
+    flash_tween.tween_property(flash, "modulate:a", 0.0, 0.1)
+    flash_tween.tween_callback(flash.queue_free)
 
 
 # === BOX INVENTORY SYNC ===
