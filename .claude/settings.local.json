@@ -6,7 +6,6 @@
       "mcp__godot-mcp__list_projects",
       "mcp__godot-mcp__run_project",
       "mcp__godot-mcp__get_debug_output",
-      "Bash(python3:*)",
       "Bash(ls:*)",
       "Bash(\"/Users/svgnet/Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot\" --path /Users/svgnet/Documents/src/pulled/world --headless --quit)",
       "Bash(\"/Applications/Godot.app/Contents/MacOS/Godot\" --path /Users/svgnet/Documents/src/pulled/world --headless --quit)",
