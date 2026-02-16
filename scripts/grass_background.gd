@@ -1,5 +1,8 @@
 extends Sprite2D
 
+var _grass_texture: Texture2D = preload("res://graphics/grass.png")
+var _cave_texture: Texture2D = preload("res://graphics/stonefloor.png")
+
 func _ready() -> void:
     centered = false
 
@@ -17,3 +20,12 @@ func _process(_delta: float) -> void:
         snappedf(camera_pos.x - 32, 16),
         snappedf(camera_pos.y - 32, 16)
     )
+
+    # Swap texture based on mine state
+    var world = get_tree().get_first_node_in_group("world")
+    if world and world.player_in_mine:
+        if texture != _cave_texture:
+            texture = _cave_texture
+    else:
+        if texture != _grass_texture:
+            texture = _grass_texture

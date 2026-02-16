@@ -10,8 +10,10 @@ This is "Valley" - a 2D top-down survival/crafting game built with Godot 4.5 usi
 
 Open in Godot Editor or run headless validation:
 ```bash
-~/"Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot" --path . --headless --quit
+/Applications/Godot.app/Contents/MacOS/Godot --path . --headless --quit
 ```
+
+Use the Godot MCP to run and test the project interactively. Call `run_project` to launch, `get_debug_output` to check for errors/warnings, and `stop_project` when done.
 
 ## Testing
 
@@ -19,6 +21,11 @@ Uses GdUnit4 testing framework. Run tests with:
 ```bash
 ./test.sh                    # Run all tests
 ./test.sh -tc PlayerTest     # Run specific test suite
+```
+
+Note: `test.sh` has a hardcoded Godot path that may be wrong. Use the Godot binary directly if it fails:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --path . --headless -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a test/ --ignoreHeadlessMode
 ```
 
 Test files are in `test/` and extend `GdUnitTestSuite`.

@@ -47,6 +47,10 @@ func save_game() -> bool:
         "dropped_items": _serialize_dropped_items(world),
         "box_contents": _serialize_box_contents(world),
         "furnace_states": _serialize_furnace_states(world),
+        "mine_states": _serialize_mine_states(world),
+        "player_in_mine": world.player_in_mine,
+        "current_mine_entrance": "%d,%d" % [world._current_mine_entrance.x, world._current_mine_entrance.y],
+        "overworld_return_pos": {"x": world._overworld_return_pos.x, "y": world._overworld_return_pos.y},
     }
 
     var json_string = JSON.stringify(save_data, "\t")
@@ -110,6 +114,7 @@ func load_game() -> bool:
     _deserialize_dropped_items(save_data.get("dropped_items", []), world)
     _deserialize_box_contents(save_data.get("box_contents", {}), world)
     _deserialize_furnace_states(save_data.get("furnace_states", {}), world)
+    _deserialize_mine_states(save_data, world)
 
     _last_save_time = save_data.get("timestamp", 0)
     game_loaded.emit()
@@ -334,3 +339,37 @@ func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
                 var output_data = furnace_data["output_item"]
                 state.output_item = Item.create(output_data["id"], output_data["quantity"])
             world._furnace_states[pos] = state
+
+
+func _serialize_mine_states(world: TileMapLayer) -> Dictionary:
+    var mines: Dictionary = {}
+    for key in world._known_mines:
+        var mine = world._known_mines[key]
+        mines[key] = {
+            "origin": {"x": mine["origin"].x, "y": mine["origin"].y},
+            "exit_pos": {"x": mine["exit_pos"].x, "y": mine["exit_pos"].y}
+        }
+    return mines
+
+
+func _deserialize_mine_states(save_data: Dictionary, world: TileMapLayer) -> void:
+    # Mine states
+    world._known_mines.clear()
+    var mine_data = save_data.get("mine_states", {})
+    for key in mine_data:
+        var mine = mine_data[key]
+        world._known_mines[key] = {
+            "origin": Vector2i(int(mine["origin"]["x"]), int(mine["origin"]["y"])),
+            "exit_pos": Vector2i(int(mine["exit_pos"]["x"]), int(mine["exit_pos"]["y"]))
+        }
+
+    # Mine player state
+    world.player_in_mine = save_data.get("player_in_mine", false)
+
+    var entrance_str: String = save_data.get("current_mine_entrance", "0,0")
+    var parts = entrance_str.split(",")
+    if parts.size() == 2:
+        world._current_mine_entrance = Vector2i(int(parts[0]), int(parts[1]))
+
+    var return_pos = save_data.get("overworld_return_pos", {"x": 0, "y": 0})
+    world._overworld_return_pos = Vector2(return_pos["x"], return_pos["y"])

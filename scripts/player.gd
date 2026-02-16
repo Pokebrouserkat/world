@@ -180,6 +180,10 @@ func _handle_right_click() -> void:
     # Check if it's a furnace tile (source_id 6)
     elif source_id == 6 and furnace_inventory:
         furnace_inventory.open_for_furnace(tile_pos)
+    elif source_id == 12:  # Mine entrance
+        world.enter_mine(tile_pos)
+    elif source_id == 13:  # Mine exit
+        world.exit_mine()
 
 
 func _handle_interact() -> void:
@@ -248,6 +252,12 @@ func _handle_interact() -> void:
         return
     if best_source == 6 and furnace_inventory:
         furnace_inventory.open_for_furnace(best_tile)
+        return
+    if best_source == 12:  # Mine entrance
+        world.enter_mine(best_tile)
+        return
+    if best_source == 13:  # Mine exit
+        world.exit_mine()
         return
 
     # Breakable tiles: use equipped tool if correct

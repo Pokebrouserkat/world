@@ -12,7 +12,12 @@
       "Bash(\"/Applications/Godot.app/Contents/MacOS/Godot\" --path /Users/svgnet/Documents/src/pulled/world --headless --quit)",
       "Bash(\"/Applications/Godot.app/Contents/MacOS/Godot\" --path /Users/svgnet/Documents/src/pulled/world --headless --import)",
       "Bash(./test.sh:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(.venv/bin/python3:*)",
+      "Bash(~/\"Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot\" --path . --headless --quit)",
+      "Bash(mdfind:*)",
+      "Bash(/Applications/Godot.app/Contents/MacOS/Godot:*)",
+      "mcp__godot-mcp__stop_project"
     ]
   }
 }

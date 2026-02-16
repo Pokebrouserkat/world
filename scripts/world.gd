@@ -13,7 +13,11 @@ enum TileType {
     IRON_WALL = 8,
     WOOD_FLOOR = 9,
     STONE_FLOOR = 10,
-    GOLD_WALL = 11
+    GOLD_WALL = 11,
+    MINE_ENTRANCE = 12,
+    MINE_EXIT = 13,
+    CAVE_WALL = 14,
+    GOLD_ORE = 15
 }
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
@@ -72,7 +76,11 @@ const TILE_SOURCE = {
     TileType.IRON_WALL: 8,
     TileType.WOOD_FLOOR: 9,
     TileType.STONE_FLOOR: 10,
-    TileType.GOLD_WALL: 11
+    TileType.GOLD_WALL: 11,
+    TileType.MINE_ENTRANCE: 12,
+    TileType.MINE_EXIT: 13,
+    TileType.CAVE_WALL: 14,
+    TileType.GOLD_ORE: 15
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -88,7 +96,11 @@ const TILE_COORDS = {
     TileType.IRON_WALL: Vector2i(0, 0),
     TileType.WOOD_FLOOR: Vector2i(0, 0),
     TileType.STONE_FLOOR: Vector2i(0, 0),
-    TileType.GOLD_WALL: Vector2i(0, 0)
+    TileType.GOLD_WALL: Vector2i(0, 0),
+    TileType.MINE_ENTRANCE: Vector2i(0, 0),
+    TileType.MINE_EXIT: Vector2i(0, 0),
+    TileType.CAVE_WALL: Vector2i(0, 0),
+    TileType.GOLD_ORE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -99,6 +111,16 @@ const TREE_SPAWN_CHANCE: int = 40
 
 # Chance for iron ore to spawn (1 in N tiles) - very rare
 const IRON_ORE_SPAWN_CHANCE: int = 2000
+
+# Chance for mine entrance to spawn (1 in N tiles)
+const MINE_ENTRANCE_SPAWN_CHANCE: int = 5000
+
+# Chance for gold ore to spawn in overworld (1 in N tiles)
+const GOLD_ORE_SPAWN_CHANCE: int = 8000
+
+# Cave tile durabilities
+const CAVE_WALL_DURABILITY: int = 10
+const GOLD_ORE_DURABILITY: int = 20
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
@@ -126,6 +148,12 @@ var _dropped_items: Dictionary = {}  # network_id -> DroppedItem
 var _next_item_id: int = 0
 
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
+
+# === MINE STATE ===
+var _known_mines: Dictionary = {}  # "x,y" -> {origin: Vector2i, exit_pos: Vector2i}
+var player_in_mine: bool = false
+var _current_mine_entrance: Vector2i = Vector2i.ZERO
+var _overworld_return_pos: Vector2 = Vector2.ZERO
 
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
@@ -223,6 +251,8 @@ func _update_tiles() -> void:
 func _update_roof_shader(delta: float) -> void:
     if not roof_layer:
         return
+    if player_in_mine:
+        return
     var mat = roof_layer.material as ShaderMaterial
     if not mat:
         return
@@ -279,14 +309,26 @@ func get_visible_tile_rect() -> Rect2i:
 
 
 func get_tile_type(x: int, y: int) -> TileType:
+    # Mine region fallback - ungenerated mine area tiles are cave wall
+    if y < -50_000:
+        return TileType.CAVE_WALL
+
     # Use position-based hash for deterministic generation
     var hash_value = _position_hash(x, y)
     if hash_value % ROCK_SPAWN_CHANCE == 0:
         return TileType.ROCK
+    # Check for mine entrance (rare, use offset hash)
+    var mine_hash = _position_hash(x + 3000, y + 3000)
+    if mine_hash % MINE_ENTRANCE_SPAWN_CHANCE == 0:
+        return TileType.MINE_ENTRANCE
     # Check for iron ore (rare, use offset hash)
     var iron_hash = _position_hash(x + 2000, y + 2000)
     if iron_hash % IRON_ORE_SPAWN_CHANCE == 0:
         return TileType.IRON_ORE
+    # Check for gold ore (very rare, use offset hash)
+    var gold_hash = _position_hash(x + 4000, y + 4000)
+    if gold_hash % GOLD_ORE_SPAWN_CHANCE == 0:
+        return TileType.GOLD_ORE
     # Check for tree on grass tiles (use offset hash)
     var tree_hash = _position_hash(x + 1000, y + 1000)
     if tree_hash % TREE_SPAWN_CHANCE == 0:
@@ -350,6 +392,79 @@ func clear_furnace_state(furnace_pos: Vector2i) -> Dictionary:
     return state
 
 
+# === MINE ENTER/EXIT ===
+
+func enter_mine(entrance_pos: Vector2i) -> void:
+    # Block in multiplayer
+    if NetworkManager.is_connected_to_game():
+        return
+
+    var key = "%d,%d" % [entrance_pos.x, entrance_pos.y]
+    if not _known_mines.has(key):
+        # Generate the mine and write tiles into _tile_modifications
+        var result = MineGenerator.generate(entrance_pos)
+        var mine_tiles: Dictionary = result["tiles"]
+        for pos in mine_tiles:
+            _tile_modifications[pos] = mine_tiles[pos]
+        _known_mines[key] = {
+            "origin": MineGenerator.get_mine_origin(entrance_pos),
+            "exit_pos": result["exit_pos"]
+        }
+
+    # Save overworld position
+    var player = _get_local_player()
+    if not player:
+        return
+    _overworld_return_pos = player.global_position
+
+    # Set mine state
+    player_in_mine = true
+    _current_mine_entrance = entrance_pos
+
+    # Force tile reload
+    _generated_tiles.clear()
+    _last_rect = Rect2i()
+
+    # Teleport player to mine exit (spawn point)
+    var exit_pos: Vector2i = _known_mines[key]["exit_pos"]
+    player.global_position = map_to_local(exit_pos) + Vector2(0, 16)
+
+    # Snap camera to new position immediately (skip smoothing)
+    var camera = player.get_node_or_null("Camera2D") as Camera2D
+    if camera:
+        camera.reset_smoothing()
+
+    _trigger_autosave()
+
+
+func exit_mine() -> void:
+    player_in_mine = false
+
+    # Force tile reload
+    _generated_tiles.clear()
+    _last_rect = Rect2i()
+
+    # Teleport player back to overworld, offset slightly so they don't re-trigger entrance
+    var player = _get_local_player()
+    if player:
+        player.global_position = _overworld_return_pos + Vector2(0, 20)
+
+        # Snap camera to new position immediately (skip smoothing)
+        var camera = player.get_node_or_null("Camera2D") as Camera2D
+        if camera:
+            camera.reset_smoothing()
+
+    _trigger_autosave()
+
+
+func _get_local_player() -> CharacterBody2D:
+    var players = get_tree().get_nodes_in_group("player")
+    for player in players:
+        if player.is_local_player():
+            return player
+    return null
+
+
 # === MULTIPLAYER RPC METHODS ===
 
 func _on_player_connected(peer_id: int) -> void:
@@ -391,6 +506,10 @@ func _get_tile_durability(tile_type: String) -> int:
             return GOLD_WALL_DURABILITY
         "iron_ore":
             return IRON_ORE_DURABILITY
+        "cave_wall":
+            return CAVE_WALL_DURABILITY
+        "gold_ore":
+            return GOLD_ORE_DURABILITY
         _:
             return BASE_TILE_DURABILITY
 
@@ -421,6 +540,10 @@ func _get_tile_type_string(source_id: int) -> String:
         9: return "wood_floor"
         10: return "stone_floor"
         11: return "gold_wall"
+        12: return "mine_entrance"
+        13: return "mine_exit"
+        14: return "cave_wall"
+        15: return "gold_ore"
         _: return "grass"
 
 
@@ -443,6 +566,12 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
             return is_pick
         9, 10:  # Floors - any tool works
             return true
+        12, 13:  # Mine entrance/exit - unbreakable
+            return false
+        14:  # Cave wall - requires pick
+            return is_pick
+        15:  # Gold ore - requires pick
+            return is_pick
         _:
             return false
 
@@ -455,6 +584,10 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
     var source_id = get_cell_source_id(tile_pos)
     if source_id <= 0:  # Grass or invalid
+        return
+
+    # Mine entrance and exit are unbreakable
+    if source_id == 12 or source_id == 13:
         return
 
     # Check if correct tool is used
@@ -488,9 +621,12 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
 
 func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
-    # Replace with grass and broadcast to all
-    _rpc_sync_tile_change.rpc(tile_pos, 0)
-    _tile_modifications[tile_pos] = 0
+    # Replace with appropriate base tile: stone floor in mines, grass in overworld
+    var replace_source: int = 0
+    if tile_type == "cave_wall" or tile_type == "gold_ore":
+        replace_source = TILE_SOURCE[TileType.STONE_FLOOR]
+    _rpc_sync_tile_change.rpc(tile_pos, replace_source)
+    _tile_modifications[tile_pos] = replace_source
     _trigger_autosave()
 
     # Spawn appropriate items (add 16 to Y to compensate for sprite's -16 Y offset)
@@ -553,6 +689,16 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         _spawn_item_by_id("stone_floor", 1, tile_world_pos, 0.0)
     elif tile_type == "gold_wall":
         _spawn_item_by_id("gold_wall", 1, tile_world_pos, 0.0)
+    elif tile_type == "cave_wall":
+        var rock_count = randi_range(1, 3)
+        for i in range(rock_count):
+            var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+            _spawn_item_by_id("rock", 1, tile_world_pos + spread_offset, 0.3)
+    elif tile_type == "gold_ore":
+        var gold_count = randi_range(3, 6)
+        for i in range(gold_count):
+            var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+            _spawn_item_by_id("gold_ore", 1, tile_world_pos + spread_offset, 0.3)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -831,6 +977,8 @@ func _get_hit_color(source_id: int) -> Color:
         9: return Color(0.55, 0.35, 0.17)  # Wood floor - brown
         10: return Color(0.55, 0.55, 0.55) # Stone floor - gray
         11: return Color(0.85, 0.7, 0.2)   # Gold wall - golden
+        14: return Color(0.3, 0.28, 0.25)  # Cave wall - dark
+        15: return Color(0.85, 0.7, 0.2)   # Gold ore - golden
         _: return Color(0.5, 0.5, 0.5)
 
 
