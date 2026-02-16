@@ -217,7 +217,7 @@ func _handle_interact() -> void:
 			for dy in range(-2, 3):
 				var tile_pos = player_tile + Vector2i(dx, dy)
 				var roof_source = world.roof_layer.get_cell_source_id(tile_pos)
-				if roof_source < 0:
+				if roof_source < 0 or roof_source == world.MINE_DARKNESS_SOURCE:
 					continue
 				var tile_world_pos = world.to_global(world.map_to_local(tile_pos))
 				var dist = visual_center.distance_to(tile_world_pos)

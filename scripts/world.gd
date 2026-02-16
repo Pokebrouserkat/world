@@ -239,8 +239,11 @@ func _update_tiles() -> void:
 					var tile_type = get_tile_type(x, y)
 					set_cell(tile_pos, TILE_SOURCE[tile_type], TILE_COORDS[tile_type])
 				# Load roof tiles for this position
-				if roof_layer and _roof_modifications.has(tile_pos):
-					roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
+				if roof_layer:
+					if _roof_modifications.has(tile_pos):
+						roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
+					elif player_in_mine:
+						roof_layer.set_cell(tile_pos, MINE_DARKNESS_SOURCE, Vector2i(0, 0))
 				_generated_tiles[tile_pos] = true
 
 	# Unload tiles outside visible area
@@ -432,13 +435,6 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 	player_in_mine = true
 	_current_mine_entrance = entrance_pos
 
-	# Place darkness overlay on roof layer
-	var origin: Vector2i = _known_mines[key]["origin"]
-	for x in range(MineGenerator.MINE_SIZE):
-		for y in range(MineGenerator.MINE_SIZE):
-			var pos = origin + Vector2i(x, y)
-			_roof_modifications[pos] = MINE_DARKNESS_SOURCE
-
 	# Force tile reload
 	_generated_tiles.clear()
 	_last_rect = Rect2i()
@@ -456,15 +452,6 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 
 
 func exit_mine() -> void:
-	# Clear darkness overlay
-	if _current_mine_entrance:
-		var key = "%d,%d" % [_current_mine_entrance.x, _current_mine_entrance.y]
-		if _known_mines.has(key):
-			var origin: Vector2i = _known_mines[key]["origin"]
-			for x in range(MineGenerator.MINE_SIZE):
-				for y in range(MineGenerator.MINE_SIZE):
-					_roof_modifications.erase(origin + Vector2i(x, y))
-
 	player_in_mine = false
 
 	# Force tile reload
@@ -474,7 +461,7 @@ func exit_mine() -> void:
 	# Teleport player back to overworld, offset slightly so they don't re-trigger entrance
 	var player = _get_local_player()
 	if player:
-		player.global_position = _overworld_return_pos + Vector2(0, 20)
+		player.global_position = _overworld_return_pos
 
 		# Snap camera to new position immediately (skip smoothing)
 		var camera = player.get_node_or_null("Camera2D") as Camera2D
