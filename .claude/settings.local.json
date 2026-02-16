@@ -16,7 +16,9 @@
       "Bash(~/\"Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app/Contents/MacOS/Godot\" --path . --headless --quit)",
       "Bash(mdfind:*)",
       "Bash(/Applications/Godot.app/Contents/MacOS/Godot:*)",
-      "mcp__godot-mcp__stop_project"
+      "mcp__godot-mcp__stop_project",
+      "Bash(python3:*)",
+      "Bash(pip install:*)"
     ]
   }
 }
