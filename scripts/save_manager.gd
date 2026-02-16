@@ -216,6 +216,9 @@ func _deserialize_player(data: Dictionary, player: CharacterBody2D) -> void:
         return
     if data.has("position"):
         player.global_position = Vector2(data["position"]["x"], data["position"]["y"])
+        var camera = player.get_node_or_null("Camera2D") as Camera2D
+        if camera:
+            camera.reset_smoothing()
 
 
 func _deserialize_hotbar(data: Array, hotbar: Node) -> void:

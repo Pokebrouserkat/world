@@ -52,6 +52,8 @@ func _ready() -> void:
 	var camera = $Camera2D
 	if camera:
 		camera.enabled = is_local_player()
+		if is_local_player():
+			camera.reset_smoothing()
 
 	# Find world tilemap for rock breaking (sibling node)
 	world = get_parent().get_node_or_null("TileMapLayer") as TileMapLayer
