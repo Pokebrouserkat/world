@@ -256,12 +256,8 @@ func _end_drag(pos: Vector2) -> void:
             # Move to hotbar
             _transfer_box_to_hotbar(drag_from_slot, target_hotbar_slot)
         elif target_box_slot >= 0 and target_box_slot != drag_from_slot:
-            # Swap within box - use RPC for both slots
-            var contents = world.get_box_contents(current_box_pos)
-            var temp = contents[target_box_slot] if target_box_slot < contents.size() else null
-            var from_item = contents[drag_from_slot] if drag_from_slot < contents.size() else null
-            _request_set_box_slot(current_box_pos, target_box_slot, from_item)
-            _request_set_box_slot(current_box_pos, drag_from_slot, temp)
+            # Atomic swap within box - single RPC prevents race conditions
+            world.request_swap_box_slots.rpc_id(1, current_box_pos, drag_from_slot, target_box_slot)
         item_icons[drag_from_slot].modulate.a = 1.0
 
     _update_item_icons()

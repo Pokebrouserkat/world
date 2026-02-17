@@ -106,6 +106,11 @@ func _input(event: InputEvent) -> void:
         elif key == KEY_Q:
             _drop_selected_item()
 
+    # Cancel any active drag if a window opens
+    if window_open and dragging:
+        _cancel_drag()
+        return
+
     # Handle drag and drop - window scripts handle their own drags when open
     if not window_open:
         if event is InputEventMouseButton:
@@ -117,6 +122,17 @@ func _input(event: InputEvent) -> void:
 
         if event is InputEventMouseMotion and dragging:
             _update_drag(event.global_position)
+
+
+func _cancel_drag() -> void:
+    if not dragging:
+        return
+    item_icons[drag_from_slot].modulate.a = 1.0
+    if drag_preview:
+        drag_preview.queue_free()
+        drag_preview = null
+    dragging = false
+    drag_from_slot = -1
 
 
 func _start_drag(pos: Vector2) -> void:
@@ -275,7 +291,26 @@ func can_add_item(item: Item) -> bool:
 
 
 func add_item(item: Item) -> bool:
-    # First try to stack with existing items
+    # Check total available capacity before mutating any stacks
+    var remaining = item.quantity
+    if item.stackable:
+        for i in range(slot_count):
+            if items[i] != null and items[i].can_stack_with(item):
+                var space = items[i].max_stack - items[i].quantity
+                remaining -= space
+                if remaining <= 0:
+                    break
+    if remaining > 0:
+        # Still need an empty slot for the overflow
+        var has_empty := false
+        for i in range(slot_count):
+            if items[i] == null:
+                has_empty = true
+                break
+        if not has_empty:
+            return false
+
+    # Safe to mutate — we know everything fits
     if item.stackable:
         for i in range(slot_count):
             if items[i] != null and items[i].can_stack_with(item):
@@ -285,7 +320,7 @@ func add_item(item: Item) -> bool:
                     return true
                 item.quantity = leftover
 
-    # Find first empty slot for remaining quantity
+    # Place remainder in first empty slot
     for i in range(slot_count):
         if items[i] == null:
             items[i] = item

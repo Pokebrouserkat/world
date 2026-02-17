@@ -14,11 +14,6 @@ var world: TileMapLayer = null
 var sprite_size: float = 16.0
 var pickup_range: float = 32.0
 
-# Tool hit counts for different tiers
-const PLASTIC_TOOL_HITS: int = 10
-const WOOD_TOOL_HITS: int = 5
-const STONE_TOOL_HITS: int = 3
-
 var _pending_left_click: bool = false
 var _pending_right_click: bool = false
 var box_inventory: Node = null
@@ -359,15 +354,6 @@ func set_night_light_energy(darkness: float) -> void:
 
 func _is_tool(item_id: String) -> bool:
 	return item_id in ["axe", "wood_pick", "wood_axe", "stone_pick", "stone_axe", "iron_pick", "iron_axe", "gold_pick", "gold_axe"]
-
-
-func _get_tool_hits(item_name: String) -> int:
-	if item_name.begins_with("Stone"):
-		return STONE_TOOL_HITS
-	elif item_name.begins_with("Wood"):
-		return WOOD_TOOL_HITS
-	else:
-		return PLASTIC_TOOL_HITS
 
 
 func _try_use_tool() -> void:

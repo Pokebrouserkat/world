@@ -285,12 +285,21 @@ func _on_teleport_pressed() -> void:
     var x = x_text.to_int()
     var y = y_text.to_int()
     var player = _get_local_player()
-    if player:
-        # Center on tile (tile * 16 + 8 for center)
-        player.global_position = Vector2(x * 16.0 + 8.0, y * 16.0 + 8.0)
-        status_label.text = "Teleported to %d, %d" % [x, y]
-    else:
+    if not player:
         status_label.text = "No player found"
+        return
+
+    # Exit mine first if player is in one, to avoid corrupting mine state
+    var world = get_tree().get_first_node_in_group("world")
+    if world and world.player_in_mine:
+        close()
+        world.exit_mine()
+        # Reopen after mine exit so teleport can proceed
+        open()
+
+    # Center on tile (tile * 16 + 8 for center)
+    player.global_position = Vector2(x * 16.0 + 8.0, y * 16.0 + 8.0)
+    status_label.text = "Teleported to %d, %d" % [x, y]
 
 
 func _on_leave_mine_pressed() -> void:

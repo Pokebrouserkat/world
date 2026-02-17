@@ -38,7 +38,7 @@
 [ext_resource type="Texture2D" uid="uid://e3103n345ays" path="res://graphics/campfire.png" id="35_campfire"]
 [ext_resource type="Script" uid="uid://da6vqw5d87muo" path="res://scripts/time_display.gd" id="36_time_display"]
 [ext_resource type="Texture2D" uid="uid://nf0buyk65544" path="res://graphics/fallback.png" id="37_fallback"]
-[ext_resource type="Script" path="res://scripts/sandbox_menu.gd" id="38_sandbox_menu"]
+[ext_resource type="Script" uid="uid://uemnlgkdf7fc" path="res://scripts/sandbox_menu.gd" id="38_sandbox_menu"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -244,6 +244,7 @@ y_sort_enabled = true
 tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
+tile_buffer = null
 
 [node name="CritterLayer" type="Node2D" parent="." unique_id=104124892]
 y_sort_enabled = true
@@ -296,7 +297,7 @@ grow_horizontal = 0
 texture_normal = ExtResource("16_pause_icon")
 stretch_mode = 0
 
-[node name="SandboxMenu" type="Control" parent="CanvasLayer"]
+[node name="SandboxMenu" type="Control" parent="CanvasLayer" unique_id=157969756]
 process_mode = 3
 layout_mode = 3
 anchors_preset = 15
@@ -307,7 +308,7 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("38_sandbox_menu")
 
-[node name="SandboxButton" type="TextureButton" parent="CanvasLayer"]
+[node name="SandboxButton" type="TextureButton" parent="CanvasLayer" unique_id=689154437]
 texture_filter = 1
 anchors_preset = 1
 anchor_left = 1.0

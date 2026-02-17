@@ -31,7 +31,7 @@ static func get_mine_origin(entrance_pos: Vector2i, level: int = 1) -> Vector2i:
 static func generate(entrance_pos: Vector2i, level: int = 1) -> Dictionary:
 	var origin = get_mine_origin(entrance_pos, level)
 	var rng = RandomNumberGenerator.new()
-	rng.seed = _entrance_hash(entrance_pos)
+	rng.seed = _entrance_hash(entrance_pos) + level * 7919
 
 	var tiles: Dictionary = {}  # Vector2i -> source_id
 

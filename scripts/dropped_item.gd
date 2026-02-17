@@ -42,6 +42,9 @@ func enable_pickup_after_delay(delay: float = 0.5) -> void:
 func _process(delta: float) -> void:
     if not being_picked_up or pickup_target == null:
         return
+    if not is_instance_valid(pickup_target):
+        queue_free()
+        return
 
     pickup_progress += delta
     var t = clampf(pickup_progress / PICKUP_DURATION, 0.0, 1.0)

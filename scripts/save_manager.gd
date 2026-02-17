@@ -56,13 +56,27 @@ func save_game() -> bool:
     }
 
     var json_string = JSON.stringify(save_data, "\t")
-    var file = FileAccess.open(_get_save_path(), FileAccess.WRITE)
+    var save_path = _get_save_path()
+    var tmp_path = save_path + ".tmp"
+    var bak_path = save_path + ".bak"
+
+    # Write to temp file first to avoid truncating the real save on crash
+    var file = FileAccess.open(tmp_path, FileAccess.WRITE)
     if not file:
         save_failed.emit("Could not open save file")
         return false
-
     file.store_string(json_string)
     file.close()
+
+    # Keep a backup of the previous save
+    var dir = DirAccess.open("user://")
+    if dir:
+        var save_filename = save_path.get_file()
+        var bak_filename = bak_path.get_file()
+        var tmp_filename = tmp_path.get_file()
+        if dir.file_exists(save_filename):
+            dir.rename(save_filename, bak_filename)
+        dir.rename(tmp_filename, save_filename)
 
     _last_save_time = save_data["timestamp"]
     game_saved.emit()
@@ -96,8 +110,7 @@ func load_game() -> bool:
     # Check for incompatible old save format (pre-item-registry)
     var hotbar_data = save_data.get("hotbar", [])
     if hotbar_data.size() > 0 and hotbar_data[0].has("name"):
-        load_failed.emit("Incompatible save format, deleting")
-        DirAccess.remove_absolute(ProjectSettings.globalize_path(_get_save_path()))
+        load_failed.emit("Incompatible save format")
         return false
 
     var world = _get_world()
@@ -182,7 +195,7 @@ func _serialize_roof_modifications(world: TileMapLayer) -> Dictionary:
     return mods
 
 
-func _serialize_dropped_items(world: TileMapLayer) -> Array:
+func _serialize_dropped_items(_world: TileMapLayer) -> Array:
     var items: Array = []
     var dropped_nodes = get_tree().get_nodes_in_group("dropped_items")
     for node in dropped_nodes:

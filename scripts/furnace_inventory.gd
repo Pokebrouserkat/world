@@ -229,43 +229,11 @@ func _create_ui() -> void:
     panel.add_child(progress_label)
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
     if not is_open or not world:
         return
-
+    # Smelting is ticked in world.gd _tick_furnaces(); we just update the UI
     var state = world.get_furnace_state(current_furnace_pos)
-
-    # Update smelting progress if there's input and room for output
-    var smelt_output_id = _get_smelt_output(state.input_item)
-    if smelt_output_id != "":
-        var can_output = state.output_item == null or (state.output_item.item_id == smelt_output_id and state.output_item.quantity < 99)
-        if can_output:
-            # Check fuel
-            if state.get("fuel_level", 0.0) <= 0.0:
-                _try_consume_fuel(state)
-
-            if state.get("fuel_level", 0.0) > 0.0:
-                # Consume fuel proportionally
-                state.fuel_level -= delta / SMELT_TIME
-                state.smelt_progress += delta
-
-                if state.smelt_progress >= SMELT_TIME:
-                    # Smelting complete
-                    state.smelt_progress = 0.0
-                    state.input_item.quantity -= 1
-                    if state.input_item.quantity <= 0:
-                        state.input_item = null
-
-                    if state.output_item == null:
-                        state.output_item = Item.create(smelt_output_id, 1)
-                    else:
-                        state.output_item.quantity += 1
-
-                    world.set_furnace_state(current_furnace_pos, state)
-            # else: no fuel, smelting pauses (progress doesn't reset)
-    else:
-        state.smelt_progress = 0.0
-
     _update_ui(state)
 
 
