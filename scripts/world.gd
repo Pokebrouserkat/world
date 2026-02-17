@@ -24,43 +24,19 @@ enum TileType {
     CAMPFIRE = 19
 }
 
-# === TILE HEALTH BAR ===
-class TileHealthBar extends Node2D:
-    var ratio: float = 1.0
-    var bar_width: float = 12.0
-    var bar_height: float = 2.0
-
-    func _draw() -> void:
-        var bg_rect = Rect2(-bar_width / 2.0, 0, bar_width, bar_height)
-        draw_rect(bg_rect, Color(0.15, 0.15, 0.15, 0.8))
-        var fill_width = bar_width * ratio
-        if fill_width > 0:
-            var fill_rect = Rect2(-bar_width / 2.0, 0, fill_width, bar_height)
-            var color: Color
-            if ratio > 0.5:
-                color = Color(0.2, 0.8, 0.2)
-            elif ratio > 0.25:
-                color = Color(0.9, 0.8, 0.1)
-            else:
-                color = Color(0.9, 0.2, 0.1)
-            draw_rect(fill_rect, color)
-
-    func set_ratio(new_ratio: float) -> void:
-        ratio = clampf(new_ratio, 0.0, 1.0)
-        queue_redraw()
+# Tile damage system
+var _damage = TileDamageSystem.new()
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
 var _box_contents: Dictionary = {}
 const BOX_SLOT_COUNT: int = 9
 
-# Furnace state storage: Dictionary[Vector2i, {input_item, output_item, smelt_progress}]
-var _furnace_states: Dictionary = {}
+# Furnace system
+var _furnace = FurnaceSystem.new()
 
 # === ROOF LAYER ===
 var roof_layer: TileMapLayer = null
 var _roof_modifications: Dictionary = {}  # Vector2i -> source_id (0=wood,1=stone,2=iron,3=gold)
-var _roof_health: Dictionary = {}  # Vector2i -> int
-
 const ROOF_ITEMS: Array[String] = ["wood_roof", "stone_roof", "iron_roof", "gold_roof"]
 
 const ROOF_DURABILITY = {
@@ -70,12 +46,6 @@ const ROOF_DURABILITY = {
     "gold_roof": 120,
 }
 
-const ROOF_HIT_COLORS = {
-    0: Color(0.55, 0.35, 0.17),  # Wood roof - brown
-    1: Color(0.55, 0.55, 0.55),  # Stone roof - gray
-    2: Color(0.78, 0.78, 0.82),  # Iron roof - silver
-    3: Color(0.85, 0.7, 0.2),    # Gold roof - golden
-}
 
 const MINE_DARKNESS_SOURCE: int = 4  # Roof layer source ID for mine darkness overlay
 const ROOF_REVEAL_RADIUS = {
@@ -139,10 +109,6 @@ const IRON_ORE_SPAWN_CHANCE: int = 2000
 # Chance for mine entrance to spawn (1 in N tiles)
 const MINE_ENTRANCE_SPAWN_CHANCE: int = 5000
 
-# Cave tile durabilities
-const CAVE_WALL_DURABILITY: int = 10
-const GOLD_ORE_DURABILITY: int = 20
-const COAL_ORE_DURABILITY: int = 15
 
 # Seed for deterministic world generation
 const WORLD_SEED: int = 12345
@@ -159,13 +125,6 @@ var _last_rect: Rect2i
 
 # === MULTIPLAYER STATE (Host-authoritative) ===
 
-# Tile health tracking (moved from player.gd)
-var _tile_health: Dictionary = {}  # Vector2i -> int
-
-# Health bar tracking
-var _tile_health_bars: Dictionary = {}  # Vector2i -> TileHealthBar
-var _roof_health_bars: Dictionary = {}  # Vector2i -> TileHealthBar
-
 # Tile modifications for late-joiners (tiles changed from their procedural state)
 var _tile_modifications: Dictionary = {}  # Vector2i -> source_id
 
@@ -175,54 +134,54 @@ var _next_item_id: int = 0
 
 var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 
-# === MINE STATE ===
-var _known_mines: Dictionary = {}  # "x,y" -> {origin: Vector2i, exit_pos: Vector2i}
-var player_in_mine: bool = false
-var _current_mine_entrance: Vector2i = Vector2i.ZERO
-var _mine_level: int = 0  # 0 = overworld, 1+ = mine depth
-var _mine_return_stack: Array = []  # Stack of return positions (Vector2)
-
-# Mine lighting state
-var _mine_lighting_active: bool = false
-var _mine_modulate: CanvasModulate = null
-var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
-var _torch_glow_texture: GradientTexture2D = null
-var _torch_glow_material: ShaderMaterial = null
+# Mine system
+var _mine = MineSystem.new()
 var _campfire = CampfireManager.new()
-var _torch_light_texture: Texture2D = null
-var _flicker_time: float = 0.0
+
+# Proxy properties for mine state (used by SaveManager, coordinate_display, etc.)
+var player_in_mine: bool:
+    get: return _mine.player_in_mine
+    set(v): _mine.player_in_mine = v
+
+var known_mines: Dictionary:
+    get: return _mine.known_mines
+    set(v): _mine.known_mines = v
+
+var current_mine_entrance: Vector2i:
+    get: return _mine.current_mine_entrance
+    set(v): _mine.current_mine_entrance = v
+
+var mine_level: int:
+    get: return _mine.mine_level
+    set(v): _mine.mine_level = v
+
+var mine_return_stack: Array:
+    get: return _mine.mine_return_stack
+    set(v): _mine.mine_return_stack = v
 
 # Day/night cycle
-var game_time: float = 0.0
+var _day_night = DayNightCycle.new()
 const DAY_LENGTH: float = 300.0
-var _day_night_modulate: CanvasModulate = null
 
-# Hit effect textures (lazy-loaded)
-var _flash_texture: ImageTexture = null
-var _particle_texture: ImageTexture = null
-var _flash_shader: Shader = null
+var game_time: float:
+    get: return _day_night.game_time
+    set(v): _day_night.game_time = v
 
-# Tile durability constants
-const BASE_TILE_DURABILITY: int = 10
-const WOOD_WALL_DURABILITY: int = 20
-const STONE_WALL_DURABILITY: int = 30
-const IRON_WALL_DURABILITY: int = 60
-const GOLD_WALL_DURABILITY: int = 120
-const IRON_ORE_DURABILITY: int = 20
-const PLASTIC_TOOL_STRENGTH: int = 10
-const WOOD_TOOL_STRENGTH: int = 5
-const STONE_TOOL_STRENGTH: int = 3
-const IRON_TOOL_STRENGTH: int = 1
-const GOLD_TOOL_STRENGTH: int = 1
+# Hit effects system
+var _hit_effects = HitEffects.new()
 
-# Health regeneration
+# Health regeneration interval (timer period)
 const TILE_REGEN_INTERVAL: float = 2.0
-const TILE_REGEN_AMOUNT: int = 1
 
 
 func _ready() -> void:
     add_to_group("world")
+    _mine.init(self)
     _campfire.init(self)
+    _hit_effects.init(self)
+    _furnace.init(self)
+    _damage.init(self)
+    _day_night.init(self)
     _setup_tile_physics()
     _setup_tile_occlusion()
     _update_tiles()
@@ -239,12 +198,6 @@ func _ready() -> void:
     regen_timer.autostart = true
     regen_timer.timeout.connect(_on_regen_tick)
     add_child(regen_timer)
-
-    # Day/night cycle CanvasModulate
-    _day_night_modulate = CanvasModulate.new()
-    _day_night_modulate.name = "DayNightModulate"
-    _day_night_modulate.color = Color(1.0, 1.0, 1.0)
-    get_parent().add_child.call_deferred(_day_night_modulate)
 
 
 func _setup_tile_physics() -> void:
@@ -306,18 +259,14 @@ func _process(delta: float) -> void:
     _update_tiles()
     _update_roof_shader(delta)
     # Toggle mine lighting when player_in_mine state changes (handles enter/exit and save load)
-    if player_in_mine != _mine_lighting_active:
-        _apply_mine_lighting(player_in_mine)
-    # Advance day/night cycle
-    game_time += delta
-    if game_time >= DAY_LENGTH:
-        game_time -= DAY_LENGTH
-    _flicker_time += delta
-    _update_day_night_modulate()
-    _update_fire_flicker()
+    if _mine.player_in_mine != _mine.lighting_active:
+        _mine.apply_mine_lighting(_mine.player_in_mine, _day_night)
+    # Day/night cycle + fire flicker
+    _day_night.update(delta, _mine.torch_lights, _campfire, _mine.player_in_mine)
     # Tick all furnaces (background smelting regardless of UI state)
     if multiplayer.is_server():
-        _tick_furnaces(delta)
+        if _furnace.tick(delta):
+            _trigger_autosave()
 
 
 func _update_tiles() -> void:
@@ -344,9 +293,9 @@ func _update_tiles() -> void:
                 # Create light for torch and campfire tiles
                 var loaded_source = get_cell_source_id(tile_pos)
                 if loaded_source == TILE_SOURCE[TileType.TORCH]:
-                    _add_torch_light(tile_pos)
+                    _mine.add_torch_light(tile_pos)
                 elif loaded_source == TILE_SOURCE[TileType.CAMPFIRE]:
-                    _campfire.add_light(tile_pos, _get_torch_light_texture())
+                    _campfire.add_light(tile_pos, _mine.get_torch_light_texture())
                 _generated_tiles[tile_pos] = true
 
     # Unload tiles outside visible area
@@ -359,9 +308,9 @@ func _update_tiles() -> void:
         erase_cell(tile_pos)
         if roof_layer:
             roof_layer.erase_cell(tile_pos)
-        _remove_health_bar(tile_pos, false)
-        _remove_health_bar(tile_pos, true)
-        _remove_torch_light(tile_pos)
+        _damage.remove_health_bar(tile_pos, false)
+        _damage.remove_health_bar(tile_pos, true)
+        _mine.remove_torch_light(tile_pos)
         _campfire.remove_light(tile_pos)
         _generated_tiles.erase(tile_pos)
 
@@ -485,358 +434,38 @@ func clear_box_contents(box_pos: Vector2i) -> Array:
     return contents
 
 
-# Furnace state functions
-func get_furnace_state(furnace_pos: Vector2i) -> Dictionary:
-    if not _furnace_states.has(furnace_pos):
-        _furnace_states[furnace_pos] = {
-            "input_item": null,
-            "output_item": null,
-            "smelt_progress": 0.0,
-            "fuel_item": null,
-            "fuel_level": 0.0
-        }
-    return _furnace_states[furnace_pos]
+# Furnace state proxy methods (used by furnace_inventory.gd, _break_tile, etc.)
+var furnace_states: Dictionary:
+    get: return _furnace.states
+    set(v): _furnace.states = v
 
+func get_furnace_state(furnace_pos: Vector2i) -> Dictionary:
+    return _furnace.get_state(furnace_pos)
 
 func set_furnace_state(furnace_pos: Vector2i, state: Dictionary) -> void:
-    _furnace_states[furnace_pos] = state
-
+    _furnace.set_state(furnace_pos, state)
 
 func clear_furnace_state(furnace_pos: Vector2i) -> Dictionary:
-    # Returns state and removes from storage (for when furnace is broken)
-    var state: Dictionary = {"input_item": null, "output_item": null, "smelt_progress": 0.0, "fuel_item": null, "fuel_level": 0.0}
-    if _furnace_states.has(furnace_pos):
-        state = _furnace_states[furnace_pos]
-        _furnace_states.erase(furnace_pos)
-    return state
-
-
-# Smelting constants (must match furnace_inventory.gd)
-const SMELT_TIME: float = 30.0
-const SMELT_RECIPES: Dictionary = {
-    "iron_ore": "iron",
-    "gold_ore": "gold"
-}
-const FUEL_VALUES: Dictionary = {
-    "coal": 5.0,
-    "wood": 0.05
-}
-
-
-func _tick_furnaces(delta: float) -> void:
-    var any_changed := false
-    for pos in _furnace_states:
-        var state: Dictionary = _furnace_states[pos]
-        var input_item = state.get("input_item")
-        if input_item == null:
-            if state.get("smelt_progress", 0.0) != 0.0:
-                state.smelt_progress = 0.0
-            continue
-
-        var smelt_output_id: String = SMELT_RECIPES.get(input_item.item_id, "")
-        if smelt_output_id == "":
-            if state.get("smelt_progress", 0.0) != 0.0:
-                state.smelt_progress = 0.0
-            continue
-
-        var output_item = state.get("output_item")
-        var can_output = output_item == null or (output_item.item_id == smelt_output_id and output_item.quantity < 99)
-        if not can_output:
-            continue
-
-        # Try to consume fuel if empty
-        if state.get("fuel_level", 0.0) <= 0.0:
-            var fuel_item = state.get("fuel_item")
-            if fuel_item != null:
-                var fuel_value: float = FUEL_VALUES.get(fuel_item.item_id, 0.0)
-                if fuel_value > 0.0:
-                    state.fuel_level = fuel_value
-                    fuel_item.quantity -= 1
-                    if fuel_item.quantity <= 0:
-                        state.fuel_item = null
-
-        if state.get("fuel_level", 0.0) <= 0.0:
-            continue
-
-        # Consume fuel and advance progress
-        state.fuel_level -= delta / SMELT_TIME
-        state.smelt_progress += delta
-
-        if state.smelt_progress >= SMELT_TIME:
-            state.smelt_progress = 0.0
-            input_item.quantity -= 1
-            if input_item.quantity <= 0:
-                state.input_item = null
-            if output_item == null:
-                state.output_item = Item.create(smelt_output_id, 1)
-            else:
-                output_item.quantity += 1
-            any_changed = true
-
-    if any_changed:
-        _trigger_autosave()
+    return _furnace.clear_state(furnace_pos)
 
 
 # === MINE ENTER/EXIT ===
 
 func enter_mine(entrance_pos: Vector2i) -> void:
-    # Block in multiplayer
-    if NetworkManager.is_connected_to_game():
-        return
-
-    var new_level = _mine_level + 1
-
-    var key = "%d,%d" % [entrance_pos.x, entrance_pos.y]
-    if not _known_mines.has(key):
-        # Generate the mine and write tiles into _tile_modifications
-        var result = MineGenerator.generate(entrance_pos, new_level)
-        var mine_tiles: Dictionary = result["tiles"]
-        for pos in mine_tiles:
-            _tile_modifications[pos] = mine_tiles[pos]
-        _known_mines[key] = {
-            "origin": MineGenerator.get_mine_origin(entrance_pos, new_level),
-            "exit_pos": result["exit_pos"]
-        }
-
-    # Save current position to return stack
-    var player = _get_local_player()
-    if not player:
-        return
-    _mine_return_stack.push_back({"x": player.global_position.x, "y": player.global_position.y})
-
-    # Set mine state
-    _mine_level = new_level
-    player_in_mine = true
-    _current_mine_entrance = entrance_pos
-
-    # Clear health bars and torch lights before tile reload
-    _clear_all_health_bars()
-    _clear_all_torch_lights()
-
-    # Force tile reload
-    _generated_tiles.clear()
-    _last_rect = Rect2i()
-
-    # Teleport player to mine exit (spawn point)
-    var exit_pos: Vector2i = _known_mines[key]["exit_pos"]
-    player.global_position = map_to_local(exit_pos) + Vector2(0, 16)
-
-    # Snap camera to new position immediately (skip smoothing)
-    var camera = player.get_node_or_null("Camera2D") as Camera2D
-    if camera:
-        camera.reset_smoothing()
-
+    _mine.enter_mine(entrance_pos, _tile_modifications, _generated_tiles, _damage)
     _trigger_autosave()
 
 
 func exit_mine() -> void:
-    # Pop return position from stack
-    var return_pos = Vector2.ZERO
-    if _mine_return_stack.size() > 0:
-        var pos_data = _mine_return_stack.pop_back()
-        return_pos = Vector2(pos_data["x"], pos_data["y"])
-
-    _mine_level = maxi(_mine_level - 1, 0)
-    player_in_mine = _mine_level > 0
-
-    # Clear health bars and torch lights before tile reload
-    _clear_all_health_bars()
-    _clear_all_torch_lights()
-
-    # Force tile reload
-    _generated_tiles.clear()
-    _last_rect = Rect2i()
-
-    # Teleport player back to previous position
-    var player = _get_local_player()
-    if player:
-        player.global_position = return_pos
-
-        # Snap camera to new position immediately (skip smoothing)
-        var camera = player.get_node_or_null("Camera2D") as Camera2D
-        if camera:
-            camera.reset_smoothing()
-
+    _mine.exit_mine(_generated_tiles, _damage)
     _trigger_autosave()
 
 
-func _get_torch_light_texture() -> Texture2D:
-    if _torch_light_texture == null:
-        _torch_light_texture = load("res://graphics/light_radial.png")
-    return _torch_light_texture
 
 
-func _get_torch_glow_texture() -> GradientTexture2D:
-    if _torch_glow_texture == null:
-        var gradient = Gradient.new()
-        gradient.set_color(0, Color.WHITE)
-        gradient.set_color(1, Color.TRANSPARENT)
-        _torch_glow_texture = GradientTexture2D.new()
-        _torch_glow_texture.gradient = gradient
-        _torch_glow_texture.width = 256
-        _torch_glow_texture.height = 256
-        _torch_glow_texture.fill = GradientTexture2D.FILL_RADIAL
-        _torch_glow_texture.fill_from = Vector2(0.5, 0.5)
-        _torch_glow_texture.fill_to = Vector2(0.5, 0.0)
-    return _torch_glow_texture
 
 
-func _get_torch_glow_material() -> ShaderMaterial:
-    if _torch_glow_material == null:
-        var shader = Shader.new()
-        shader.code = "shader_type canvas_item;\nrender_mode unshaded, blend_add;"
-        _torch_glow_material = ShaderMaterial.new()
-        _torch_glow_material.shader = shader
-    return _torch_glow_material
 
-
-func _add_torch_light(tile_pos: Vector2i) -> void:
-    if _torch_lights.has(tile_pos):
-        return
-    var light = PointLight2D.new()
-    light.texture = _get_torch_glow_texture()
-    light.texture_scale = 0.8
-    light.energy = 0.8
-    light.color = Color(1.0, 0.8, 0.4)
-    light.shadow_enabled = true
-    light.shadow_color = Color(0.0, 0.0, 0.0, 0.7)
-    light.shadow_filter = Light2D.SHADOW_FILTER_PCF5
-    light.shadow_filter_smooth = 1.0
-    light.position = map_to_local(tile_pos)
-    add_child(light)
-
-    # Unshaded additive glow sprite bypasses CanvasModulate and the
-    # GL Compatibility per-canvas-item light limit (16), so every torch
-    # is always visibly lit regardless of how many are on screen.
-    var glow = Sprite2D.new()
-    glow.texture = _get_torch_glow_texture()
-    glow.material = _get_torch_glow_material()
-    glow.scale = Vector2(0.6, 0.6)
-    glow.modulate = Color(1.0, 0.7, 0.3, 0.3)
-    light.add_child(glow)
-
-    _torch_lights[tile_pos] = light
-
-
-func _remove_torch_light(tile_pos: Vector2i) -> void:
-    if _torch_lights.has(tile_pos):
-        var light = _torch_lights[tile_pos]
-        if is_instance_valid(light):
-            light.queue_free()
-        _torch_lights.erase(tile_pos)
-
-
-func _update_day_night_modulate() -> void:
-    if not _day_night_modulate or not _day_night_modulate.visible:
-        return
-    var time_ratio = game_time / DAY_LENGTH
-    var day_color = Color(1.0, 1.0, 1.0)
-    var night_color = Color(0.15, 0.15, 0.35)
-    var color: Color
-    var darkness: float  # 0.0 = full day, 1.0 = full night
-    if time_ratio < 0.15:
-        # Dawn: dark blue -> white
-        var t = time_ratio / 0.15
-        color = night_color.lerp(day_color, t)
-        darkness = 1.0 - t
-    elif time_ratio < 0.55:
-        # Day: white
-        color = day_color
-        darkness = 0.0
-    elif time_ratio < 0.70:
-        # Dusk: white -> dark blue
-        var t = (time_ratio - 0.55) / 0.15
-        color = day_color.lerp(night_color, t)
-        darkness = t
-    else:
-        # Night: dark blue
-        color = night_color
-        darkness = 1.0
-    _day_night_modulate.color = color
-    # In mines, lights should always be at full brightness regardless of surface time
-    if player_in_mine:
-        darkness = 1.0
-    # Scale light energy so they don't blow out during daytime
-    # Flicker intensity scales with darkness so it's most visible at night
-    var ft = _flicker_time
-    var torch_flicker = (
-        sin(ft * 9.5 + 2.0) * 0.12 +
-        sin(ft * 15.3 + 1.0) * 0.08 +
-        sin(ft * 21.0 + 3.0) * 0.06
-    )
-    var torch_base = lerpf(0.3, 0.8, darkness)
-    var energy_flicker_strength = 0.1 + darkness * 0.15
-    for light in _torch_lights.values():
-        if is_instance_valid(light):
-            light.energy = torch_base + torch_flicker * energy_flicker_strength
-    _campfire.update_energy(darkness, ft)
-    # Update player night light
-    _update_player_night_light(darkness)
-
-
-func _update_fire_flicker() -> void:
-    var t = _flicker_time
-    _campfire.update_flicker(t)
-    # Torches: subtler flicker, offset phase so they don't sync with campfires
-    var torch_flicker = (
-        sin(t * 9.5 + 2.0) * 0.12 +
-        sin(t * 15.3 + 1.0) * 0.08 +
-        sin(t * 21.0 + 3.0) * 0.06
-    )
-    for light in _torch_lights.values():
-        if is_instance_valid(light):
-            var base_scale = 0.8
-            light.texture_scale = base_scale + torch_flicker * 0.04
-            light.color = Color(1.0, 0.8 + torch_flicker * 0.06, 0.4 + torch_flicker * 0.04)
-
-
-func _clear_all_torch_lights() -> void:
-    for tile_pos in _torch_lights:
-        var light = _torch_lights[tile_pos]
-        if is_instance_valid(light):
-            light.queue_free()
-    _torch_lights.clear()
-
-
-func _apply_mine_lighting(enabled: bool) -> void:
-    _mine_lighting_active = enabled
-    occlusion_enabled = enabled
-
-    if enabled:
-        if not _mine_modulate:
-            _mine_modulate = CanvasModulate.new()
-            _mine_modulate.name = "MineModulate"
-            _mine_modulate.color = Color(0.05, 0.05, 0.08)
-            get_parent().add_child(_mine_modulate)
-        _mine_modulate.visible = true
-        if _day_night_modulate:
-            _day_night_modulate.visible = false
-    else:
-        if _mine_modulate:
-            _mine_modulate.visible = false
-        if _day_night_modulate:
-            _day_night_modulate.visible = true
-
-    # Toggle player's mine light
-    var player = _get_local_player()
-    if player and player.has_method("set_mine_light"):
-        player.set_mine_light(enabled)
-
-
-func _update_player_night_light(darkness: float) -> void:
-    if player_in_mine:
-        return  # Mine light handles cave illumination
-    var player = _get_local_player()
-    if player and player.has_method("set_night_light_energy"):
-        player.set_night_light_energy(darkness)
-
-
-func _get_local_player() -> CharacterBody2D:
-    var players = get_tree().get_nodes_in_group("player")
-    for player in players:
-        if player.is_local_player():
-            return player
-    return null
 
 
 # === MULTIPLAYER RPC METHODS ===
@@ -868,98 +497,6 @@ func _on_player_connected(peer_id: int) -> void:
                 _rpc_sync_box_slot.rpc_id(peer_id, box_pos, slot, item.item_id, item.quantity)
 
 
-func _get_tile_durability(tile_type: String) -> int:
-    match tile_type:
-        "wood_wall":
-            return WOOD_WALL_DURABILITY
-        "stone_wall":
-            return STONE_WALL_DURABILITY
-        "iron_wall":
-            return IRON_WALL_DURABILITY
-        "gold_wall":
-            return GOLD_WALL_DURABILITY
-        "iron_ore":
-            return IRON_ORE_DURABILITY
-        "cave_wall":
-            return CAVE_WALL_DURABILITY
-        "gold_ore":
-            return GOLD_ORE_DURABILITY
-        "coal_ore":
-            return COAL_ORE_DURABILITY
-        _:
-            return BASE_TILE_DURABILITY
-
-
-func _get_tool_strength(tool_id: String) -> int:
-    if tool_id.begins_with("gold_"):
-        return GOLD_TOOL_STRENGTH
-    elif tool_id.begins_with("iron_"):
-        return IRON_TOOL_STRENGTH
-    elif tool_id.begins_with("stone_"):
-        return STONE_TOOL_STRENGTH
-    elif tool_id.begins_with("wood_"):
-        return WOOD_TOOL_STRENGTH
-    else:
-        return PLASTIC_TOOL_STRENGTH
-
-
-func _get_tile_type_string(source_id: int) -> String:
-    match source_id:
-        1: return "rock"
-        2: return "tree"
-        3: return "box"
-        4: return "wood_wall"
-        5: return "stone_wall"
-        6: return "furnace"
-        7: return "iron_ore"
-        8: return "iron_wall"
-        9: return "wood_floor"
-        10: return "stone_floor"
-        11: return "gold_wall"
-        12: return "mine_entrance"
-        13: return "mine_exit"
-        14: return "cave_wall"
-        15: return "gold_ore"
-        16: return "cave_floor"
-        17: return "torch"
-        18: return "coal_ore"
-        19: return "campfire"
-        _: return "grass"
-
-
-func _is_correct_tool(tool_id: String, source_id: int) -> bool:
-    var is_pick = tool_id in ["wood_pick", "stone_pick", "iron_pick", "gold_pick"]
-    var is_axe = tool_id in ["axe", "wood_axe", "stone_axe", "iron_axe", "gold_axe"]
-
-    match source_id:
-        1:  # Rock - requires pick
-            return is_pick
-        2:  # Tree - requires axe
-            return is_axe
-        3:  # Box - any tool works
-            return true
-        4, 5, 8, 11:  # Walls - any tool works
-            return true
-        6:  # Furnace - requires any pick
-            return is_pick
-        7:  # Iron ore - requires pick
-            return is_pick
-        9, 10:  # Floors - any tool works
-            return true
-        12:  # Mine entrance - breakable in sandbox with any tool
-            return GameMode.is_sandbox()
-        13, 14, 16:  # Mine exit/cave wall/cave floor - unbreakable
-            return false
-        15:  # Gold ore - requires pick
-            return is_pick
-        17:  # Torch - any tool works
-            return true
-        18:  # Coal ore - requires pick
-            return is_pick
-        19:  # Campfire - any tool works
-            return true
-        _:
-            return false
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -979,10 +516,10 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
         return
 
     # Check if correct tool is used
-    if not _is_correct_tool(tool_id, source_id):
+    if not _damage.is_correct_tool(tool_id, source_id):
         return
 
-    var tile_type = _get_tile_type_string(source_id)
+    var tile_type = _damage.get_tile_type_string(source_id)
 
     # Box, furnace, torch, campfire, and mine entrance are instant break
     if source_id in [3, 6, 12, 17, 19]:
@@ -990,26 +527,18 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
         _break_tile(tile_pos, tile_type)
         return
 
-    # Initialize health if not tracked
-    if not _tile_health.has(tile_pos):
-        _tile_health[tile_pos] = _get_tile_durability(tile_type)
-
-    # Calculate damage
-    var tool_strength = _get_tool_strength(tool_id)
-    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_strength)
-
-    _tile_health[tile_pos] -= damage
+    # Calculate and apply damage
+    var damage = _damage.calculate_damage(tool_id)
+    var remaining = _damage.apply_tile_damage(tile_pos, tile_type, damage)
 
     # Show hit effect to all players
     _rpc_show_hit_effect.rpc(tile_pos, source_id)
 
-    if _tile_health[tile_pos] <= 0:
+    if remaining <= 0:
         _rpc_update_tile_health_bar.rpc(tile_pos, 0.0, false)
         _break_tile(tile_pos, tile_type)
-        _tile_health.erase(tile_pos)
     else:
-        var max_hp = _get_tile_durability(tile_type)
-        var ratio = float(_tile_health[tile_pos]) / float(max_hp)
+        var ratio = _damage.get_tile_health_ratio(tile_pos, tile_type)
         _rpc_update_tile_health_bar.rpc(tile_pos, ratio, false)
 
 
@@ -1115,7 +644,7 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
     elif tile_type == "mine_entrance":
         _spawn_item_by_id("mine_spawner", 1, tile_world_pos, 0.0)
     elif tile_type == "torch":
-        _remove_torch_light(tile_pos)
+        _mine.remove_torch_light(tile_pos)
         _spawn_item_by_id("torch", 1, tile_world_pos, 0.0)
     elif tile_type == "campfire":
         _campfire.remove_light(tile_pos)
@@ -1214,26 +743,18 @@ func request_hit_roof(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
     var roof_item_id = ROOF_ITEMS[source_id]
 
-    # Initialize health if not tracked
-    if not _roof_health.has(tile_pos):
-        _roof_health[tile_pos] = ROOF_DURABILITY[roof_item_id]
-
-    # Calculate damage
-    var tool_strength = _get_tool_strength(tool_id)
-    var damage = ceili(float(BASE_TILE_DURABILITY) / tool_strength)
-
-    _roof_health[tile_pos] -= damage
+    # Calculate and apply damage
+    var damage = _damage.calculate_damage(tool_id)
+    var remaining = _damage.apply_roof_damage(tile_pos, roof_item_id, damage)
 
     # Show hit effect on roof layer
     _rpc_show_roof_hit_effect.rpc(tile_pos, source_id)
 
-    if _roof_health[tile_pos] <= 0:
+    if remaining <= 0:
         _rpc_update_tile_health_bar.rpc(tile_pos, 0.0, true)
         _break_roof(tile_pos, roof_item_id)
-        _roof_health.erase(tile_pos)
     else:
-        var max_hp = ROOF_DURABILITY[roof_item_id]
-        var ratio = float(_roof_health[tile_pos]) / float(max_hp)
+        var ratio = _damage.get_roof_health_ratio(tile_pos, roof_item_id)
         _rpc_update_tile_health_bar.rpc(tile_pos, ratio, true)
 
 
@@ -1301,12 +822,12 @@ func _rpc_sync_tile_change(tile_pos: Vector2i, source_id: int) -> void:
     set_cell(tile_pos, source_id, Vector2i(0, 0))
     # Manage torch lights on tile changes
     if source_id == TILE_SOURCE[TileType.TORCH]:
-        _add_torch_light(tile_pos)
+        _mine.add_torch_light(tile_pos)
     else:
-        _remove_torch_light(tile_pos)
+        _mine.remove_torch_light(tile_pos)
     # Manage campfire lights on tile changes
     if source_id == TILE_SOURCE[TileType.CAMPFIRE]:
-        _campfire.add_light(tile_pos, _get_torch_light_texture())
+        _campfire.add_light(tile_pos, _mine.get_torch_light_texture())
     else:
         _campfire.remove_light(tile_pos)
     if not multiplayer.is_server():
@@ -1415,153 +936,12 @@ func _confirm_pickup_local(item: Item) -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _rpc_show_hit_effect(tile_pos: Vector2i, source_id: int) -> void:
-    var local_pos = map_to_local(tile_pos)
-    # Adjust position for tree's texture_origin offset (drawn 12px higher)
-    if source_id == 2:
-        local_pos.y -= 12
-    _create_hit_particles(local_pos, source_id)
-    _create_hit_flash(local_pos, source_id)
+    _hit_effects.show_tile_hit(tile_pos, source_id)
 
-
-func _get_hit_color(source_id: int) -> Color:
-    match source_id:
-        1: return Color(0.6, 0.6, 0.6)    # Rock - gray
-        2: return Color(0.35, 0.55, 0.2)   # Tree - green-brown
-        4: return Color(0.6, 0.4, 0.2)     # Wood wall - light brown
-        5: return Color(0.5, 0.5, 0.5)     # Stone wall - gray
-        6: return Color(0.3, 0.3, 0.3)     # Furnace - dark gray
-        7: return Color(0.7, 0.5, 0.3)     # Iron ore - brownish
-        8: return Color(0.7, 0.7, 0.7)     # Iron wall - light gray
-        9: return Color(0.55, 0.35, 0.17)  # Wood floor - brown
-        10: return Color(0.55, 0.55, 0.55) # Stone floor - gray
-        11: return Color(0.85, 0.7, 0.2)   # Gold wall - golden
-        14: return Color(0.3, 0.28, 0.25)  # Cave wall - dark
-        15: return Color(0.85, 0.7, 0.2)   # Gold ore - golden
-        17: return Color(0.8, 0.5, 0.2)    # Torch - orange
-        18: return Color(0.15, 0.15, 0.15) # Coal ore - dark
-        19: return Color(0.8, 0.4, 0.1)    # Campfire - orange
-        _: return Color(0.5, 0.5, 0.5)
-
-
-func _get_particle_texture() -> ImageTexture:
-    if _particle_texture == null:
-        var img = Image.create(2, 2, false, Image.FORMAT_RGBA8)
-        img.fill(Color.WHITE)
-        _particle_texture = ImageTexture.create_from_image(img)
-    return _particle_texture
-
-
-func _get_flash_texture() -> ImageTexture:
-    if _flash_texture == null:
-        var ts = tile_set.tile_size
-        var img = Image.create(ts.x, ts.y, false, Image.FORMAT_RGBA8)
-        img.fill(Color.WHITE)
-        _flash_texture = ImageTexture.create_from_image(img)
-    return _flash_texture
-
-
-func _create_hit_particles(local_pos: Vector2, source_id: int) -> void:
-    var particles = CPUParticles2D.new()
-    particles.position = local_pos
-    particles.texture = _get_particle_texture()
-    particles.emitting = true
-    particles.one_shot = true
-    particles.explosiveness = 1.0
-    particles.amount = 6
-    particles.lifetime = 0.3
-    particles.direction = Vector2(0, -1)
-    particles.spread = 180.0
-    particles.initial_velocity_min = 15.0
-    particles.initial_velocity_max = 40.0
-    particles.gravity = Vector2(0, 80)
-    particles.color = _get_hit_color(source_id)
-    # Floors render below player
-    if source_id == 9 or source_id == 10:
-        particles.z_index = -1
-    else:
-        particles.z_index = 10
-    add_child(particles)
-
-    # Auto-cleanup after particles finish
-    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
-
-
-func _get_flash_shader() -> Shader:
-    if _flash_shader == null:
-        _flash_shader = Shader.new()
-        _flash_shader.code = "shader_type canvas_item;\nvoid fragment() { COLOR = vec4(1.0, 1.0, 1.0, texture(TEXTURE, UV).a * COLOR.a); }"
-    return _flash_shader
-
-
-func _create_hit_flash(local_pos: Vector2, source_id: int) -> void:
-    var flash = Sprite2D.new()
-    # Use the tile's own texture so the flash matches its shape
-    var atlas_source = tile_set.get_source(source_id) as TileSetAtlasSource
-    if atlas_source:
-        flash.texture = atlas_source.texture
-        var mat = ShaderMaterial.new()
-        mat.shader = _get_flash_shader()
-        flash.material = mat
-    else:
-        flash.texture = _get_flash_texture()
-    flash.position = local_pos
-    flash.modulate = Color(1, 1, 1, 0.5)
-    # Floors render below player
-    if source_id == 9 or source_id == 10:
-        flash.z_index = -1
-    else:
-        flash.z_index = 10
-    add_child(flash)
-
-    var tween = create_tween()
-    tween.tween_property(flash, "modulate:a", 0.0, 0.1)
-    tween.tween_callback(flash.queue_free)
-
-
-# === ROOF HIT EFFECTS ===
 
 @rpc("authority", "call_local", "reliable")
 func _rpc_show_roof_hit_effect(tile_pos: Vector2i, roof_source_id: int) -> void:
-    if not roof_layer:
-        return
-    var local_pos = roof_layer.map_to_local(tile_pos)
-
-    # Particles
-    var particles = CPUParticles2D.new()
-    particles.position = local_pos
-    particles.texture = _get_particle_texture()
-    particles.emitting = true
-    particles.one_shot = true
-    particles.explosiveness = 1.0
-    particles.amount = 6
-    particles.lifetime = 0.3
-    particles.direction = Vector2(0, -1)
-    particles.spread = 180.0
-    particles.initial_velocity_min = 15.0
-    particles.initial_velocity_max = 40.0
-    particles.gravity = Vector2(0, 80)
-    particles.color = ROOF_HIT_COLORS.get(roof_source_id, Color(0.5, 0.5, 0.5))
-    particles.z_index = 21  # Above roof layer (z=20)
-    roof_layer.add_child(particles)
-    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
-
-    # Flash
-    var flash = Sprite2D.new()
-    var atlas_source = roof_layer.tile_set.get_source(roof_source_id) as TileSetAtlasSource
-    if atlas_source:
-        flash.texture = atlas_source.texture
-        var mat = ShaderMaterial.new()
-        mat.shader = _get_flash_shader()
-        flash.material = mat
-    else:
-        flash.texture = _get_flash_texture()
-    flash.position = local_pos
-    flash.modulate = Color(1, 1, 1, 0.5)
-    flash.z_index = 21
-    roof_layer.add_child(flash)
-    var flash_tween = create_tween()
-    flash_tween.tween_property(flash, "modulate:a", 0.0, 0.1)
-    flash_tween.tween_callback(flash.queue_free)
+    _hit_effects.show_roof_hit(tile_pos, roof_source_id, roof_layer)
 
 
 # === BOX INVENTORY SYNC ===
@@ -1631,64 +1011,12 @@ func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantity:
         box_inventory._update_item_icons()
 
 
-# === TILE HEALTH BARS ===
-
-func _show_health_bar(tile_pos: Vector2i, ratio: float, is_roof: bool) -> void:
-    var bars = _roof_health_bars if is_roof else _tile_health_bars
-    if ratio >= 1.0 or ratio <= 0.0:
-        _remove_health_bar(tile_pos, is_roof)
-        return
-
-    if bars.has(tile_pos):
-        var bar: TileHealthBar = bars[tile_pos]
-        if is_instance_valid(bar):
-            bar.set_ratio(ratio)
-            return
-
-    var bar = TileHealthBar.new()
-    bar.set_ratio(ratio)
-    if is_roof:
-        if roof_layer:
-            bar.position = roof_layer.map_to_local(tile_pos) + Vector2(0, 10)
-            bar.z_index = 21
-            roof_layer.add_child(bar)
-        else:
-            return
-    else:
-        bar.position = map_to_local(tile_pos) + Vector2(0, 10)
-        bar.z_index = 10
-        add_child(bar)
-    bars[tile_pos] = bar
-
-
-func _remove_health_bar(tile_pos: Vector2i, is_roof: bool) -> void:
-    var bars = _roof_health_bars if is_roof else _tile_health_bars
-    if bars.has(tile_pos):
-        var bar = bars[tile_pos]
-        if is_instance_valid(bar):
-            bar.queue_free()
-        bars.erase(tile_pos)
-
-
-func _clear_all_health_bars() -> void:
-    for tile_pos in _tile_health_bars:
-        var bar = _tile_health_bars[tile_pos]
-        if is_instance_valid(bar):
-            bar.queue_free()
-    _tile_health_bars.clear()
-    for tile_pos in _roof_health_bars:
-        var bar = _roof_health_bars[tile_pos]
-        if is_instance_valid(bar):
-            bar.queue_free()
-    _roof_health_bars.clear()
-
-
 @rpc("authority", "call_local", "reliable")
 func _rpc_update_tile_health_bar(tile_pos: Vector2i, health_ratio: float, is_roof: bool) -> void:
     if health_ratio >= 1.0 or health_ratio <= 0.0:
-        _remove_health_bar(tile_pos, is_roof)
+        _damage.remove_health_bar(tile_pos, is_roof)
     else:
-        _show_health_bar(tile_pos, health_ratio, is_roof)
+        _damage.show_health_bar(tile_pos, health_ratio, is_roof, roof_layer)
 
 
 func _on_regen_tick() -> void:
@@ -1697,26 +1025,26 @@ func _on_regen_tick() -> void:
 
     # Regenerate ground tile health
     var tiles_to_remove: Array[Vector2i] = []
-    for tile_pos in _tile_health:
+    for tile_pos in _damage.tile_health:
         var source_id = get_cell_source_id(tile_pos)
         if source_id <= 0:
             tiles_to_remove.append(tile_pos)
             continue
-        var tile_type = _get_tile_type_string(source_id)
-        var max_hp = _get_tile_durability(tile_type)
-        _tile_health[tile_pos] = mini(_tile_health[tile_pos] + TILE_REGEN_AMOUNT, max_hp)
-        if _tile_health[tile_pos] >= max_hp:
+        var tile_type = _damage.get_tile_type_string(source_id)
+        var max_hp = _damage.get_tile_durability(tile_type)
+        _damage.tile_health[tile_pos] = mini(_damage.tile_health[tile_pos] + _damage.TILE_REGEN_AMOUNT, max_hp)
+        if _damage.tile_health[tile_pos] >= max_hp:
             tiles_to_remove.append(tile_pos)
             _rpc_update_tile_health_bar.rpc(tile_pos, 1.0, false)
         else:
-            var ratio = float(_tile_health[tile_pos]) / float(max_hp)
+            var ratio = float(_damage.tile_health[tile_pos]) / float(max_hp)
             _rpc_update_tile_health_bar.rpc(tile_pos, ratio, false)
     for tile_pos in tiles_to_remove:
-        _tile_health.erase(tile_pos)
+        _damage.tile_health.erase(tile_pos)
 
     # Regenerate roof health
     var roofs_to_remove: Array[Vector2i] = []
-    for tile_pos in _roof_health:
+    for tile_pos in _damage.roof_health:
         if not roof_layer:
             break
         var source_id = roof_layer.get_cell_source_id(tile_pos)
@@ -1725,15 +1053,15 @@ func _on_regen_tick() -> void:
             continue
         var roof_item_id = ROOF_ITEMS[source_id]
         var max_hp = ROOF_DURABILITY[roof_item_id]
-        _roof_health[tile_pos] = mini(_roof_health[tile_pos] + TILE_REGEN_AMOUNT, max_hp)
-        if _roof_health[tile_pos] >= max_hp:
+        _damage.roof_health[tile_pos] = mini(_damage.roof_health[tile_pos] + _damage.TILE_REGEN_AMOUNT, max_hp)
+        if _damage.roof_health[tile_pos] >= max_hp:
             roofs_to_remove.append(tile_pos)
             _rpc_update_tile_health_bar.rpc(tile_pos, 1.0, true)
         else:
-            var ratio = float(_roof_health[tile_pos]) / float(max_hp)
+            var ratio = float(_damage.roof_health[tile_pos]) / float(max_hp)
             _rpc_update_tile_health_bar.rpc(tile_pos, ratio, true)
     for tile_pos in roofs_to_remove:
-        _roof_health.erase(tile_pos)
+        _damage.roof_health.erase(tile_pos)
 
 
 # === AUTOSAVE ===

@@ -9,7 +9,7 @@ func _process(_delta: float) -> void:
         if player.is_local_player():
             var world = get_tree().get_first_node_in_group("world")
             if world and world.player_in_mine:
-                text = "Mine Level %d" % world._mine_level
+                text = "Mine Level %d" % world.mine_level
                 return
             var pos = player.global_position
             var tile_x = floori(pos.x / TILE_SIZE)

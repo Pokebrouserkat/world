@@ -49,9 +49,9 @@ func save_game() -> bool:
         "furnace_states": _serialize_furnace_states(world),
         "mine_states": _serialize_mine_states(world),
         "player_in_mine": world.player_in_mine,
-        "current_mine_entrance": "%d,%d" % [world._current_mine_entrance.x, world._current_mine_entrance.y],
-        "mine_level": world._mine_level,
-        "mine_return_stack": world._mine_return_stack.duplicate(),
+        "current_mine_entrance": "%d,%d" % [world.current_mine_entrance.x, world.current_mine_entrance.y],
+        "mine_level": world.mine_level,
+        "mine_return_stack": world.mine_return_stack.duplicate(),
         "game_time": world.game_time,
     }
 
@@ -316,9 +316,9 @@ func _deserialize_box_contents(data: Dictionary, world: TileMapLayer) -> void:
 
 func _serialize_furnace_states(world: TileMapLayer) -> Dictionary:
     var furnaces: Dictionary = {}
-    for pos in world._furnace_states:
+    for pos in world.furnace_states:
         var key = "%d,%d" % [pos.x, pos.y]
-        var state = world._furnace_states[pos]
+        var state = world.furnace_states[pos]
         var furnace_data: Dictionary = {
             "smelt_progress": state.smelt_progress,
             "fuel_level": state.get("fuel_level", 0.0)
@@ -344,7 +344,7 @@ func _serialize_furnace_states(world: TileMapLayer) -> Dictionary:
 
 func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
     # Clear existing furnace states
-    world._furnace_states.clear()
+    world.furnace_states.clear()
 
     # Load saved states
     for key in data:
@@ -368,13 +368,13 @@ func _deserialize_furnace_states(data: Dictionary, world: TileMapLayer) -> void:
             if furnace_data.has("fuel_item"):
                 var fuel_data = furnace_data["fuel_item"]
                 state.fuel_item = Item.create(fuel_data["id"], fuel_data["quantity"])
-            world._furnace_states[pos] = state
+            world.furnace_states[pos] = state
 
 
 func _serialize_mine_states(world: TileMapLayer) -> Dictionary:
     var mines: Dictionary = {}
-    for key in world._known_mines:
-        var mine = world._known_mines[key]
+    for key in world.known_mines:
+        var mine = world.known_mines[key]
         mines[key] = {
             "origin": {"x": mine["origin"].x, "y": mine["origin"].y},
             "exit_pos": {"x": mine["exit_pos"].x, "y": mine["exit_pos"].y}
@@ -384,11 +384,11 @@ func _serialize_mine_states(world: TileMapLayer) -> Dictionary:
 
 func _deserialize_mine_states(save_data: Dictionary, world: TileMapLayer) -> void:
     # Mine states
-    world._known_mines.clear()
+    world.known_mines.clear()
     var mine_data = save_data.get("mine_states", {})
     for key in mine_data:
         var mine = mine_data[key]
-        world._known_mines[key] = {
+        world.known_mines[key] = {
             "origin": Vector2i(int(mine["origin"]["x"]), int(mine["origin"]["y"])),
             "exit_pos": Vector2i(int(mine["exit_pos"]["x"]), int(mine["exit_pos"]["y"]))
         }
@@ -399,15 +399,15 @@ func _deserialize_mine_states(save_data: Dictionary, world: TileMapLayer) -> voi
     var entrance_str: String = save_data.get("current_mine_entrance", "0,0")
     var parts = entrance_str.split(",")
     if parts.size() == 2:
-        world._current_mine_entrance = Vector2i(int(parts[0]), int(parts[1]))
+        world.current_mine_entrance = Vector2i(int(parts[0]), int(parts[1]))
 
-    world._mine_level = int(save_data.get("mine_level", 1 if world.player_in_mine else 0))
+    world.mine_level = int(save_data.get("mine_level", 1 if world.player_in_mine else 0))
     var stack_data = save_data.get("mine_return_stack", [])
-    world._mine_return_stack.clear()
+    world.mine_return_stack.clear()
     if stack_data.size() > 0:
         for entry in stack_data:
-            world._mine_return_stack.push_back({"x": float(entry["x"]), "y": float(entry["y"])})
+            world.mine_return_stack.push_back({"x": float(entry["x"]), "y": float(entry["y"])})
     elif world.player_in_mine:
         # Backward compat: old saves with overworld_return_pos
         var return_pos = save_data.get("overworld_return_pos", {"x": 0, "y": 0})
-        world._mine_return_stack.push_back({"x": float(return_pos["x"]), "y": float(return_pos["y"])})
+        world.mine_return_stack.push_back({"x": float(return_pos["x"]), "y": float(return_pos["y"])})
