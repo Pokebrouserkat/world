@@ -207,7 +207,7 @@ var _mine_lighting_active: bool = false
 var _mine_modulate: CanvasModulate = null
 var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
 var _campfire = CampfireManager.new()
-var _torch_light_texture: GradientTexture2D = null
+var _torch_light_texture: Texture2D = null
 var _flicker_time: float = 0.0
 
 # Day/night cycle
@@ -601,18 +601,9 @@ func exit_mine() -> void:
     _trigger_autosave()
 
 
-func _get_torch_light_texture() -> GradientTexture2D:
+func _get_torch_light_texture() -> Texture2D:
     if _torch_light_texture == null:
-        var gradient = Gradient.new()
-        gradient.set_color(0, Color.WHITE)
-        gradient.set_color(1, Color.TRANSPARENT)
-        _torch_light_texture = GradientTexture2D.new()
-        _torch_light_texture.gradient = gradient
-        _torch_light_texture.width = 256
-        _torch_light_texture.height = 256
-        _torch_light_texture.fill = GradientTexture2D.FILL_RADIAL
-        _torch_light_texture.fill_from = Vector2(0.5, 0.5)
-        _torch_light_texture.fill_to = Vector2(0.5, 0.0)
+        _torch_light_texture = load("res://graphics/light_radial.png")
     return _torch_light_texture
 
 
@@ -621,7 +612,7 @@ func _add_torch_light(tile_pos: Vector2i) -> void:
         return
     var light = PointLight2D.new()
     light.texture = _get_torch_light_texture()
-    light.texture_scale = 0.8
+    light.texture_scale = 0.25
     light.energy = 0.8
     light.color = Color(1.0, 0.8, 0.4)
     light.shadow_enabled = true

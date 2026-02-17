@@ -10,12 +10,12 @@ func init(world: TileMapLayer) -> void:
     _world = world
 
 
-func add_light(tile_pos: Vector2i, light_texture: GradientTexture2D) -> void:
+func add_light(tile_pos: Vector2i, light_texture: Texture2D) -> void:
     if _lights.has(tile_pos):
         return
     var light = PointLight2D.new()
     light.texture = light_texture
-    light.texture_scale = 0.6
+    light.texture_scale = 0.35
     light.energy = 1.0
     light.color = Color(1.0, 0.7, 0.3)
     light.shadow_enabled = true
@@ -53,7 +53,7 @@ func update_flicker(flicker_time: float) -> void:
         if is_instance_valid(light):
             var t = flicker_time + _offsets.get(tile_pos, 0.0)
             var flicker = _flicker(t)
-            light.texture_scale = 0.6 + flicker * 0.06
+            light.texture_scale = 0.35 + flicker * 0.02
             light.color = Color(1.0, 0.7 + flicker * 0.08, 0.3 + flicker * 0.05)
 
 
