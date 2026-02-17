@@ -208,6 +208,7 @@ var _mine_modulate: CanvasModulate = null
 var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
 var _campfire_lights: Dictionary = {}  # Vector2i -> PointLight2D
 var _torch_light_texture: GradientTexture2D = null
+var _flicker_time: float = 0.0
 
 # Day/night cycle
 var game_time: float = 0.0
@@ -328,7 +329,9 @@ func _process(delta: float) -> void:
     game_time += delta
     if game_time >= DAY_LENGTH:
         game_time -= DAY_LENGTH
+    _flicker_time += delta
     _update_day_night_modulate()
+    _update_fire_flicker()
 
 
 func _update_tiles() -> void:
@@ -690,14 +693,57 @@ func _update_day_night_modulate() -> void:
         darkness = 1.0
     _day_night_modulate.color = color
     # Scale light energy so they don't blow out during daytime
-    var torch_energy = lerpf(0.1, 0.8, darkness)
-    var campfire_energy = lerpf(0.15, 1.0, darkness)
+    # Flicker intensity scales with darkness so it's most visible at night
+    var ft = _flicker_time
+    var flicker = (
+        sin(ft * 8.0) * 0.15 +
+        sin(ft * 13.7) * 0.10 +
+        sin(ft * 23.1) * 0.08 +
+        sin(ft * 3.3) * 0.05
+    )
+    var torch_flicker = (
+        sin(ft * 9.5 + 2.0) * 0.12 +
+        sin(ft * 15.3 + 1.0) * 0.08 +
+        sin(ft * 21.0 + 3.0) * 0.06
+    )
+    var campfire_base = lerpf(0.15, 1.0, darkness)
+    var torch_base = lerpf(0.1, 0.8, darkness)
+    var energy_flicker_strength = darkness * 0.25
     for light in _torch_lights.values():
         if is_instance_valid(light):
-            light.energy = torch_energy
+            light.energy = torch_base + torch_flicker * energy_flicker_strength
     for light in _campfire_lights.values():
         if is_instance_valid(light):
-            light.energy = campfire_energy
+            light.energy = campfire_base + flicker * energy_flicker_strength
+
+
+func _update_fire_flicker() -> void:
+    var t = _flicker_time
+    # Layered sine waves for organic fire flicker (different frequencies)
+    var flicker = (
+        sin(t * 8.0) * 0.15 +
+        sin(t * 13.7) * 0.10 +
+        sin(t * 23.1) * 0.08 +
+        sin(t * 3.3) * 0.05
+    )
+    # Campfire: larger, warmer, more energetic flicker
+    for light in _campfire_lights.values():
+        if is_instance_valid(light):
+            var base_scale = 0.6
+            light.texture_scale = base_scale + flicker * 0.06
+            # Shift color warmth: base (1.0, 0.7, 0.3), flicker the green/blue
+            light.color = Color(1.0, 0.7 + flicker * 0.08, 0.3 + flicker * 0.05)
+    # Torches: subtler flicker, offset phase so they don't sync with campfires
+    var torch_flicker = (
+        sin(t * 9.5 + 2.0) * 0.12 +
+        sin(t * 15.3 + 1.0) * 0.08 +
+        sin(t * 21.0 + 3.0) * 0.06
+    )
+    for light in _torch_lights.values():
+        if is_instance_valid(light):
+            var base_scale = 0.8
+            light.texture_scale = base_scale + torch_flicker * 0.04
+            light.color = Color(1.0, 0.8 + torch_flicker * 0.06, 0.4 + torch_flicker * 0.04)
 
 
 func _apply_mine_lighting(enabled: bool) -> void:
