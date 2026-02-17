@@ -41,5 +41,11 @@ func _on_sandbox_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/world.tscn")
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_W and event.meta_pressed:
+			get_tree().quit()
+
+
 func _on_quit_pressed() -> void:
 	get_tree().quit()
