@@ -106,7 +106,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 	# Handle clicks while paused (buttons don't receive GUI input properly when paused)
-	if is_open and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if is_open and event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 		var mouse_pos = event.global_position
 		if resume_button.get_global_rect().has_point(mouse_pos):
 			_on_resume_pressed()

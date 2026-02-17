@@ -18,7 +18,9 @@
       "Bash(/Applications/Godot.app/Contents/MacOS/Godot:*)",
       "mcp__godot-mcp__stop_project",
       "Bash(python3:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

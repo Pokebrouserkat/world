@@ -130,11 +130,9 @@ func _process(_delta: float) -> void:
 			set_process(true)
 			GdUnitSignals.instance().gdunit_event.emit(GdUnitSessionClose.new())
 			cleanup_report_history()
+			quit.call_deferred(get_exit_code())
 		STOP:
-			_state = EXIT
-			# give the engine small amount time to finish the rpc
-			await get_tree().create_timer(0.1).timeout
-			await quit(get_exit_code())
+			pass
 
 
 ## Used by the inheriting runners to initialize test execution
@@ -157,8 +155,6 @@ func get_exit_code() -> int:
 
 ## Quits the test runner with given exit code.
 func quit(code: int) -> void:
-	await get_tree().process_frame
-	await get_tree().physics_frame
 	get_tree().quit(code)
 
 
