@@ -214,7 +214,7 @@ var _flicker_time: float = 0.0
 
 # Day/night cycle
 var game_time: float = 0.0
-const DAY_LENGTH: float = 30.0
+const DAY_LENGTH: float = 300.0
 var _day_night_modulate: CanvasModulate = null
 
 # Hit effect textures (lazy-loaded)
@@ -944,7 +944,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 	# Replace with appropriate base tile: cave floor in mines, grass in overworld
 	var replace_source: int = 0
-	if tile_type in ["cave_wall", "gold_ore", "coal_ore", "cave_floor", "torch", "campfire"]:
+	if tile_type in ["cave_wall", "gold_ore", "coal_ore", "cave_floor"]:
 		replace_source = TILE_SOURCE[TileType.CAVE_FLOOR]
 	elif tile_pos.y < -50_000:
 		# Any tile broken in mine area reveals cave floor
