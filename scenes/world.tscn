@@ -37,6 +37,8 @@
 [ext_resource type="Texture2D" uid="uid://c60rxhsuu3etl" path="res://graphics/coaloretile.png" id="34_coaloretile"]
 [ext_resource type="Texture2D" uid="uid://e3103n345ays" path="res://graphics/campfire.png" id="35_campfire"]
 [ext_resource type="Script" uid="uid://da6vqw5d87muo" path="res://scripts/time_display.gd" id="36_time_display"]
+[ext_resource type="Texture2D" uid="uid://nf0buyk65544" path="res://graphics/fallback.png" id="37_fallback"]
+[ext_resource type="Script" path="res://scripts/sandbox_menu.gd" id="38_sandbox_menu"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -292,6 +294,30 @@ offset_right = -8.0
 offset_bottom = 24.0
 grow_horizontal = 0
 texture_normal = ExtResource("16_pause_icon")
+stretch_mode = 0
+
+[node name="SandboxMenu" type="Control" parent="CanvasLayer"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("38_sandbox_menu")
+
+[node name="SandboxButton" type="TextureButton" parent="CanvasLayer"]
+texture_filter = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -42.0
+offset_top = 8.0
+offset_right = -26.0
+offset_bottom = 24.0
+grow_horizontal = 0
+texture_normal = ExtResource("37_fallback")
 stretch_mode = 0
 
 [node name="GameManager" type="Node" parent="." unique_id=621051890]
