@@ -24,7 +24,6 @@ var button_texture: Texture2D = preload("res://graphics/button.png")
 @onready var save_button: Button = $Panel/VBoxContainer/SaveSection/SaveButton
 @onready var load_button: Button = $Panel/VBoxContainer/SaveSection/LoadButton
 @onready var main_menu_button: Button = $Panel/VBoxContainer/MainMenuButton
-@onready var quit_button: Button = $Panel/VBoxContainer/QuitButton
 
 
 func _make_button_style(modulate_color: Color = Color.WHITE) -> StyleBoxTexture:
@@ -41,7 +40,7 @@ func _make_button_style(modulate_color: Color = Color.WHITE) -> StyleBoxTexture:
 func _style_buttons() -> void:
 	var buttons: Array[Button] = [
 		resume_button, host_button, join_button, disconnect_button,
-		save_button, load_button, main_menu_button, quit_button
+		save_button, load_button, main_menu_button
 	]
 	for btn in buttons:
 		btn.add_theme_stylebox_override("normal", _make_button_style())
@@ -69,7 +68,6 @@ func _ready() -> void:
 	save_button.pressed.connect(_on_save_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	main_menu_button.pressed.connect(_on_main_menu_pressed)
-	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Connect network signals
 	NetworkManager.player_connected.connect(_on_player_connected)
@@ -109,10 +107,7 @@ func _input(event: InputEvent) -> void:
 	# Handle clicks while paused (buttons don't receive GUI input properly when paused)
 	if is_open and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var mouse_pos = event.global_position
-		if quit_button.get_global_rect().has_point(mouse_pos):
-			_on_quit_pressed()
-			return
-		elif resume_button.get_global_rect().has_point(mouse_pos):
+		if resume_button.get_global_rect().has_point(mouse_pos):
 			_on_resume_pressed()
 			get_viewport().set_input_as_handled()
 		elif save_button.get_global_rect().has_point(mouse_pos):
@@ -213,10 +208,6 @@ func _on_load_pressed() -> void:
 func _on_main_menu_pressed() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
-
-
-func _on_quit_pressed() -> void:
-	get_tree().quit()
 
 
 func _on_player_connected(peer_id: int) -> void:
