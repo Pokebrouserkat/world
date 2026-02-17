@@ -31,7 +31,7 @@ func _input(event: InputEvent) -> void:
 	# While quit dialog is open, handle keyboard and block non-GUI input
 	if _quit_dialog and is_instance_valid(_quit_dialog):
 		if event is InputEventKey and event.pressed:
-			if event.keycode == KEY_ESCAPE:
+			if event.keycode == KEY_ESCAPE or (event.keycode == KEY_W and event.meta_pressed):
 				_on_quit_canceled()
 			elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE:
 				if _quit_selected == 1:
