@@ -24,7 +24,6 @@ var _pending_right_click: bool = false
 var box_inventory: Node = null
 var furnace_inventory: Node = null
 var _last_pickup_sound_frame: int = -1
-var _stuck_frames: int = 0
 var _mine_light: PointLight2D = null
 var _mine_ambient_light: PointLight2D = null
 
@@ -113,18 +112,7 @@ func _physics_process(_delta: float) -> void:
 
 	var current_speed = walk_speed if Input.is_key_pressed(KEY_SHIFT) else run_speed
 	velocity = input_dir.normalized() * current_speed
-	var pos_before = global_position
 	move_and_slide()
-
-	# If player tried to move but got stuck, push them out along collision normals
-	var tried_to_move = input_dir != Vector2.ZERO
-	var actually_moved = global_position.distance_to(pos_before) > 0.1
-	if tried_to_move and not actually_moved:
-		_stuck_frames += 1
-		if _stuck_frames > 3:
-			_push_out_of_collision()
-	else:
-		_stuck_frames = 0
 
 	# Block tile interaction when any window is open
 	if _pending_left_click:
@@ -283,17 +271,6 @@ func _handle_interact() -> void:
 		var selected_item = hotbar.get_selected_item()
 		if selected_item and _is_tool(selected_item.item_id):
 			world.request_hit_tile.rpc_id(1, best_tile, selected_item.item_id, peer_id)
-
-
-func _push_out_of_collision() -> void:
-	# Use slide collision normals to push player away from walls
-	var push = Vector2.ZERO
-	for i in range(get_slide_collision_count()):
-		var collision = get_slide_collision(i)
-		push += collision.get_normal()
-	if push != Vector2.ZERO:
-		global_position += push.normalized() * 2.0
-		_stuck_frames = 0
 
 
 func _setup_mine_light() -> void:
