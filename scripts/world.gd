@@ -203,7 +203,8 @@ var _overworld_return_pos: Vector2 = Vector2.ZERO
 var _mine_lighting_active: bool = false
 var _mine_modulate: CanvasModulate = null
 var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
-var _torch_light_texture: GradientTexture2D = null
+var _torch_glow_texture: GradientTexture2D = null
+var _torch_glow_material: ShaderMaterial = null
 
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
@@ -532,8 +533,9 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 	player_in_mine = true
 	_current_mine_entrance = entrance_pos
 
-	# Clear health bars before tile reload
+	# Clear health bars and torch lights before tile reload
 	_clear_all_health_bars()
+	_clear_all_torch_lights()
 
 	# Force tile reload
 	_generated_tiles.clear()
@@ -554,8 +556,9 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 func exit_mine() -> void:
 	player_in_mine = false
 
-	# Clear health bars before tile reload
+	# Clear health bars and torch lights before tile reload
 	_clear_all_health_bars()
+	_clear_all_torch_lights()
 
 	# Force tile reload
 	_generated_tiles.clear()
@@ -574,26 +577,35 @@ func exit_mine() -> void:
 	_trigger_autosave()
 
 
-func _get_torch_light_texture() -> GradientTexture2D:
-	if _torch_light_texture == null:
+func _get_torch_glow_texture() -> GradientTexture2D:
+	if _torch_glow_texture == null:
 		var gradient = Gradient.new()
 		gradient.set_color(0, Color.WHITE)
 		gradient.set_color(1, Color.TRANSPARENT)
-		_torch_light_texture = GradientTexture2D.new()
-		_torch_light_texture.gradient = gradient
-		_torch_light_texture.width = 256
-		_torch_light_texture.height = 256
-		_torch_light_texture.fill = GradientTexture2D.FILL_RADIAL
-		_torch_light_texture.fill_from = Vector2(0.5, 0.5)
-		_torch_light_texture.fill_to = Vector2(0.5, 0.0)
-	return _torch_light_texture
+		_torch_glow_texture = GradientTexture2D.new()
+		_torch_glow_texture.gradient = gradient
+		_torch_glow_texture.width = 256
+		_torch_glow_texture.height = 256
+		_torch_glow_texture.fill = GradientTexture2D.FILL_RADIAL
+		_torch_glow_texture.fill_from = Vector2(0.5, 0.5)
+		_torch_glow_texture.fill_to = Vector2(0.5, 0.0)
+	return _torch_glow_texture
+
+
+func _get_torch_glow_material() -> ShaderMaterial:
+	if _torch_glow_material == null:
+		var shader = Shader.new()
+		shader.code = "shader_type canvas_item;\nrender_mode unshaded, blend_add;"
+		_torch_glow_material = ShaderMaterial.new()
+		_torch_glow_material.shader = shader
+	return _torch_glow_material
 
 
 func _add_torch_light(tile_pos: Vector2i) -> void:
 	if _torch_lights.has(tile_pos):
 		return
 	var light = PointLight2D.new()
-	light.texture = _get_torch_light_texture()
+	light.texture = _get_torch_glow_texture()
 	light.texture_scale = 0.8
 	light.energy = 0.8
 	light.color = Color(1.0, 0.8, 0.4)
@@ -603,6 +615,17 @@ func _add_torch_light(tile_pos: Vector2i) -> void:
 	light.shadow_filter_smooth = 1.0
 	light.position = map_to_local(tile_pos)
 	add_child(light)
+
+	# Unshaded additive glow sprite bypasses CanvasModulate and the
+	# GL Compatibility per-canvas-item light limit (16), so every torch
+	# is always visibly lit regardless of how many are on screen.
+	var glow = Sprite2D.new()
+	glow.texture = _get_torch_glow_texture()
+	glow.material = _get_torch_glow_material()
+	glow.scale = Vector2(0.6, 0.6)
+	glow.modulate = Color(1.0, 0.7, 0.3, 0.3)
+	light.add_child(glow)
+
 	_torch_lights[tile_pos] = light
 
 
@@ -612,6 +635,14 @@ func _remove_torch_light(tile_pos: Vector2i) -> void:
 		if is_instance_valid(light):
 			light.queue_free()
 		_torch_lights.erase(tile_pos)
+
+
+func _clear_all_torch_lights() -> void:
+	for tile_pos in _torch_lights:
+		var light = _torch_lights[tile_pos]
+		if is_instance_valid(light):
+			light.queue_free()
+	_torch_lights.clear()
 
 
 func _apply_mine_lighting(enabled: bool) -> void:
