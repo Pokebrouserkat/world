@@ -153,6 +153,12 @@ func _setup_recipes() -> void:
         "output_quantity": 8
     }
 
+    # Campfire - 2 wood
+    recipes["campfire"] = {
+        "ingredients": {"wood": 2},
+        "output_quantity": 1
+    }
+
     # Sandbox-only items
     if GameMode.is_sandbox():
         recipes["mine_spawner"] = {

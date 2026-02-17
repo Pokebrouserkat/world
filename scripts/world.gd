@@ -20,7 +20,8 @@ enum TileType {
 	GOLD_ORE = 15,
 	CAVE_FLOOR = 16,
 	TORCH = 17,
-	COAL_ORE = 18
+	COAL_ORE = 18,
+	CAMPFIRE = 19
 }
 
 # === TILE HEALTH BAR ===
@@ -119,7 +120,8 @@ const TILE_SOURCE = {
 	TileType.GOLD_ORE: 15,
 	TileType.CAVE_FLOOR: 16,
 	TileType.TORCH: 17,
-	TileType.COAL_ORE: 18
+	TileType.COAL_ORE: 18,
+	TileType.CAMPFIRE: 19
 }
 
 # Atlas coordinates for each tile type (within their source)
@@ -142,7 +144,8 @@ const TILE_COORDS = {
 	TileType.GOLD_ORE: Vector2i(0, 0),
 	TileType.CAVE_FLOOR: Vector2i(0, 0),
 	TileType.TORCH: Vector2i(0, 0),
-	TileType.COAL_ORE: Vector2i(0, 0)
+	TileType.COAL_ORE: Vector2i(0, 0),
+	TileType.CAMPFIRE: Vector2i(0, 0)
 }
 
 # Chance for a rock to spawn (1 in N tiles)
@@ -205,6 +208,14 @@ var _mine_modulate: CanvasModulate = null
 var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
 var _torch_glow_texture: GradientTexture2D = null
 var _torch_glow_material: ShaderMaterial = null
+var _campfire = CampfireManager.new()
+var _torch_light_texture: Texture2D = null
+var _flicker_time: float = 0.0
+
+# Day/night cycle
+var game_time: float = 0.0
+const DAY_LENGTH: float = 30.0
+var _day_night_modulate: CanvasModulate = null
 
 # Hit effect textures (lazy-loaded)
 var _flash_texture: ImageTexture = null
@@ -231,6 +242,7 @@ const TILE_REGEN_AMOUNT: int = 1
 
 func _ready() -> void:
 	add_to_group("world")
+	_campfire.init(self)
 	_setup_tile_physics()
 	_setup_tile_occlusion()
 	_update_tiles()
@@ -247,6 +259,12 @@ func _ready() -> void:
 	regen_timer.autostart = true
 	regen_timer.timeout.connect(_on_regen_tick)
 	add_child(regen_timer)
+
+	# Day/night cycle CanvasModulate
+	_day_night_modulate = CanvasModulate.new()
+	_day_night_modulate.name = "DayNightModulate"
+	_day_night_modulate.color = Color(1.0, 1.0, 1.0)
+	get_parent().add_child.call_deferred(_day_night_modulate)
 
 
 func _setup_tile_physics() -> void:
@@ -310,6 +328,13 @@ func _process(delta: float) -> void:
 	# Toggle mine lighting when player_in_mine state changes (handles enter/exit and save load)
 	if player_in_mine != _mine_lighting_active:
 		_apply_mine_lighting(player_in_mine)
+	# Advance day/night cycle
+	game_time += delta
+	if game_time >= DAY_LENGTH:
+		game_time -= DAY_LENGTH
+	_flicker_time += delta
+	_update_day_night_modulate()
+	_update_fire_flicker()
 
 
 func _update_tiles() -> void:
@@ -333,10 +358,12 @@ func _update_tiles() -> void:
 				if roof_layer:
 					if _roof_modifications.has(tile_pos):
 						roof_layer.set_cell(tile_pos, _roof_modifications[tile_pos], Vector2i(0, 0))
-				# Create light for torch tiles
+				# Create light for torch and campfire tiles
 				var loaded_source = get_cell_source_id(tile_pos)
 				if loaded_source == TILE_SOURCE[TileType.TORCH]:
 					_add_torch_light(tile_pos)
+				elif loaded_source == TILE_SOURCE[TileType.CAMPFIRE]:
+					_campfire.add_light(tile_pos, _get_torch_light_texture())
 				_generated_tiles[tile_pos] = true
 
 	# Unload tiles outside visible area
@@ -352,6 +379,7 @@ func _update_tiles() -> void:
 		_remove_health_bar(tile_pos, false)
 		_remove_health_bar(tile_pos, true)
 		_remove_torch_light(tile_pos)
+		_campfire.remove_light(tile_pos)
 		_generated_tiles.erase(tile_pos)
 
 
@@ -416,9 +444,9 @@ func get_visible_tile_rect() -> Rect2i:
 	var tile_size = tile_set.tile_size
 	return Rect2i(
 		Vector2i(floori(top_left.x / tile_size.x) - tile_buffer,
-				 floori(top_left.y / tile_size.y) - tile_buffer),
+			floori(top_left.y / tile_size.y) - tile_buffer),
 		Vector2i(ceili(size.x / tile_size.x) + tile_buffer * 2,
-				 ceili(size.y / tile_size.y) + tile_buffer * 2)
+			ceili(size.y / tile_size.y) + tile_buffer * 2)
 	)
 
 
@@ -577,6 +605,12 @@ func exit_mine() -> void:
 	_trigger_autosave()
 
 
+func _get_torch_light_texture() -> Texture2D:
+	if _torch_light_texture == null:
+		_torch_light_texture = load("res://graphics/light_radial.png")
+	return _torch_light_texture
+
+
 func _get_torch_glow_texture() -> GradientTexture2D:
 	if _torch_glow_texture == null:
 		var gradient = Gradient.new()
@@ -637,6 +671,65 @@ func _remove_torch_light(tile_pos: Vector2i) -> void:
 		_torch_lights.erase(tile_pos)
 
 
+func _update_day_night_modulate() -> void:
+	if not _day_night_modulate or not _day_night_modulate.visible:
+		return
+	var time_ratio = game_time / DAY_LENGTH
+	var day_color = Color(1.0, 1.0, 1.0)
+	var night_color = Color(0.15, 0.15, 0.35)
+	var color: Color
+	var darkness: float  # 0.0 = full day, 1.0 = full night
+	if time_ratio < 0.15:
+		# Dawn: dark blue -> white
+		var t = time_ratio / 0.15
+		color = night_color.lerp(day_color, t)
+		darkness = 1.0 - t
+	elif time_ratio < 0.55:
+		# Day: white
+		color = day_color
+		darkness = 0.0
+	elif time_ratio < 0.70:
+		# Dusk: white -> dark blue
+		var t = (time_ratio - 0.55) / 0.15
+		color = day_color.lerp(night_color, t)
+		darkness = t
+	else:
+		# Night: dark blue
+		color = night_color
+		darkness = 1.0
+	_day_night_modulate.color = color
+	# Scale light energy so they don't blow out during daytime
+	# Flicker intensity scales with darkness so it's most visible at night
+	var ft = _flicker_time
+	var torch_flicker = (
+		sin(ft * 9.5 + 2.0) * 0.12 +
+		sin(ft * 15.3 + 1.0) * 0.08 +
+		sin(ft * 21.0 + 3.0) * 0.06
+	)
+	var torch_base = lerpf(0.1, 0.8, darkness)
+	var energy_flicker_strength = darkness * 0.25
+	for light in _torch_lights.values():
+		if is_instance_valid(light):
+			light.energy = torch_base + torch_flicker * energy_flicker_strength
+	_campfire.update_energy(darkness, ft)
+
+
+func _update_fire_flicker() -> void:
+	var t = _flicker_time
+	_campfire.update_flicker(t)
+	# Torches: subtler flicker, offset phase so they don't sync with campfires
+	var torch_flicker = (
+		sin(t * 9.5 + 2.0) * 0.12 +
+		sin(t * 15.3 + 1.0) * 0.08 +
+		sin(t * 21.0 + 3.0) * 0.06
+	)
+	for light in _torch_lights.values():
+		if is_instance_valid(light):
+			var base_scale = 0.8
+			light.texture_scale = base_scale + torch_flicker * 0.04
+			light.color = Color(1.0, 0.8 + torch_flicker * 0.06, 0.4 + torch_flicker * 0.04)
+
+
 func _clear_all_torch_lights() -> void:
 	for tile_pos in _torch_lights:
 		var light = _torch_lights[tile_pos]
@@ -656,9 +749,13 @@ func _apply_mine_lighting(enabled: bool) -> void:
 			_mine_modulate.color = Color(0.05, 0.05, 0.08)
 			get_parent().add_child(_mine_modulate)
 		_mine_modulate.visible = true
+		if _day_night_modulate:
+			_day_night_modulate.visible = false
 	else:
 		if _mine_modulate:
 			_mine_modulate.visible = false
+		if _day_night_modulate:
+			_day_night_modulate.visible = true
 
 	# Toggle player's mine light
 	var player = _get_local_player()
@@ -758,6 +855,7 @@ func _get_tile_type_string(source_id: int) -> String:
 		16: return "cave_floor"
 		17: return "torch"
 		18: return "coal_ore"
+		19: return "campfire"
 		_: return "grass"
 
 
@@ -788,6 +886,8 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
 			return true
 		18:  # Coal ore - requires pick
 			return is_pick
+		19:  # Campfire - any tool works
+			return true
 		_:
 			return false
 
@@ -812,8 +912,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
 	var tile_type = _get_tile_type_string(source_id)
 
-	# Box, furnace, and torch are instant break
-	if source_id in [3, 6, 17]:
+	# Box, furnace, torch, and campfire are instant break
+	if source_id in [3, 6, 17, 19]:
 		_rpc_show_hit_effect.rpc(tile_pos, source_id)
 		_break_tile(tile_pos, tile_type)
 		return
@@ -844,7 +944,7 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 	# Replace with appropriate base tile: cave floor in mines, grass in overworld
 	var replace_source: int = 0
-	if tile_type in ["cave_wall", "gold_ore", "coal_ore", "cave_floor", "torch"]:
+	if tile_type in ["cave_wall", "gold_ore", "coal_ore", "cave_floor", "torch", "campfire"]:
 		replace_source = TILE_SOURCE[TileType.CAVE_FLOOR]
 	elif tile_pos.y < -50_000:
 		# Any tile broken in mine area reveals cave floor
@@ -935,6 +1035,9 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 	elif tile_type == "torch":
 		_remove_torch_light(tile_pos)
 		_spawn_item_by_id("torch", 1, tile_world_pos, 0.0)
+	elif tile_type == "campfire":
+		_campfire.remove_light(tile_pos)
+		_spawn_item_by_id("campfire", 1, tile_world_pos, 0.0)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -945,9 +1048,9 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String
 
 	var source_id = get_cell_source_id(tile_pos)
 
-	# Can place on grass, or torches can also go on cave floor
-	var is_torch = (item_id == "torch")
-	if source_id != 0 and not (is_torch and source_id == TILE_SOURCE[TileType.CAVE_FLOOR]):
+	# Can place on grass, or torches/campfires can also go on cave floor
+	var is_light_source = (item_id == "torch" or item_id == "campfire")
+	if source_id != 0 and not (is_light_source and source_id == TILE_SOURCE[TileType.CAVE_FLOOR]):
 		return
 
 	# Don't allow placing on player positions - use world coordinates for robustness
@@ -1098,6 +1201,11 @@ func _rpc_sync_tile_change(tile_pos: Vector2i, source_id: int) -> void:
 		_add_torch_light(tile_pos)
 	else:
 		_remove_torch_light(tile_pos)
+	# Manage campfire lights on tile changes
+	if source_id == TILE_SOURCE[TileType.CAMPFIRE]:
+		_campfire.add_light(tile_pos, _get_torch_light_texture())
+	else:
+		_campfire.remove_light(tile_pos)
 	if not multiplayer.is_server():
 		_tile_modifications[tile_pos] = source_id
 
@@ -1228,6 +1336,7 @@ func _get_hit_color(source_id: int) -> Color:
 		15: return Color(0.85, 0.7, 0.2)   # Gold ore - golden
 		17: return Color(0.8, 0.5, 0.2)    # Torch - orange
 		18: return Color(0.15, 0.15, 0.15) # Coal ore - dark
+		19: return Color(0.8, 0.4, 0.1)    # Campfire - orange
 		_: return Color(0.5, 0.5, 0.5)
 
 
