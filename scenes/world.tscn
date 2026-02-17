@@ -59,12 +59,10 @@ texture = ExtResource("23_goldwall")
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineentrance"]
 texture = ExtResource("28_mineentrance")
 0:0/0 = 0
-0:0/0/z_index = 1
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mineexit"]
 texture = ExtResource("29_mineexit")
 0:0/0 = 0
-0:0/0/z_index = 1
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cavewall"]
 texture = ExtResource("30_cavewall")
