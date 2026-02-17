@@ -22,14 +22,14 @@ const COAL_ORE_SOURCE: int = 18
 const MINE_EXIT_SOURCE: int = 13
 
 
-static func get_mine_origin(entrance_pos: Vector2i) -> Vector2i:
+static func get_mine_origin(entrance_pos: Vector2i, level: int = 1) -> Vector2i:
 	var h = _entrance_hash(entrance_pos)
 	var offset = absi(h) % 1000
-	return Vector2i(entrance_pos.x, MINE_Y_BASE - offset * MINE_SPREAD)
+	return Vector2i(entrance_pos.x, MINE_Y_BASE - (level - 1) * 100_000 - offset * MINE_SPREAD)
 
 
-static func generate(entrance_pos: Vector2i) -> Dictionary:
-	var origin = get_mine_origin(entrance_pos)
+static func generate(entrance_pos: Vector2i, level: int = 1) -> Dictionary:
+	var origin = get_mine_origin(entrance_pos, level)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = _entrance_hash(entrance_pos)
 

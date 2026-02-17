@@ -50,7 +50,8 @@ func save_game() -> bool:
         "mine_states": _serialize_mine_states(world),
         "player_in_mine": world.player_in_mine,
         "current_mine_entrance": "%d,%d" % [world._current_mine_entrance.x, world._current_mine_entrance.y],
-        "overworld_return_pos": {"x": world._overworld_return_pos.x, "y": world._overworld_return_pos.y},
+        "mine_level": world._mine_level,
+        "mine_return_stack": world._mine_return_stack.duplicate(),
         "game_time": world.game_time,
     }
 
@@ -387,5 +388,13 @@ func _deserialize_mine_states(save_data: Dictionary, world: TileMapLayer) -> voi
     if parts.size() == 2:
         world._current_mine_entrance = Vector2i(int(parts[0]), int(parts[1]))
 
-    var return_pos = save_data.get("overworld_return_pos", {"x": 0, "y": 0})
-    world._overworld_return_pos = Vector2(return_pos["x"], return_pos["y"])
+    world._mine_level = int(save_data.get("mine_level", 1 if world.player_in_mine else 0))
+    var stack_data = save_data.get("mine_return_stack", [])
+    world._mine_return_stack.clear()
+    if stack_data.size() > 0:
+        for entry in stack_data:
+            world._mine_return_stack.push_back({"x": float(entry["x"]), "y": float(entry["y"])})
+    elif world.player_in_mine:
+        # Backward compat: old saves with overworld_return_pos
+        var return_pos = save_data.get("overworld_return_pos", {"x": 0, "y": 0})
+        world._mine_return_stack.push_back({"x": float(return_pos["x"]), "y": float(return_pos["y"])})

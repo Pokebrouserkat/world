@@ -200,7 +200,8 @@ var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 var _known_mines: Dictionary = {}  # "x,y" -> {origin: Vector2i, exit_pos: Vector2i}
 var player_in_mine: bool = false
 var _current_mine_entrance: Vector2i = Vector2i.ZERO
-var _overworld_return_pos: Vector2 = Vector2.ZERO
+var _mine_level: int = 0  # 0 = overworld, 1+ = mine depth
+var _mine_return_stack: Array = []  # Stack of return positions (Vector2)
 
 # Mine lighting state
 var _mine_lighting_active: bool = false
@@ -459,10 +460,6 @@ func get_tile_type(x: int, y: int) -> TileType:
 	var hash_value = _position_hash(x, y)
 	if hash_value % ROCK_SPAWN_CHANCE == 0:
 		return TileType.ROCK
-	# Check for mine entrance (rare, use offset hash)
-	var mine_hash = _position_hash(x + 3000, y + 3000)
-	if mine_hash % MINE_ENTRANCE_SPAWN_CHANCE == 0:
-		return TileType.MINE_ENTRANCE
 	# Check for iron ore (rare, use offset hash)
 	var iron_hash = _position_hash(x + 2000, y + 2000)
 	if iron_hash % IRON_ORE_SPAWN_CHANCE == 0:
@@ -539,25 +536,28 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 	if NetworkManager.is_connected_to_game():
 		return
 
+	var new_level = _mine_level + 1
+
 	var key = "%d,%d" % [entrance_pos.x, entrance_pos.y]
 	if not _known_mines.has(key):
 		# Generate the mine and write tiles into _tile_modifications
-		var result = MineGenerator.generate(entrance_pos)
+		var result = MineGenerator.generate(entrance_pos, new_level)
 		var mine_tiles: Dictionary = result["tiles"]
 		for pos in mine_tiles:
 			_tile_modifications[pos] = mine_tiles[pos]
 		_known_mines[key] = {
-			"origin": MineGenerator.get_mine_origin(entrance_pos),
+			"origin": MineGenerator.get_mine_origin(entrance_pos, new_level),
 			"exit_pos": result["exit_pos"]
 		}
 
-	# Save overworld position
+	# Save current position to return stack
 	var player = _get_local_player()
 	if not player:
 		return
-	_overworld_return_pos = player.global_position
+	_mine_return_stack.push_back({"x": player.global_position.x, "y": player.global_position.y})
 
 	# Set mine state
+	_mine_level = new_level
 	player_in_mine = true
 	_current_mine_entrance = entrance_pos
 
@@ -582,7 +582,14 @@ func enter_mine(entrance_pos: Vector2i) -> void:
 
 
 func exit_mine() -> void:
-	player_in_mine = false
+	# Pop return position from stack
+	var return_pos = Vector2.ZERO
+	if _mine_return_stack.size() > 0:
+		var pos_data = _mine_return_stack.pop_back()
+		return_pos = Vector2(pos_data["x"], pos_data["y"])
+
+	_mine_level = maxi(_mine_level - 1, 0)
+	player_in_mine = _mine_level > 0
 
 	# Clear health bars and torch lights before tile reload
 	_clear_all_health_bars()
@@ -592,10 +599,10 @@ func exit_mine() -> void:
 	_generated_tiles.clear()
 	_last_rect = Rect2i()
 
-	# Teleport player back to overworld, offset slightly so they don't re-trigger entrance
+	# Teleport player back to previous position
 	var player = _get_local_player()
 	if player:
-		player.global_position = _overworld_return_pos
+		player.global_position = return_pos
 
 		# Snap camera to new position immediately (skip smoothing)
 		var camera = player.get_node_or_null("Camera2D") as Camera2D
@@ -878,7 +885,9 @@ func _is_correct_tool(tool_id: String, source_id: int) -> bool:
 			return is_pick
 		9, 10:  # Floors - any tool works
 			return true
-		12, 13, 14, 16:  # Mine entrance/exit/cave wall/cave floor - unbreakable
+		12:  # Mine entrance - breakable in sandbox with any tool
+			return GameMode.is_sandbox()
+		13, 14, 16:  # Mine exit/cave wall/cave floor - unbreakable
 			return false
 		15:  # Gold ore - requires pick
 			return is_pick
@@ -902,8 +911,10 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 	if source_id <= 0:  # Grass or invalid
 		return
 
-	# Mine entrance, exit, cave wall, and cave floor are unbreakable
-	if source_id in [12, 13, 14, 16]:
+	# Mine entrance, exit, cave wall, and cave floor are unbreakable (except mine entrance in sandbox)
+	if source_id in [13, 14, 16]:
+		return
+	if source_id == 12 and not GameMode.is_sandbox():
 		return
 
 	# Check if correct tool is used
@@ -912,8 +923,8 @@ func request_hit_tile(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 
 	var tile_type = _get_tile_type_string(source_id)
 
-	# Box, furnace, torch, and campfire are instant break
-	if source_id in [3, 6, 17, 19]:
+	# Box, furnace, torch, campfire, and mine entrance are instant break
+	if source_id in [3, 6, 12, 17, 19]:
 		_rpc_show_hit_effect.rpc(tile_pos, source_id)
 		_break_tile(tile_pos, tile_type)
 		return
@@ -957,6 +968,14 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 	var tile_world_pos = map_to_local(tile_pos) + Vector2(0, 16)
 
 	if tile_type == "rock":
+		# Check if breaking this rock reveals a cave entrance (deterministic by position)
+		var cave_hash = _position_hash(tile_pos.x + 5000, tile_pos.y + 5000)
+		if cave_hash % MINE_ENTRANCE_SPAWN_CHANCE == 0:
+			# Reveal cave entrance instead of grass
+			replace_source = TILE_SOURCE[TileType.MINE_ENTRANCE]
+			_rpc_sync_tile_change.rpc(tile_pos, replace_source)
+			_tile_modifications[tile_pos] = replace_source
+			_trigger_autosave()
 		var rock_count = randi_range(1, 4)
 		for i in range(rock_count):
 			var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
@@ -1032,6 +1051,8 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
 		for i in range(coal_count):
 			var spread_offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
 			_spawn_item_by_id("coal", 1, tile_world_pos + spread_offset, 0.3)
+	elif tile_type == "mine_entrance":
+		_spawn_item_by_id("mine_spawner", 1, tile_world_pos, 0.0)
 	elif tile_type == "torch":
 		_remove_torch_light(tile_pos)
 		_spawn_item_by_id("torch", 1, tile_world_pos, 0.0)
@@ -1048,9 +1069,9 @@ func request_place_tile(tile_pos: Vector2i, tile_source_id: int, item_id: String
 
 	var source_id = get_cell_source_id(tile_pos)
 
-	# Can place on grass, or torches/campfires can also go on cave floor
-	var is_light_source = (item_id == "torch" or item_id == "campfire")
-	if source_id != 0 and not (is_light_source and source_id == TILE_SOURCE[TileType.CAVE_FLOOR]):
+	# Can place on grass, or torches/campfires/mine_spawner can also go on cave floor
+	var can_place_on_cave_floor = item_id in ["torch", "campfire", "mine_spawner"]
+	if source_id != 0 and not (can_place_on_cave_floor and source_id == TILE_SOURCE[TileType.CAVE_FLOOR]):
 		return
 
 	# Don't allow placing on player positions - use world coordinates for robustness
