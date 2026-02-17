@@ -67,13 +67,13 @@ func _ready() -> void:
 
 
 func _create_ui() -> void:
-    var slot_size = slot_texture.get_width()  # 16, matches hotbar/box
-    var border = 10
-    var arrow_width = 14
+    var slot_size = slot_texture.get_width()  # 16
+    var border = 16
+    var arrow_width = 20
     var progress_height = 10
-    var title_height = 12
-    var fuel_label_height = 9
-    var spacing = 3
+    var title_height = 14
+    var fuel_label_height = 10
+    var spacing = 4
 
     var slot_row_width = slot_size * 2 + arrow_width
     var panel_width = slot_row_width + border * 2
