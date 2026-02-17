@@ -67,13 +67,13 @@ func _ready() -> void:
 
 
 func _create_ui() -> void:
-    var slot_size = 32  # 2x scale for readability
-    var border = 12
-    var arrow_width = 24
-    var progress_height = 12
-    var title_height = 16
-    var fuel_label_height = 12
-    var spacing = 4
+    var slot_size = slot_texture.get_width()  # 16, matches hotbar/box
+    var border = 10
+    var arrow_width = 14
+    var progress_height = 10
+    var title_height = 12
+    var fuel_label_height = 9
+    var spacing = 3
 
     var slot_row_width = slot_size * 2 + arrow_width
     var panel_width = slot_row_width + border * 2
@@ -116,10 +116,7 @@ func _create_ui() -> void:
     input_slot = TextureButton.new()
     input_slot.texture_normal = slot_texture
     input_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    input_slot.ignore_texture_size = true
-    input_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-    input_slot.custom_minimum_size = Vector2(slot_size, slot_size)
-    input_slot.size = Vector2(slot_size, slot_size)
+    input_slot.stretch_mode = TextureButton.STRETCH_KEEP
     input_slot.position = Vector2(border, row1_y)
     panel.add_child(input_slot)
 
@@ -152,10 +149,7 @@ func _create_ui() -> void:
     output_slot = TextureButton.new()
     output_slot.texture_normal = slot_texture
     output_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    output_slot.ignore_texture_size = true
-    output_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-    output_slot.custom_minimum_size = Vector2(slot_size, slot_size)
-    output_slot.size = Vector2(slot_size, slot_size)
+    output_slot.stretch_mode = TextureButton.STRETCH_KEEP
     output_slot.position = Vector2(border + slot_size + arrow_width, row1_y)
     panel.add_child(output_slot)
 
@@ -191,10 +185,7 @@ func _create_ui() -> void:
     fuel_slot = TextureButton.new()
     fuel_slot.texture_normal = slot_texture
     fuel_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    fuel_slot.ignore_texture_size = true
-    fuel_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-    fuel_slot.custom_minimum_size = Vector2(slot_size, slot_size)
-    fuel_slot.size = Vector2(slot_size, slot_size)
+    fuel_slot.stretch_mode = TextureButton.STRETCH_KEEP
     fuel_slot.position = Vector2(border, y_cursor)
     panel.add_child(fuel_slot)
 

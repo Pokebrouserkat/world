@@ -166,7 +166,7 @@ func _create_ui() -> void:
     var row_height = 16  # Icon height
     var row_spacing = 4
     var header_height = 28  # Title area
-    var padding = 16  # Border padding
+    var padding = 8  # Border padding
     var recipe_count = recipes.size()
     var recipes_height = recipe_count * row_height + (recipe_count - 1) * row_spacing
     var content_height = header_height + recipes_height + padding
