@@ -51,6 +51,7 @@ func save_game() -> bool:
         "player_in_mine": world.player_in_mine,
         "current_mine_entrance": "%d,%d" % [world._current_mine_entrance.x, world._current_mine_entrance.y],
         "overworld_return_pos": {"x": world._overworld_return_pos.x, "y": world._overworld_return_pos.y},
+        "game_time": world.game_time,
     }
 
     var json_string = JSON.stringify(save_data, "\t")
@@ -115,6 +116,7 @@ func load_game() -> bool:
     _deserialize_box_contents(save_data.get("box_contents", {}), world)
     _deserialize_furnace_states(save_data.get("furnace_states", {}), world)
     _deserialize_mine_states(save_data, world)
+    world.game_time = save_data.get("game_time", 0.0)
 
     _last_save_time = save_data.get("timestamp", 0)
     game_loaded.emit()

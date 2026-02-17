@@ -32,9 +32,11 @@
 [ext_resource type="Texture2D" uid="uid://dh0pex71gdcop" path="res://graphics/cavewall.png" id="30_cavewall"]
 [ext_resource type="Texture2D" uid="uid://sofudasu4cct" path="res://graphics/goldoretile.png" id="31_goldoretile"]
 [ext_resource type="Texture2D" uid="uid://di3djm1qyd5vc" path="res://graphics/cavefloor.png" id="32_cavefloor"]
-[ext_resource type="Texture2D" path="res://graphics/torch.png" id="33_torch"]
-[ext_resource type="Texture2D" path="res://graphics/coaloretile.png" id="34_coaloretile"]
 [ext_resource type="Script" uid="uid://b3hdimq3douky" path="res://scripts/critter_manager.gd" id="33_critter_mgr"]
+[ext_resource type="Texture2D" uid="uid://4nwu3llkstmy" path="res://graphics/torch.png" id="33_torch"]
+[ext_resource type="Texture2D" uid="uid://c60rxhsuu3etl" path="res://graphics/coaloretile.png" id="34_coaloretile"]
+[ext_resource type="Texture2D" uid="uid://e3103n345ays" path="res://graphics/campfire.png" id="35_campfire"]
+[ext_resource type="Script" uid="uid://da6vqw5d87muo" path="res://scripts/time_display.gd" id="36_time_display"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -88,6 +90,10 @@ texture = ExtResource("33_torch")
 texture = ExtResource("34_coaloretile")
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_campfire"]
+texture = ExtResource("35_campfire")
+0:0/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tree"]
 texture = ExtResource("6_tree")
@@ -159,6 +165,7 @@ sources/15 = SubResource("TileSetAtlasSource_goldoretile")
 sources/16 = SubResource("TileSetAtlasSource_cavefloor")
 sources/17 = SubResource("TileSetAtlasSource_torch")
 sources/18 = SubResource("TileSetAtlasSource_coaloretile")
+sources/19 = SubResource("TileSetAtlasSource_campfire")
 
 [sub_resource type="Shader" id="Shader_roof"]
 code = "shader_type canvas_item;
@@ -256,6 +263,13 @@ offset_top = 8.0
 offset_right = 150.0
 offset_bottom = 24.0
 script = ExtResource("1_coords")
+
+[node name="TimeDisplay" type="Label" parent="CanvasLayer" unique_id=383636100]
+offset_left = 8.0
+offset_top = 24.0
+offset_right = 150.0
+offset_bottom = 40.0
+script = ExtResource("36_time_display")
 
 [node name="Hotbar" parent="CanvasLayer" unique_id=143203180 instance=ExtResource("5_hotbar")]
 

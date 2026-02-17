@@ -158,6 +158,11 @@ const ITEMS: Dictionary = {
         "max_stack": 99,
         "display_name": "Coal"
     },
+    "campfire": {
+        "texture_key": "campfire",
+        "max_stack": 99,
+        "display_name": "Campfire"
+    },
 }
 
 
