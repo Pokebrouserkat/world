@@ -206,7 +206,7 @@ var _overworld_return_pos: Vector2 = Vector2.ZERO
 var _mine_lighting_active: bool = false
 var _mine_modulate: CanvasModulate = null
 var _torch_lights: Dictionary = {}  # Vector2i -> PointLight2D
-var _campfire_lights: Dictionary = {}  # Vector2i -> PointLight2D
+var _campfire = CampfireManager.new()
 var _torch_light_texture: GradientTexture2D = null
 var _flicker_time: float = 0.0
 
@@ -240,6 +240,7 @@ const TILE_REGEN_AMOUNT: int = 1
 
 func _ready() -> void:
     add_to_group("world")
+    _campfire.init(self)
     _setup_tile_physics()
     _setup_tile_occlusion()
     _update_tiles()
@@ -360,7 +361,7 @@ func _update_tiles() -> void:
                 if loaded_source == TILE_SOURCE[TileType.TORCH]:
                     _add_torch_light(tile_pos)
                 elif loaded_source == TILE_SOURCE[TileType.CAMPFIRE]:
-                    _add_campfire_light(tile_pos)
+                    _campfire.add_light(tile_pos, _get_torch_light_texture())
                 _generated_tiles[tile_pos] = true
 
     # Unload tiles outside visible area
@@ -376,7 +377,7 @@ func _update_tiles() -> void:
         _remove_health_bar(tile_pos, false)
         _remove_health_bar(tile_pos, true)
         _remove_torch_light(tile_pos)
-        _remove_campfire_light(tile_pos)
+        _campfire.remove_light(tile_pos)
         _generated_tiles.erase(tile_pos)
 
 
@@ -640,31 +641,6 @@ func _remove_torch_light(tile_pos: Vector2i) -> void:
         _torch_lights.erase(tile_pos)
 
 
-func _add_campfire_light(tile_pos: Vector2i) -> void:
-    if _campfire_lights.has(tile_pos):
-        return
-    var light = PointLight2D.new()
-    light.texture = _get_torch_light_texture()
-    light.texture_scale = 0.6
-    light.energy = 1.0
-    light.color = Color(1.0, 0.7, 0.3)
-    light.shadow_enabled = true
-    light.shadow_color = Color(0.0, 0.0, 0.0, 0.7)
-    light.shadow_filter = Light2D.SHADOW_FILTER_PCF5
-    light.shadow_filter_smooth = 1.0
-    light.position = map_to_local(tile_pos)
-    add_child(light)
-    _campfire_lights[tile_pos] = light
-
-
-func _remove_campfire_light(tile_pos: Vector2i) -> void:
-    if _campfire_lights.has(tile_pos):
-        var light = _campfire_lights[tile_pos]
-        if is_instance_valid(light):
-            light.queue_free()
-        _campfire_lights.erase(tile_pos)
-
-
 func _update_day_night_modulate() -> void:
     if not _day_night_modulate or not _day_night_modulate.visible:
         return
@@ -695,44 +671,22 @@ func _update_day_night_modulate() -> void:
     # Scale light energy so they don't blow out during daytime
     # Flicker intensity scales with darkness so it's most visible at night
     var ft = _flicker_time
-    var flicker = (
-        sin(ft * 8.0) * 0.15 +
-        sin(ft * 13.7) * 0.10 +
-        sin(ft * 23.1) * 0.08 +
-        sin(ft * 3.3) * 0.05
-    )
     var torch_flicker = (
         sin(ft * 9.5 + 2.0) * 0.12 +
         sin(ft * 15.3 + 1.0) * 0.08 +
         sin(ft * 21.0 + 3.0) * 0.06
     )
-    var campfire_base = lerpf(0.15, 1.0, darkness)
     var torch_base = lerpf(0.1, 0.8, darkness)
     var energy_flicker_strength = darkness * 0.25
     for light in _torch_lights.values():
         if is_instance_valid(light):
             light.energy = torch_base + torch_flicker * energy_flicker_strength
-    for light in _campfire_lights.values():
-        if is_instance_valid(light):
-            light.energy = campfire_base + flicker * energy_flicker_strength
+    _campfire.update_energy(darkness, ft)
 
 
 func _update_fire_flicker() -> void:
     var t = _flicker_time
-    # Layered sine waves for organic fire flicker (different frequencies)
-    var flicker = (
-        sin(t * 8.0) * 0.15 +
-        sin(t * 13.7) * 0.10 +
-        sin(t * 23.1) * 0.08 +
-        sin(t * 3.3) * 0.05
-    )
-    # Campfire: larger, warmer, more energetic flicker
-    for light in _campfire_lights.values():
-        if is_instance_valid(light):
-            var base_scale = 0.6
-            light.texture_scale = base_scale + flicker * 0.06
-            # Shift color warmth: base (1.0, 0.7, 0.3), flicker the green/blue
-            light.color = Color(1.0, 0.7 + flicker * 0.08, 0.3 + flicker * 0.05)
+    _campfire.update_flicker(t)
     # Torches: subtler flicker, offset phase so they don't sync with campfires
     var torch_flicker = (
         sin(t * 9.5 + 2.0) * 0.12 +
@@ -1044,7 +998,7 @@ func _break_tile(tile_pos: Vector2i, tile_type: String) -> void:
         _remove_torch_light(tile_pos)
         _spawn_item_by_id("torch", 1, tile_world_pos, 0.0)
     elif tile_type == "campfire":
-        _remove_campfire_light(tile_pos)
+        _campfire.remove_light(tile_pos)
         _spawn_item_by_id("campfire", 1, tile_world_pos, 0.0)
 
 
@@ -1211,9 +1165,9 @@ func _rpc_sync_tile_change(tile_pos: Vector2i, source_id: int) -> void:
         _remove_torch_light(tile_pos)
     # Manage campfire lights on tile changes
     if source_id == TILE_SOURCE[TileType.CAMPFIRE]:
-        _add_campfire_light(tile_pos)
+        _campfire.add_light(tile_pos, _get_torch_light_texture())
     else:
-        _remove_campfire_light(tile_pos)
+        _campfire.remove_light(tile_pos)
     if not multiplayer.is_server():
         _tile_modifications[tile_pos] = source_id
 
