@@ -67,13 +67,13 @@ func _ready() -> void:
 
 
 func _create_ui() -> void:
-    var slot_size = slot_texture.get_width()  # 16
-    var border = 8  # Visual border inset
-    var arrow_width = 12
-    var progress_height = 8
-    var title_height = 10
-    var fuel_label_height = 7
-    var spacing = 2
+    var slot_size = 32  # 2x scale for readability
+    var border = 12
+    var arrow_width = 24
+    var progress_height = 12
+    var title_height = 16
+    var fuel_label_height = 12
+    var spacing = 4
 
     var slot_row_width = slot_size * 2 + arrow_width
     var panel_width = slot_row_width + border * 2
@@ -103,7 +103,7 @@ func _create_ui() -> void:
     title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     title_label.position = Vector2(0, y_cursor)
     title_label.size = Vector2(panel_width, title_height)
-    title_label.add_theme_font_size_override("font_size", 8)
+    title_label.add_theme_font_size_override("font_size", 12)
     title_label.add_theme_color_override("font_color", Color.WHITE)
     title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     panel.add_child(title_label)
@@ -116,7 +116,10 @@ func _create_ui() -> void:
     input_slot = TextureButton.new()
     input_slot.texture_normal = slot_texture
     input_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    input_slot.stretch_mode = TextureButton.STRETCH_KEEP
+    input_slot.ignore_texture_size = true
+    input_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+    input_slot.custom_minimum_size = Vector2(slot_size, slot_size)
+    input_slot.size = Vector2(slot_size, slot_size)
     input_slot.position = Vector2(border, row1_y)
     panel.add_child(input_slot)
 
@@ -131,7 +134,7 @@ func _create_ui() -> void:
     input_stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     input_stack_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
     input_stack_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-    input_stack_label.add_theme_font_size_override("font_size", 8)
+    input_stack_label.add_theme_font_size_override("font_size", 10)
     input_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     input_slot.add_child(input_stack_label)
 
@@ -149,7 +152,10 @@ func _create_ui() -> void:
     output_slot = TextureButton.new()
     output_slot.texture_normal = slot_texture
     output_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    output_slot.stretch_mode = TextureButton.STRETCH_KEEP
+    output_slot.ignore_texture_size = true
+    output_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+    output_slot.custom_minimum_size = Vector2(slot_size, slot_size)
+    output_slot.size = Vector2(slot_size, slot_size)
     output_slot.position = Vector2(border + slot_size + arrow_width, row1_y)
     panel.add_child(output_slot)
 
@@ -164,7 +170,7 @@ func _create_ui() -> void:
     output_stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     output_stack_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
     output_stack_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-    output_stack_label.add_theme_font_size_override("font_size", 8)
+    output_stack_label.add_theme_font_size_override("font_size", 10)
     output_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     output_slot.add_child(output_stack_label)
 
@@ -176,7 +182,7 @@ func _create_ui() -> void:
     fuel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     fuel_label.position = Vector2(0, y_cursor)
     fuel_label.size = Vector2(panel_width, fuel_label_height)
-    fuel_label.add_theme_font_size_override("font_size", 7)
+    fuel_label.add_theme_font_size_override("font_size", 10)
     fuel_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
     fuel_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     panel.add_child(fuel_label)
@@ -185,7 +191,10 @@ func _create_ui() -> void:
     fuel_slot = TextureButton.new()
     fuel_slot.texture_normal = slot_texture
     fuel_slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    fuel_slot.stretch_mode = TextureButton.STRETCH_KEEP
+    fuel_slot.ignore_texture_size = true
+    fuel_slot.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+    fuel_slot.custom_minimum_size = Vector2(slot_size, slot_size)
+    fuel_slot.size = Vector2(slot_size, slot_size)
     fuel_slot.position = Vector2(border, y_cursor)
     panel.add_child(fuel_slot)
 
@@ -200,7 +209,7 @@ func _create_ui() -> void:
     fuel_stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     fuel_stack_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
     fuel_stack_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-    fuel_stack_label.add_theme_font_size_override("font_size", 8)
+    fuel_stack_label.add_theme_font_size_override("font_size", 10)
     fuel_stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     fuel_slot.add_child(fuel_stack_label)
 
@@ -224,7 +233,7 @@ func _create_ui() -> void:
     progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     progress_label.position = Vector2(border, y_cursor)
     progress_label.size = Vector2(slot_row_width, progress_height)
-    progress_label.add_theme_font_size_override("font_size", 7)
+    progress_label.add_theme_font_size_override("font_size", 10)
     progress_label.add_theme_color_override("font_color", Color.WHITE)
     panel.add_child(progress_label)
 
