@@ -58,8 +58,8 @@ func update_flicker(flicker_time: float) -> void:
 
 
 func update_energy(darkness: float, flicker_time: float) -> void:
-    var base = lerpf(0.15, 1.0, darkness)
-    var energy_flicker_strength = darkness * 0.25
+    var base = lerpf(0.35, 1.0, darkness)
+    var energy_flicker_strength = 0.1 + darkness * 0.15
     for tile_pos in _lights:
         var light = _lights[tile_pos]
         if is_instance_valid(light):

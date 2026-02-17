@@ -705,6 +705,9 @@ func _update_day_night_modulate() -> void:
 		color = night_color
 		darkness = 1.0
 	_day_night_modulate.color = color
+	# In mines, lights should always be at full brightness regardless of surface time
+	if player_in_mine:
+		darkness = 1.0
 	# Scale light energy so they don't blow out during daytime
 	# Flicker intensity scales with darkness so it's most visible at night
 	var ft = _flicker_time
@@ -713,12 +716,14 @@ func _update_day_night_modulate() -> void:
 		sin(ft * 15.3 + 1.0) * 0.08 +
 		sin(ft * 21.0 + 3.0) * 0.06
 	)
-	var torch_base = lerpf(0.1, 0.8, darkness)
-	var energy_flicker_strength = darkness * 0.25
+	var torch_base = lerpf(0.3, 0.8, darkness)
+	var energy_flicker_strength = 0.1 + darkness * 0.15
 	for light in _torch_lights.values():
 		if is_instance_valid(light):
 			light.energy = torch_base + torch_flicker * energy_flicker_strength
 	_campfire.update_energy(darkness, ft)
+	# Update player night light
+	_update_player_night_light(darkness)
 
 
 func _update_fire_flicker() -> void:
@@ -768,6 +773,14 @@ func _apply_mine_lighting(enabled: bool) -> void:
 	var player = _get_local_player()
 	if player and player.has_method("set_mine_light"):
 		player.set_mine_light(enabled)
+
+
+func _update_player_night_light(darkness: float) -> void:
+	if player_in_mine:
+		return  # Mine light handles cave illumination
+	var player = _get_local_player()
+	if player and player.has_method("set_night_light_energy"):
+		player.set_night_light_energy(darkness)
 
 
 func _get_local_player() -> CharacterBody2D:

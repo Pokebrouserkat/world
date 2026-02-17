@@ -26,6 +26,7 @@ var furnace_inventory: Node = null
 var _last_pickup_sound_frame: int = -1
 var _mine_light: PointLight2D = null
 var _mine_ambient_light: PointLight2D = null
+var _night_light: PointLight2D = null
 
 
 func is_local_player() -> bool:
@@ -60,6 +61,7 @@ func _ready() -> void:
 	world = get_parent().get_node_or_null("TileMapLayer") as TileMapLayer
 
 	_setup_mine_light()
+	_setup_night_light()
 
 	# Only local player sets up hotbar and UI connections
 	if is_local_player():
@@ -321,6 +323,38 @@ func set_mine_light(enabled: bool) -> void:
 		_mine_light.enabled = enabled
 	if _mine_ambient_light:
 		_mine_ambient_light.enabled = enabled
+	# Hide night light in mines (mine light takes over)
+	if _night_light:
+		_night_light.visible = not enabled
+
+
+func _setup_night_light() -> void:
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color.WHITE)
+	gradient.set_color(1, Color.TRANSPARENT)
+
+	var tex = GradientTexture2D.new()
+	tex.gradient = gradient
+	tex.width = 256
+	tex.height = 256
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+
+	_night_light = PointLight2D.new()
+	_night_light.name = "NightLight"
+	_night_light.position = Vector2(0, -16)
+	_night_light.texture = tex
+	_night_light.texture_scale = 0.6
+	_night_light.energy = 0.0
+	_night_light.color = Color(1.0, 0.9, 0.7)
+	_night_light.shadow_enabled = false
+	add_child(_night_light)
+
+
+func set_night_light_energy(darkness: float) -> void:
+	if _night_light:
+		_night_light.energy = lerpf(0.0, 0.7, darkness)
 
 
 func _is_tool(item_id: String) -> bool:
