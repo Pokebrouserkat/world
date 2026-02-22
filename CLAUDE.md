@@ -58,7 +58,7 @@ For interactive testing use godot-mcp.
 - `FurnaceSystem` - background smelting state, ticks every frame independent of UI
 - `MineSystem` - mine generation/entry/exit, torch lights, mine lighting
 - `HitEffects` - particle + flash effects when tiles are damaged
-- `DayNightCycle` - 300-second day cycle, global CanvasModulate lighting
+- `DayNightCycle` - 600-second day cycle, global CanvasModulate lighting
 - `CampfireManager` - campfire light entities and flicker animation
 
 World exposes subsystem properties via proxy getters/setters for save/load:
@@ -94,7 +94,7 @@ var furnace_states: Dictionary:
 - Single-player only (multiplayer blocked)
 
 **Day/Night Cycle** (`scripts/day_night_cycle.gd`):
-- 300-second cycle: Dawn (0–0.15) → Day (0.15–0.55) → Dusk (0.55–0.70) → Night (0.70–1.0)
+- 600-second cycle: Dawn (0–0.15) → Day (0.15–0.55) → Dusk (0.55–0.70) → Night (0.70–1.0)
 - Global CanvasModulate for surface; separate dark modulate (0.05, 0.05, 0.08) in mines
 - Fire flicker uses overlapping sine waves at different frequencies for natural variation
 - `game_time` persisted in save file

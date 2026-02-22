@@ -4,7 +4,7 @@ extends RefCounted
 var _world: TileMapLayer
 
 var game_time: float = 0.0
-const DAY_LENGTH: float = 300.0
+const DAY_LENGTH: float = 600.0
 
 var _modulate: CanvasModulate = null
 var _flicker_time: float = 0.0
