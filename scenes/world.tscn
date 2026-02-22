@@ -38,6 +38,7 @@
 [ext_resource type="Texture2D" uid="uid://e3103n345ays" path="res://graphics/campfire.png" id="35_campfire"]
 [ext_resource type="Script" uid="uid://da6vqw5d87muo" path="res://scripts/time_display.gd" id="36_time_display"]
 [ext_resource type="Texture2D" uid="uid://nf0buyk65544" path="res://graphics/fallback.png" id="37_fallback"]
+[ext_resource type="Texture2D" path="res://graphics/sapling.png" id="39_sapling"]
 [ext_resource type="Script" uid="uid://uemnlgkdf7fc" path="res://scripts/sandbox_menu.gd" id="38_sandbox_menu"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
@@ -95,6 +96,10 @@ texture = ExtResource("34_coaloretile")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_campfire"]
 texture = ExtResource("35_campfire")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sapling"]
+texture = ExtResource("39_sapling")
 0:0/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tree"]
@@ -168,6 +173,7 @@ sources/16 = SubResource("TileSetAtlasSource_cavefloor")
 sources/17 = SubResource("TileSetAtlasSource_torch")
 sources/18 = SubResource("TileSetAtlasSource_coaloretile")
 sources/19 = SubResource("TileSetAtlasSource_campfire")
+sources/20 = SubResource("TileSetAtlasSource_sapling")
 
 [sub_resource type="Shader" id="Shader_roof"]
 code = "shader_type canvas_item;

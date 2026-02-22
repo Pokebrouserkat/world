@@ -47,6 +47,8 @@ func save_game() -> bool:
         "dropped_items": _serialize_dropped_items(world),
         "box_contents": _serialize_box_contents(world),
         "furnace_states": _serialize_furnace_states(world),
+        "tree_regrowth": _serialize_tree_regrowth(world),
+        "play_time": world.play_time,
         "mine_states": _serialize_mine_states(world),
         "player_in_mine": world.player_in_mine,
         "current_mine_entrance": "%d,%d" % [world.current_mine_entrance.x, world.current_mine_entrance.y],
@@ -130,6 +132,8 @@ func load_game() -> bool:
     _deserialize_box_contents(save_data.get("box_contents", {}), world)
     _deserialize_furnace_states(save_data.get("furnace_states", {}), world)
     _deserialize_mine_states(save_data, world)
+    world.play_time = save_data.get("play_time", 0.0)
+    _deserialize_tree_regrowth(save_data.get("tree_regrowth", {}), world)
     world.game_time = save_data.get("game_time", 0.0)
 
     _last_save_time = save_data.get("timestamp", 0)
@@ -411,3 +415,37 @@ func _deserialize_mine_states(save_data: Dictionary, world: TileMapLayer) -> voi
         # Backward compat: old saves with overworld_return_pos
         var return_pos = save_data.get("overworld_return_pos", {"x": 0, "y": 0})
         world.mine_return_stack.push_back({"x": float(return_pos["x"]), "y": float(return_pos["y"])})
+
+
+func _serialize_tree_regrowth(world: TileMapLayer) -> Dictionary:
+    # Resolve pending regrowth phases before saving
+    var result: Dictionary = {}
+    for pos in world._tree_regrowth:
+        var phase_start = world._tree_regrowth[pos]
+        var elapsed = world.play_time - phase_start
+        var completed_phases = int(elapsed / world.TREE_REGROW_PHASE_TIME)
+
+        if completed_phases >= world.TREE_REGROW_PHASES:
+            # Tree fully regrown — restore it and skip saving
+            world._tile_modifications.erase(pos)
+            continue
+
+        if completed_phases == 1:
+            # Advance to sapling if still grass
+            var current_mod = world._tile_modifications.get(pos, 0)
+            if current_mod == 0:
+                world._tile_modifications[pos] = 20  # SAPLING source_id
+                phase_start += world.TREE_REGROW_PHASE_TIME
+
+        var key = "%d,%d" % [pos.x, pos.y]
+        result[key] = phase_start
+    return result
+
+
+func _deserialize_tree_regrowth(data: Dictionary, world: TileMapLayer) -> void:
+    world._tree_regrowth.clear()
+    for key in data:
+        var parts = key.split(",")
+        if parts.size() == 2:
+            var pos = Vector2i(int(parts[0]), int(parts[1]))
+            world._tree_regrowth[pos] = float(data[key])

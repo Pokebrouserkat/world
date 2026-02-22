@@ -79,10 +79,11 @@ var furnace_states: Dictionary:
 
 **World Generation** (`scripts/world.gd`):
 - Infinite procedural generation with deterministic position-based hash (WORLD_SEED)
-- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL, MINE_ENTRANCE, MINE_EXIT, CAVE_WALL, GOLD_ORE, CAVE_FLOOR, TORCH, COAL_ORE
+- TileType enum: GRASS, ROCK, TREE, BOX, WOOD_WALL, STONE_WALL, FURNACE, IRON_ORE, IRON_WALL, WOOD_FLOOR, STONE_FLOOR, GOLD_WALL, MINE_ENTRANCE, MINE_EXIT, CAVE_WALL, GOLD_ORE, CAVE_FLOOR, TORCH, COAL_ORE, CAMPFIRE, SAPLING
 - Host-authoritative in multiplayer: validates hits/placements, tracks tile health and modifications
 - Manages box contents (`_box_contents`) and furnace states (via `FurnaceSystem`)
 - Manages roof layer (separate TileMapLayer "RoofLayer" at z_index=20) with `_roof_modifications`
+- Tree regrowth: broken trees regrow through 2 phases (grass → sapling → tree), 2 minutes per phase. Tracks `_tree_regrowth` dict (pos → play_time), handles off-screen catch-up on tile load. Only overworld natural tree positions regrow. Placing tiles/roofs cancels regrowth.
 
 **Mine System** (`scripts/mine_system.gd`, `scripts/mine_generator.gd`):
 - Mines exist at Y < -100,000 (far below overworld), each level offset by 100,000 Y units
@@ -147,7 +148,7 @@ var furnace_states: Dictionary:
 
 ### Save System
 - Save file: `user://save.json` (version 1 format)
-- Saves: player position, hotbar, tile modifications, roof modifications, dropped items, box contents, furnace states, mine states, game_time
+- Saves: player position, hotbar, tile modifications, roof modifications, dropped items, box contents, furnace states, mine states, game_time, play_time, tree_regrowth
 - Mine state includes: player_in_mine, mine_level, mine_return_stack, known mines
 - Autosaves on tile changes (debounced) and furnace completions; only in single-player/host mode
 

@@ -127,6 +127,7 @@ func get_tile_type_string(source_id: int) -> String:
         17: return "torch"
         18: return "coal_ore"
         19: return "campfire"
+        20: return "sapling"
         _: return "grass"
 
 
@@ -137,7 +138,7 @@ func is_correct_tool(tool_id: String, source_id: int) -> bool:
     match source_id:
         1:  # Rock - requires pick
             return is_pick
-        2:  # Tree - requires axe
+        2, 20:  # Tree/Sapling - requires axe
             return is_axe
         3:  # Box - any tool works
             return true
