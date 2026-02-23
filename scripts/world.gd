@@ -698,6 +698,7 @@ const ITEM_TO_TILE_SOURCE: Dictionary = {
 	"mine_spawner": 12,
 	"torch": 17,
 	"campfire": 19,
+	"seed": 20,
 }
 
 
@@ -710,6 +711,10 @@ func request_place_tile(tile_pos: Vector2i, _tile_source_id: int, item_id: Strin
 	# Derive tile source from item_id server-side (ignore client-provided source_id)
 	var validated_source_id: int = ITEM_TO_TILE_SOURCE.get(item_id, -1)
 	if validated_source_id < 0:
+		return
+
+	# Seeds are sandbox-exclusive
+	if item_id == "seed" and not GameMode.is_sandbox():
 		return
 
 	var source_id = get_cell_source_id(tile_pos)
@@ -735,6 +740,12 @@ func request_place_tile(tile_pos: Vector2i, _tile_source_id: int, item_id: Strin
 	_rpc_sync_tile_change.rpc(tile_pos, validated_source_id)
 	_tile_modifications[tile_pos] = validated_source_id
 	_trigger_autosave()
+
+	# Start regrowth for planted seeds (sapling → tree)
+	# Offset by one phase so off-screen catch-up knows grass→sapling already happened
+	if item_id == "seed":
+		_tree_regrowth[tile_pos] = _play_time - TREE_REGROW_PHASE_TIME
+		_start_regrowth_timer(tile_pos, TREE_REGROW_PHASE_TIME)
 
 	# Tell the requester to consume their item
 	if requester_peer_id == 1:
@@ -1132,8 +1143,7 @@ func _process_regrowth_on_load(tile_pos: Vector2i) -> void:
 
 	if completed_phases >= TREE_REGROW_PHASES:
 		# Full tree restored
-		_tile_modifications.erase(tile_pos)
-		_tree_regrowth.erase(tile_pos)
+		_finish_tree_regrowth(tile_pos)
 		set_cell(tile_pos, TILE_SOURCE[TileType.TREE], TILE_ATLAS_COORD)
 		return
 
@@ -1190,13 +1200,22 @@ func _on_tree_regrowth_timeout(tile_pos: Vector2i) -> void:
 		_trigger_autosave()
 	elif current_source == TILE_SOURCE[TileType.SAPLING]:
 		# Advance sapling → full tree
-		_tile_modifications.erase(tile_pos)
-		_tree_regrowth.erase(tile_pos)
+		_finish_tree_regrowth(tile_pos)
 		_rpc_sync_tile_change.rpc(tile_pos, TILE_SOURCE[TileType.TREE])
 		_trigger_autosave()
 	else:
 		# Something else is here now, cancel regrowth
 		_tree_regrowth.erase(tile_pos)
+
+
+func _finish_tree_regrowth(tile_pos: Vector2i) -> void:
+	_tree_regrowth.erase(tile_pos)
+	# Natural tree positions: erase modification so procedural gen shows the tree
+	# Seed-planted positions: keep as modification so the tree persists
+	if get_tile_type(tile_pos.x, tile_pos.y) == TileType.TREE:
+		_tile_modifications.erase(tile_pos)
+	else:
+		_tile_modifications[tile_pos] = TILE_SOURCE[TileType.TREE]
 
 
 func _cancel_tree_regrowth(tile_pos: Vector2i) -> void:

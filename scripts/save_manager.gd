@@ -427,7 +427,10 @@ func _serialize_tree_regrowth(world: TileMapLayer) -> Dictionary:
 
         if completed_phases >= world.TREE_REGROW_PHASES:
             # Tree fully regrown — restore it and skip saving
-            world._tile_modifications.erase(pos)
+            if world.get_tile_type(pos.x, pos.y) == world.TileType.TREE:
+                world._tile_modifications.erase(pos)
+            else:
+                world._tile_modifications[pos] = 2  # TREE source_id
             continue
 
         if completed_phases == 1:

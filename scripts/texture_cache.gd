@@ -42,6 +42,7 @@ static func _ensure_loaded() -> void:
     _cache["torch"] = preload("res://graphics/torch.png")
     _cache["coal"] = preload("res://graphics/coal.png")
     _cache["campfire"] = preload("res://graphics/campfire.png")
+    _cache["seed"] = preload("res://graphics/seed.png")
     _cache["fallback"] = preload("res://graphics/fallback.png")
 
 

@@ -149,7 +149,7 @@ func _handle_left_click() -> void:
 		return
 
 	# Check what item is selected and perform appropriate action
-	if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace", "iron_wall", "wood_floor", "stone_floor", "gold_wall", "wood_roof", "stone_roof", "iron_roof", "gold_roof", "mine_spawner", "torch", "campfire"]:
+	if selected_item.item_id in ["box", "wood_wall", "stone_wall", "furnace", "iron_wall", "wood_floor", "stone_floor", "gold_wall", "wood_roof", "stone_roof", "iron_roof", "gold_roof", "mine_spawner", "torch", "campfire", "seed"]:
 		_try_place_item()
 	elif _is_tool(selected_item.item_id):
 		_try_use_tool()
@@ -438,6 +438,8 @@ func _try_place_item() -> void:
 			tile_source_id = 17
 		"campfire":
 			tile_source_id = 19
+		"seed":
+			tile_source_id = 20
 		_:
 			return
 

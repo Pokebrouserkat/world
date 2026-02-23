@@ -165,6 +165,10 @@ func _setup_recipes() -> void:
             "ingredients": {},
             "output_quantity": 1
         }
+        recipes["seed"] = {
+            "ingredients": {},
+            "output_quantity": 10
+        }
 
 
 func _create_ui() -> void:
