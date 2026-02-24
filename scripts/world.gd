@@ -119,6 +119,10 @@ const WORLD_SEED: int = 12345
 # Buffer of extra tiles to generate beyond the visible area
 @export var tile_buffer: int = 2
 
+# Extra tiles beyond tile_buffer before torch/campfire lights are removed.
+# Torch glow radius is ~6 tiles; this keeps lights alive until invisible.
+const LIGHT_UNLOAD_EXTRA: int = 6
+
 # Track which tiles have been generated
 var _generated_tiles: Dictionary = {}
 
@@ -330,13 +334,20 @@ func _update_tiles() -> void:
 			roof_layer.erase_cell(tile_pos)
 		_damage.remove_health_bar(tile_pos, false)
 		_damage.remove_health_bar(tile_pos, true)
-		_mine.remove_torch_light(tile_pos)
-		_campfire.remove_light(tile_pos)
 		# Clean up regrowth timer (data persists for off-screen catch-up)
 		if _tree_regrowth_timers.has(tile_pos):
 			_tree_regrowth_timers[tile_pos].queue_free()
 			_tree_regrowth_timers.erase(tile_pos)
 		_generated_tiles.erase(tile_pos)
+
+	# Remove lights with a larger buffer so glow fades before unload
+	var light_rect = rect.grow(LIGHT_UNLOAD_EXTRA)
+	for tile_pos in _mine.torch_lights.keys():
+		if not light_rect.has_point(tile_pos):
+			_mine.remove_torch_light(tile_pos)
+	for tile_pos in _campfire._lights.keys():
+		if not light_rect.has_point(tile_pos):
+			_campfire.remove_light(tile_pos)
 
 
 func _update_roof_shader(delta: float) -> void:
