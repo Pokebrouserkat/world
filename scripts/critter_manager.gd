@@ -46,6 +46,7 @@ var _active_critters: Dictionary = {}  # "gx,gy,type" -> Critter node
 var _textures: Dictionary = {}  # type_name -> Texture2D
 var _last_in_mine: bool = false
 var _last_rect: Rect2i
+var _critter_time: float = 0.0
 
 
 func _ready() -> void:
@@ -55,7 +56,7 @@ func _ready() -> void:
     _textures["bat"] = load("res://graphics/bat.png")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     var world = _get_world()
     if not world:
         return
@@ -75,7 +76,7 @@ func _process(_delta: float) -> void:
     )
 
     if expanded == _last_rect:
-        _update_critter_positions(world)
+        _update_critter_positions(world, delta)
         return
     _last_rect = expanded
 
@@ -148,16 +149,15 @@ func _process(_delta: float) -> void:
             critter.queue_free()
         _active_critters.erase(key)
 
-    _update_critter_positions(world)
+    _update_critter_positions(world, delta)
 
 
-func _update_critter_positions(_world: TileMapLayer) -> void:
-    # Use physics frames for deterministic time across clients
-    var time = float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
+func _update_critter_positions(_world: TileMapLayer, delta: float) -> void:
+    _critter_time += delta
     for key in _active_critters:
         var critter = _active_critters[key]
         if is_instance_valid(critter):
-            critter.update_position(time)
+            critter.update_position(_critter_time)
 
 
 func _clear_all_critters() -> void:
