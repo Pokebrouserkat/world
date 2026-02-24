@@ -50,18 +50,18 @@ const ROOF_DURABILITY = {
 
 const MINE_DARKNESS_SOURCE: int = 4  # Roof layer source ID for mine darkness overlay
 const ROOF_REVEAL_RADIUS = {
-	0: 20.0,   # Wood roof
+	0: 15.0,   # Wood roof
 	1: 28.0,   # Stone roof
-	2: 40.0,   # Iron roof
-	3: 10.0,   # Gold roof
+	2: 30.0,   # Iron roof
+	3: 0.0,    # Gold roof
 	4: 1.0,    # Mine darkness
 }
 const ROOF_REVEAL_EDGE_BLUR = {
-	0: 0.0,    # Wood roof - sharp
-	1: 0.0,    # Stone roof - sharp
-	2: 0.0,    # Iron roof - sharp
-	3: 160.0,  # Gold roof - blurry
-	4: 160.0,  # Mine darkness - blurry
+	0: 5.0,    # Wood roof
+	1: 0.0,    # Stone roof
+	2: 20.0,   # Iron roof
+	3: 160.0,  # Gold roof
+	4: 160.0,  # Mine darkness - not sure if we need this considering the light engine
 }
 const ROOF_REVEAL_DURATION: float = 0.25  # seconds per transition
 var _roof_reveal_radius: float = 0.0
