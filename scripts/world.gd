@@ -119,9 +119,9 @@ const WORLD_SEED: int = 12345
 # Buffer of extra tiles to generate beyond the visible area
 @export var tile_buffer: int = 2
 
-# Extra tiles beyond tile_buffer before torch/campfire lights are removed.
+# Extra tiles beyond tile_buffer for torch/campfire light load/unload.
 # Torch glow radius is ~6 tiles; this keeps lights alive until invisible.
-const LIGHT_UNLOAD_EXTRA: int = 6
+const LIGHT_BUFFER_EXTRA: int = 6
 
 # Track which tiles have been generated
 var _generated_tiles: Dictionary = {}
@@ -322,6 +322,20 @@ func _update_tiles() -> void:
 					_campfire.add_light(tile_pos, _mine.get_torch_light_texture())
 				_generated_tiles[tile_pos] = true
 
+	# Pre-create lights for torch/campfire tiles in the extended range.
+	# These are always in _tile_modifications (player-placed or mine-generated).
+	var light_rect = rect.grow(LIGHT_BUFFER_EXTRA)
+	var torch_source = TILE_SOURCE[TileType.TORCH]
+	var campfire_source = TILE_SOURCE[TileType.CAMPFIRE]
+	for tile_pos in _tile_modifications:
+		if not light_rect.has_point(tile_pos) or rect.has_point(tile_pos):
+			continue
+		var src = _tile_modifications[tile_pos]
+		if src == torch_source:
+			_mine.add_torch_light(tile_pos)
+		elif src == campfire_source:
+			_campfire.add_light(tile_pos, _mine.get_torch_light_texture())
+
 	# Unload tiles outside visible area
 	var tiles_to_remove: Array[Vector2i] = []
 	for tile_pos in _generated_tiles:
@@ -340,8 +354,7 @@ func _update_tiles() -> void:
 			_tree_regrowth_timers.erase(tile_pos)
 		_generated_tiles.erase(tile_pos)
 
-	# Remove lights with a larger buffer so glow fades before unload
-	var light_rect = rect.grow(LIGHT_UNLOAD_EXTRA)
+	# Remove lights only when beyond the extended light range
 	for tile_pos in _mine.torch_lights.keys():
 		if not light_rect.has_point(tile_pos):
 			_mine.remove_torch_light(tile_pos)
