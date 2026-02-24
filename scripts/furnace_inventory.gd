@@ -30,20 +30,6 @@ var slot_texture: Texture2D = preload("res://graphics/itemslot.png")
 var window_bg: Texture2D = preload("res://graphics/windowtileset.png")
 var arrow_texture: Texture2D = preload("res://graphics/arrow.png")
 
-# Smelting state - stored per furnace in world.gd
-const SMELT_TIME: float = 30.0
-
-# Smelting recipes: input_id -> output_id
-const SMELT_RECIPES: Dictionary = {
-    "iron_ore": "iron",
-    "gold_ore": "gold"
-}
-
-# Fuel values: how many smelts one item provides
-const FUEL_VALUES: Dictionary = {
-    "coal": 5.0,
-    "wood": 0.05
-}
 
 # Drag state
 var dragging: bool = false
@@ -240,19 +226,19 @@ func _process(_delta: float) -> void:
 func _get_smelt_output(input_item) -> String:
     if input_item == null:
         return ""
-    return SMELT_RECIPES.get(input_item.item_id, "")
+    return Constants.SMELT_RECIPES.get(input_item.item_id, "")
 
 
 func _is_smeltable(item_id: String) -> bool:
-    return SMELT_RECIPES.has(item_id)
+    return Constants.SMELT_RECIPES.has(item_id)
 
 
 func _is_fuel(item_id: String) -> bool:
-    return FUEL_VALUES.has(item_id)
+    return Constants.FUEL_VALUES.has(item_id)
 
 
 func _get_fuel_value(item_id: String) -> float:
-    return FUEL_VALUES.get(item_id, 0.0)
+    return Constants.FUEL_VALUES.get(item_id, 0.0)
 
 
 func _try_consume_fuel(state: Dictionary) -> void:
@@ -301,11 +287,11 @@ func _update_ui(state: Dictionary) -> void:
     var has_fuel = state.get("fuel_level", 0.0) > 0.0 or (state.get("fuel_item") != null and _get_fuel_value(state.fuel_item.item_id) > 0.0)
 
     if is_smelting and can_output and has_fuel:
-        var progress = state.smelt_progress / SMELT_TIME
+        var progress = state.smelt_progress / Constants.SMELT_TIME
         var bar_width = progress_bar_bg.size.x * progress
         progress_bar_fill.size.x = bar_width
 
-        var time_remaining = SMELT_TIME - state.smelt_progress
+        var time_remaining = Constants.SMELT_TIME - state.smelt_progress
         progress_label.text = "%ds" % int(ceil(time_remaining))
         progress_bar_fill.visible = true
     else:

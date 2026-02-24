@@ -6,17 +6,6 @@ var _world: TileMapLayer
 # Furnace state storage: Dictionary[Vector2i, {input_item, output_item, smelt_progress}]
 var states: Dictionary = {}
 
-# Smelting constants (must match furnace_inventory.gd)
-const SMELT_TIME: float = 30.0
-const SMELT_RECIPES: Dictionary = {
-    "iron_ore": "iron",
-    "gold_ore": "gold"
-}
-const FUEL_VALUES: Dictionary = {
-    "coal": 5.0,
-    "wood": 0.05
-}
-
 
 func init(world: TileMapLayer) -> void:
     _world = world
@@ -57,7 +46,7 @@ func tick(delta: float) -> bool:
                 state.smelt_progress = 0.0
             continue
 
-        var smelt_output_id: String = SMELT_RECIPES.get(input_item.item_id, "")
+        var smelt_output_id: String = Constants.SMELT_RECIPES.get(input_item.item_id, "")
         if smelt_output_id == "":
             if state.get("smelt_progress", 0.0) != 0.0:
                 state.smelt_progress = 0.0
@@ -72,7 +61,7 @@ func tick(delta: float) -> bool:
         if state.get("fuel_level", 0.0) <= 0.0:
             var fuel_item = state.get("fuel_item")
             if fuel_item != null:
-                var fuel_value: float = FUEL_VALUES.get(fuel_item.item_id, 0.0)
+                var fuel_value: float = Constants.FUEL_VALUES.get(fuel_item.item_id, 0.0)
                 if fuel_value > 0.0:
                     state.fuel_level = fuel_value
                     fuel_item.quantity -= 1
@@ -83,10 +72,10 @@ func tick(delta: float) -> bool:
             continue
 
         # Consume fuel and advance progress
-        state.fuel_level -= delta / SMELT_TIME
+        state.fuel_level -= delta / Constants.SMELT_TIME
         state.smelt_progress += delta
 
-        if state.smelt_progress >= SMELT_TIME:
+        if state.smelt_progress >= Constants.SMELT_TIME:
             state.smelt_progress = 0.0
             input_item.quantity -= 1
             if input_item.quantity <= 0:

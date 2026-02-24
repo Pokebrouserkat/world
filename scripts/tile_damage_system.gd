@@ -57,14 +57,6 @@ const GOLD_TOOL_STRENGTH: int = 1
 # Health regeneration
 const TILE_REGEN_AMOUNT: int = 1
 
-# Roof constants
-const ROOF_ITEMS: Array[String] = ["wood_roof", "stone_roof", "iron_roof", "gold_roof"]
-const ROOF_DURABILITY = {
-    "wood_roof": 20,
-    "stone_roof": 30,
-    "iron_roof": 60,
-    "gold_roof": 120,
-}
 
 
 func init(world: TileMapLayer) -> void:
@@ -192,7 +184,7 @@ func get_tile_health_ratio(tile_pos: Vector2i, tile_type: String) -> float:
 func apply_roof_damage(tile_pos: Vector2i, roof_item_id: String, damage: int) -> int:
     ## Apply damage to a roof. Returns remaining health (0 = broken).
     if not roof_health.has(tile_pos):
-        roof_health[tile_pos] = ROOF_DURABILITY[roof_item_id]
+        roof_health[tile_pos] = Constants.ROOF_DURABILITY[roof_item_id]
     roof_health[tile_pos] -= damage
     if roof_health[tile_pos] <= 0:
         roof_health.erase(tile_pos)
@@ -203,7 +195,7 @@ func apply_roof_damage(tile_pos: Vector2i, roof_item_id: String, damage: int) ->
 func get_roof_health_ratio(tile_pos: Vector2i, roof_item_id: String) -> float:
     if not roof_health.has(tile_pos):
         return 1.0
-    var max_hp = ROOF_DURABILITY[roof_item_id]
+    var max_hp = Constants.ROOF_DURABILITY[roof_item_id]
     return float(roof_health[tile_pos]) / float(max_hp)
 
 

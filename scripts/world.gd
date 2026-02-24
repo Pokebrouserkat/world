@@ -30,7 +30,6 @@ var _damage = TileDamageSystem.new()
 
 # Box inventory storage: Dictionary[Vector2i, Array[Item]]
 var _box_contents: Dictionary = {}
-const BOX_SLOT_COUNT: int = 9
 
 # Furnace system
 var _furnace = FurnaceSystem.new()
@@ -38,15 +37,6 @@ var _furnace = FurnaceSystem.new()
 # === ROOF LAYER ===
 var roof_layer: TileMapLayer = null
 var _roof_modifications: Dictionary = {}  # Vector2i -> source_id (0=wood,1=stone,2=iron,3=gold)
-const ROOF_ITEMS: Array[String] = ["wood_roof", "stone_roof", "iron_roof", "gold_roof"]
-
-const ROOF_DURABILITY = {
-	"wood_roof": 20,
-	"stone_roof": 30,
-	"iron_roof": 60,
-	"gold_roof": 120,
-}
-
 
 const MINE_DARKNESS_SOURCE: int = 4  # Roof layer source ID for mine darkness overlay
 const ROOF_REVEAL_RADIUS = {
@@ -167,7 +157,6 @@ var mine_return_stack: Array:
 
 # Day/night cycle
 var _day_night = DayNightCycle.new()
-const DAY_LENGTH: float = 300.0
 
 var game_time: float:
 	get: return _day_night.game_time
@@ -461,7 +450,7 @@ func get_box_contents(box_pos: Vector2i) -> Array:
 	if not _box_contents.has(box_pos):
 		# Initialize empty box with null slots
 		var contents: Array = []
-		for i in range(BOX_SLOT_COUNT):
+		for i in range(Constants.BOX_SLOT_COUNT):
 			contents.append(null)
 		_box_contents[box_pos] = contents
 	return _box_contents[box_pos]
@@ -469,7 +458,7 @@ func get_box_contents(box_pos: Vector2i) -> Array:
 
 func set_box_slot(box_pos: Vector2i, slot: int, item) -> void:
 	var contents = get_box_contents(box_pos)
-	if slot >= 0 and slot < BOX_SLOT_COUNT:
+	if slot >= 0 and slot < Constants.BOX_SLOT_COUNT:
 		contents[slot] = item
 
 
@@ -813,10 +802,10 @@ func request_hit_roof(tile_pos: Vector2i, tool_id: String, requester_peer_id: in
 		return
 
 	var source_id = roof_layer.get_cell_source_id(tile_pos)
-	if source_id < 0 or source_id >= ROOF_ITEMS.size():
+	if source_id < 0 or source_id >= Constants.ROOF_ITEMS.size():
 		return
 
-	var roof_item_id = ROOF_ITEMS[source_id]
+	var roof_item_id = Constants.ROOF_ITEMS[source_id]
 
 	# Calculate and apply damage
 	var damage = _damage.calculate_damage(tool_id)
@@ -1033,7 +1022,7 @@ func request_set_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantit
 
 	# Update local storage
 	var contents = get_box_contents(box_pos)
-	if slot >= 0 and slot < BOX_SLOT_COUNT:
+	if slot >= 0 and slot < Constants.BOX_SLOT_COUNT:
 		contents[slot] = item
 
 	# Broadcast to all clients
@@ -1045,7 +1034,7 @@ func request_swap_box_slots(box_pos: Vector2i, slot_a: int, slot_b: int) -> void
 	if not multiplayer.is_server():
 		return
 	var contents = get_box_contents(box_pos)
-	if slot_a < 0 or slot_a >= BOX_SLOT_COUNT or slot_b < 0 or slot_b >= BOX_SLOT_COUNT:
+	if slot_a < 0 or slot_a >= Constants.BOX_SLOT_COUNT or slot_b < 0 or slot_b >= Constants.BOX_SLOT_COUNT:
 		return
 	var item_a = contents[slot_a]
 	var item_b = contents[slot_b]
@@ -1077,7 +1066,7 @@ func _rpc_sync_box_slot(box_pos: Vector2i, slot: int, item_id: String, quantity:
 		item = Item.create(item_id, quantity)
 
 	var contents = get_box_contents(box_pos)
-	if slot >= 0 and slot < BOX_SLOT_COUNT:
+	if slot >= 0 and slot < Constants.BOX_SLOT_COUNT:
 		contents[slot] = item
 
 	# Update UI if box inventory is open
@@ -1126,8 +1115,8 @@ func _on_regen_tick() -> void:
 		if source_id < 0:
 			roofs_to_remove.append(tile_pos)
 			continue
-		var roof_item_id = ROOF_ITEMS[source_id]
-		var max_hp = ROOF_DURABILITY[roof_item_id]
+		var roof_item_id = Constants.ROOF_ITEMS[source_id]
+		var max_hp = Constants.ROOF_DURABILITY[roof_item_id]
 		_damage.roof_health[tile_pos] = mini(_damage.roof_health[tile_pos] + _damage.TILE_REGEN_AMOUNT, max_hp)
 		if _damage.roof_health[tile_pos] >= max_hp:
 			roofs_to_remove.append(tile_pos)

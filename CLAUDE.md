@@ -68,6 +68,9 @@ var furnace_states: Dictionary:
     set(v): _furnace.states = v
 ```
 
+### Shared Constants (`scripts/constants.gd`)
+`Constants` class holds values shared across multiple files: `DAY_LENGTH`, `BOX_SLOT_COUNT`, `ROOF_ITEMS`, `ROOF_DURABILITY`, `SMELT_TIME`, `SMELT_RECIPES`, `FUEL_VALUES`. Reference as `Constants.DAY_LENGTH` etc. Add new shared constants here instead of duplicating across files.
+
 ### Core Systems
 
 **Item System** (`scripts/item.gd`, `scripts/item_registry.gd`, `scripts/texture_cache.gd`):

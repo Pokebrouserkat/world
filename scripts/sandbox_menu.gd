@@ -271,7 +271,7 @@ func close() -> void:
 func _on_time_pressed(time_ratio: float) -> void:
     var world = get_tree().get_first_node_in_group("world")
     if world:
-        world.game_time = time_ratio * world.DAY_LENGTH
+        world.game_time = time_ratio * Constants.DAY_LENGTH
         var names = {0.0: "Dawn", 0.15: "Day", 0.55: "Dusk", 0.70: "Night"}
         status_label.text = "Time set to %s" % names.get(time_ratio, "???")
 

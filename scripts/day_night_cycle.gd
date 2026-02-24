@@ -4,7 +4,6 @@ extends RefCounted
 var _world: TileMapLayer
 
 var game_time: float = 0.0
-const DAY_LENGTH: float = 600.0
 
 var _modulate: CanvasModulate = null
 var _flicker_time: float = 0.0
@@ -21,8 +20,8 @@ func init(world: TileMapLayer) -> void:
 func update(delta: float, torch_lights: Dictionary, campfire: CampfireManager, player_in_mine: bool) -> void:
     # Advance time
     game_time += delta
-    if game_time >= DAY_LENGTH:
-        game_time -= DAY_LENGTH
+    if game_time >= Constants.DAY_LENGTH:
+        game_time -= Constants.DAY_LENGTH
     _flicker_time += delta
 
     # Update modulate color
@@ -35,7 +34,7 @@ func update(delta: float, torch_lights: Dictionary, campfire: CampfireManager, p
 func _update_modulate(torch_lights: Dictionary, campfire: CampfireManager, player_in_mine: bool) -> void:
     if not _modulate or not _modulate.visible:
         return
-    var time_ratio = game_time / DAY_LENGTH
+    var time_ratio = game_time / Constants.DAY_LENGTH
     var day_color = Color(1.0, 1.0, 1.0)
     var night_color = Color(0.15, 0.15, 0.35)
     var color: Color

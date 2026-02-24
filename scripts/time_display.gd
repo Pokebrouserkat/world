@@ -7,7 +7,7 @@ func _process(_delta: float) -> void:
         text = ""
         return
 
-    var time_ratio = world.game_time / world.DAY_LENGTH
+    var time_ratio = world.game_time / Constants.DAY_LENGTH
     if time_ratio < 0.15:
         text = "Dawn"
     elif time_ratio < 0.55:

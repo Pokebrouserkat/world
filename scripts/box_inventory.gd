@@ -14,7 +14,6 @@ var slots: Array[TextureButton] = []
 var item_icons: Array[TextureRect] = []
 var stack_labels: Array[Label] = []
 
-const SLOT_COUNT: int = 9
 const GRID_COLS: int = 3
 
 # Textures
@@ -84,7 +83,7 @@ func _create_ui() -> void:
     panel.add_child(slot_container)
 
     # Create slots
-    for i in range(SLOT_COUNT):
+    for i in range(Constants.BOX_SLOT_COUNT):
         var slot = TextureButton.new()
         slot.texture_normal = slot_texture
         slot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -119,7 +118,7 @@ func _update_item_icons() -> void:
 
     var contents = world.get_box_contents(current_box_pos)
 
-    for i in range(SLOT_COUNT):
+    for i in range(Constants.BOX_SLOT_COUNT):
         var item = contents[i] if i < contents.size() else null
         if item != null:
             item_icons[i].texture = item.texture

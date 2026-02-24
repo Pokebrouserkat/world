@@ -5,7 +5,6 @@ extends CharacterBody2D
 @export var peer_id: int = 1  # Network peer ID, set by PlayerSpawner
 
 var hotbar: Node = null
-var dropped_item_scene: PackedScene = preload("res://scenes/dropped_item.tscn")
 var pickup_sound: AudioStream = preload("res://audio/pickup.wav")
 
 var world: TileMapLayer = null
