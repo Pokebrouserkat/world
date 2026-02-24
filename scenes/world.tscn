@@ -32,14 +32,14 @@
 [ext_resource type="Texture2D" uid="uid://dh0pex71gdcop" path="res://graphics/cavewall.png" id="30_cavewall"]
 [ext_resource type="Texture2D" uid="uid://sofudasu4cct" path="res://graphics/goldoretile.png" id="31_goldoretile"]
 [ext_resource type="Texture2D" uid="uid://di3djm1qyd5vc" path="res://graphics/cavefloor.png" id="32_cavefloor"]
-[ext_resource type="Script" uid="uid://b3hdimq3douky" path="res://scripts/critter_manager.gd" id="33_critter_mgr"]
+[ext_resource type="Script" path="res://scripts/critter_manager.gd" id="33_critter_mgr"]
 [ext_resource type="Texture2D" uid="uid://4nwu3llkstmy" path="res://graphics/torch.png" id="33_torch"]
 [ext_resource type="Texture2D" uid="uid://c60rxhsuu3etl" path="res://graphics/coaloretile.png" id="34_coaloretile"]
 [ext_resource type="Texture2D" uid="uid://e3103n345ays" path="res://graphics/campfire.png" id="35_campfire"]
-[ext_resource type="Script" uid="uid://da6vqw5d87muo" path="res://scripts/time_display.gd" id="36_time_display"]
+[ext_resource type="Script" path="res://scripts/time_display.gd" id="36_time_display"]
 [ext_resource type="Texture2D" uid="uid://nf0buyk65544" path="res://graphics/fallback.png" id="37_fallback"]
-[ext_resource type="Texture2D" path="res://graphics/sapling.png" id="39_sapling"]
 [ext_resource type="Script" uid="uid://uemnlgkdf7fc" path="res://scripts/sandbox_menu.gd" id="38_sandbox_menu"]
+[ext_resource type="Texture2D" uid="uid://1fgja40nvl2f" path="res://graphics/sapling.png" id="39_sapling"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fj7yv"]
 texture = ExtResource("1_f3sb7")
@@ -98,10 +98,6 @@ texture = ExtResource("34_coaloretile")
 texture = ExtResource("35_campfire")
 0:0/0 = 0
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sapling"]
-texture = ExtResource("39_sapling")
-0:0/0 = 0
-
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tree"]
 texture = ExtResource("6_tree")
 texture_region_size = Vector2i(37, 40)
@@ -110,6 +106,10 @@ texture_region_size = Vector2i(37, 40)
 0:0/0/z_index = 1
 0:0/0/y_sort_origin = 20
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sapling"]
+texture = ExtResource("39_sapling")
+0:0/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_box"]
 texture = ExtResource("10_box")
@@ -250,7 +250,6 @@ y_sort_enabled = true
 tile_set = SubResource("TileSet_gv5m4")
 occlusion_enabled = false
 script = ExtResource("2_world")
-tile_buffer = null
 
 [node name="CritterLayer" type="Node2D" parent="." unique_id=104124892]
 y_sort_enabled = true
